@@ -17,31 +17,29 @@ import { FinaleCta } from "@/components/landing/FinaleCta";
 import { LandingFaq } from "@/components/landing/LandingFaq";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
-/* P15 (concept A — CHARACTER-LED HERO):
- * the robot IS the protagonist. The three.js SmartBot renders as a
- * full-height presence (~62svh mass) in the CENTER of a 100svh-minus-
- * chrome hero, standing on its pedestal + grid floor IN the first
- * viewport (the world is never below the fold). The interface is
- * composed AROUND the machine with real depth: a bracket-cornered
- * PROMPT TICKER at the reading start (RTL: right) cycling real
- * capability statements, a mono status micro-panel on the far side,
- * both UNDER the transparent canvas so the robot's body physically
- * anchors them; a thin animated teal→lime circuit line crosses the
- * machine's zone above the canvas; the oversized Arabic display
- * headline (IBM Plex Sans Arabic 700 — a REAL Arabic face at last)
- * anchors the bottom third with a mono-caps eyebrow, exactly the
- * reference's bottom-anchored display grammar. On scroll the machine
- * layer sinks and fades (HeroExit). Mobile (≤1024px): a deliberate
- * vertical stack — copy top, full-figure robot (~44svh, never a
- * cropped head), ticker, CTA.
- * The retired P12-2c layer: floating capability chips (the ticker +
- * status panel carry the same real copy now, anchored), the below-
- * fold HeroCompanion/BotChatSimulator dock (the ticker is the
- * first-viewport beat; the honest 3-scenario transcripts live on in
- * MindSection's chat threads). The page stays a SERVER component —
- * the canvas mounts via dynamic import ssr:false, the h1/sub paint
- * inline (LCP doctrine untouched). All real copy/links below the
- * hero are untouched. */
+/* P16-A (concept A — CHARACTER-LED CINEMATIC hero):
+ * the authored GLB character IS the protagonist. The three.js scene
+ * renders the chibi attendant-machine full-figure (~62vh, head near
+ * the vertical midline) dead-CENTER of a 100svh-minus-chrome hero,
+ * standing on its pedestal + rings + grid floor IN the first viewport.
+ * The composition is the product story, ChainGPT-informed and
+ * RTL-adapted: the typed prompt console (the scenario's incoming
+ * message) at the INLINE-START (RTL: right), the status/capability
+ * readout at the INLINE-END (left), the character between them —
+ * prompt → agent → result. The character is ALIVE at three
+ * timescales: pointer head-tracking, idle layers (bob/blink/antenna
+ * sway/edge-strip breathing), and scenario reactions driven by the
+ * honest HeroTicker engine (the beat bus). The oversized Arabic
+ * display headline (IBM Plex Sans Arabic 700) anchors the bottom
+ * third (the reference's fold-proof grammar). The decorative circuit
+ * traces were RETIRED with the primitives robot — the character's ONE
+ * emissive edge strip is the light signature now (no decorative
+ * noise). On scroll the machine layer sinks and fades (HeroExit).
+ * Mobile (≤1024px): its OWN composition — character-first stack
+ * (~62svh stage), one console line above the title lockup, CTA last.
+ * The page stays a SERVER component — the canvas mounts via dynamic
+ * import ssr:false, the h1/sub paint inline (LCP doctrine
+ * untouched). All real copy/links below the hero are untouched. */
 
 const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly";
 
@@ -174,82 +172,33 @@ export default function HomePage() {
           focus behavior, zero visual change. */}
       <div id="page-content" tabIndex={-1}>
 
-        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: P15 concept A — the robot is
-            the protagonist. One 100svh scene: machine centered on its
-            visible stage, ticker/status composed around it with depth,
-            the Arabic display headline anchoring the bottom third. ═══ */}
+        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: P16-A concept A — the
+            authored GLB character is the protagonist. One 100svh scene:
+            the character centered on its visible stage between the
+            prompt console (inline-start) and the status readout
+            (inline-end), the Arabic display headline anchoring the
+            bottom third. ═══ */}
         <section className="ln-hero ln-hero-robot" aria-label="SmartBot — رفيق صفحات فيسبوك">
-          {/* the machine layer — the canvas is TRANSPARENT, so the ticker
-              and status boxes under it are physically anchored by the
-              robot's body. Decorative by role (aria-hidden): the ticker,
-              status panel and copy are the accessible surface. Sinks and
-              fades on the first scroll (HeroExit). */}
+          {/* the machine layer — the canvas is TRANSPARENT, so the
+              console and status boxes under it are physically anchored
+              by the character's body. Decorative by role (aria-hidden):
+              the ticker, status panel and copy are the accessible
+              surface. Sinks and fades on the first scroll (HeroExit). */}
           <div className="ln-robot-stage" aria-hidden="true">
             <HeroExit>
               <div className="ln-robot-frame">
-                {/* the floor glow + shadow anchor under the pedestal
-                    (the CSS half of the machine's light spill) and the
-                    edge vignette — both UNDER the canvas, at the exact
-                    viewport fractions the scene's framing solver places
-                    the pedestal (--sb-floor) */}
+                {/* the floor glow + contact-pool anchor under the
+                    pedestal (the CSS half of the machine's light spill,
+                    at the exact viewport fraction the scene's framing
+                    solver places the floor — --sb-floor) and the edge
+                    vignette — both UNDER the canvas */}
                 <span className="ln-robot-glow" />
                 <span className="ln-robot-vignette" />
-                {/* the circuit line — a thin animated teal→lime trace
-                    crossing the machine's zone (right→left, RTL flow),
-                    tying the text world to the machine. It rides UNDER
-                    the canvas, so the machine's body OCCLUDES its middle
-                    — the line reads on both sides of the robot and the
-                    character visibly stands IN the circuit (one more
-                    depth interlock, the reference's text→machine trace).
-                    Decorative. */}
-                <svg className="ln-circuit" viewBox="0 0 600 2" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                  <defs>
-                    <linearGradient id="ln-circuit-grad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0" stopColor="#17C3A4" stopOpacity="0.1" />
-                      <stop offset="0.22" stopColor="#17C3A4" stopOpacity="0.85" />
-                      <stop offset="0.5" stopColor="#C6F24E" stopOpacity="0.7" />
-                      <stop offset="0.78" stopColor="#17C3A4" stopOpacity="0.85" />
-                      <stop offset="1" stopColor="#17C3A4" stopOpacity="0.1" />
-                    </linearGradient>
-                  </defs>
-                  <line x1="4" y1="1" x2="596" y2="1" stroke="url(#ln-circuit-grad)" strokeWidth="1" vectorEffect="non-scaling-stroke" className="ln-circuit-base" />
-                  <line x1="4" y1="1" x2="596" y2="1" stroke="url(#ln-circuit-grad)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" className="ln-circuit-run" />
-                  {/* node dots in the VISIBLE zones flanking the machine —
-                      the circuit reads as infrastructure, not a lone line */}
-                  <circle cx="100" cy="1" r="2" fill="#17C3A4" opacity="0.7" />
-                  <circle cx="500" cy="1" r="2" fill="#C6F24E" opacity="0.6" />
-                  <circle cx="4" cy="1" r="3" fill="#17C3A4" />
-                  <circle cx="596" cy="1" r="3" fill="#C6F24E" opacity="0.8" />
-                </svg>
-                {/* 2-e · directive 4 — the FLOOR trace: the same circuit
-                    family routed at the floor band, passing fully BEHIND the
-                    pedestal (the widest silhouette in the scene — the trace
-                    disappears for ~1/3 of the stage and re-emerges on the far
-                    side, with 45° chamfered PCB elbows dipping it under the
-                    machine). Decorative. */}
-                <svg className="ln-circuit ln-circuit-floor" viewBox="0 0 600 34" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                  <defs>
-                    <linearGradient id="ln-circuit-floor-grad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0" stopColor="#17C3A4" stopOpacity="0.12" />
-                      <stop offset="0.25" stopColor="#17C3A4" stopOpacity="0.62" />
-                      <stop offset="0.5" stopColor="#C6F24E" stopOpacity="0.5" />
-                      <stop offset="0.75" stopColor="#17C3A4" stopOpacity="0.62" />
-                      <stop offset="1" stopColor="#17C3A4" stopOpacity="0.12" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 4 30 L 84 30 L 104 12 L 496 12 L 516 30 L 596 30" fill="none" stroke="url(#ln-circuit-floor-grad)" strokeWidth="1" vectorEffect="non-scaling-stroke" className="ln-circuit-base" />
-                  <path d="M 4 30 L 84 30 L 104 12 L 496 12 L 516 30 L 596 30" fill="none" stroke="url(#ln-circuit-floor-grad)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" className="ln-circuit-run" />
-                  {/* the far-side nodes — the trace's re-emergence points */}
-                  <circle cx="84" cy="30" r="2" fill="#17C3A4" opacity="0.75" />
-                  <circle cx="516" cy="30" r="2" fill="#17C3A4" opacity="0.75" />
-                  <circle cx="4" cy="30" r="3" fill="#17C3A4" />
-                  <circle cx="596" cy="30" r="3" fill="#17C3A4" opacity="0.85" />
-                </svg>
                 <RobotSceneMount className="ln-robot-canvas" />
-                {/* 2-e · directive 3 — the pedestal scrim: ABOVE the canvas,
-                    BELOW the copy (z3) — the machine's lower body sinks into
-                    the petrol gradient through the display block's zone so no
-                    glyph intersects a lit silhouette edge (see §18). */}
+                {/* the pedestal scrim: ABOVE the canvas, BELOW the copy
+                    (z3) — the character's lower body sinks into the
+                    petrol gradient through the display block's zone so
+                    no glyph intersects a lit silhouette edge. */}
                 <span className="ln-robot-scrim" />
               </div>
             </HeroExit>

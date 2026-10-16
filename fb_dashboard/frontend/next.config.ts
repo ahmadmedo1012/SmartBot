@@ -74,6 +74,13 @@ const nextConfig: NextConfig = {
       headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
     },
     {
+      /* P16-A: the authored character GLB — content-stable binary asset,
+         same 1y-immutable class as the fonts (middleware.ts carries the
+         matching MODEL_FILE_RE rule where it applies — precedence). */
+      source: "/models/:path*",
+      headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+    },
+    {
       source: "/opengraph-image.png",
       headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
     },

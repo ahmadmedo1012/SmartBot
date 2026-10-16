@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const publicPrefixes = [
   "/_next", "/favicon.png", "/robots.txt", "/sitemap.xml", "/manifest.json",
-  "/static", "/brand-icon.png",
+  "/static", "/brand-icon.png", "/models",
   "/api/auth", "/api/plans",
   "/login", "/register", "/pricing", "/subscribe", "/demo",
 ];
@@ -24,6 +24,14 @@ const publicPrefixes = [
  * API responses keep no-store. */
 const FONT_FILE_RE = /\.(?:woff2?|ttf|otf)$/i;
 const FONT_CACHE_CONTROL = "public, max-age=31536000, immutable";
+
+/* P16-A: the authored character GLB is a content-stable binary asset —
+ * same immutability class as the fonts (a content change means a
+ * re-copy under the same path only at deploy time, when the page HTML
+ * itself is new). Without this, the hero's protagonist re-downloads
+ * on every navigation (page default = no-store). */
+const MODEL_FILE_RE = /\.(?:glb|gltf|bin)$/i;
+const MODEL_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 /* v12-E5.4 (D8 live finding): the matcher's extension alternatives only
  * exclude paths whose remainder STARTS with ".png" — so /opengraph-image.png,
@@ -52,7 +60,9 @@ function setHeaders(resp: NextResponse, pathname: string) {
     "Cache-Control",
     FONT_FILE_RE.test(pathname)
       ? FONT_CACHE_CONTROL
-      : IMMUTABLE_STATIC_RE.test(pathname)
+      : MODEL_FILE_RE.test(pathname)
+        ? MODEL_CACHE_CONTROL
+        : IMMUTABLE_STATIC_RE.test(pathname)
         ? "public, max-age=31536000, immutable"
         : pathname === "/manifest.webmanifest"
           ? MANIFEST_CACHE_CONTROL

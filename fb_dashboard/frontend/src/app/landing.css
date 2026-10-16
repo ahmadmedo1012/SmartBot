@@ -2121,16 +2121,16 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
    the spotlight platform / turntable-ring / vignette mist twins were
    deleted in the same commit. */
 
-/* ═══ 18 — P15 CONCEPT A · THE MACHINE LAYER ═══════════════════════════
-   The robot IS the protagonist: the canvas fills the whole hero and the
-   camera is framed from the composition tokens below, so the FULL
-   figure (halo → pedestal) + its grid-floor stage always compose inside
-   the first viewport. The stage sits at z1 ABOVE the ticker/status
-   island (z0) — the alpha canvas lets the robot's body physically
-   anchor the interface boxes (real depth interlock); the circuit line
-   rides INSIDE the machine layer, over the canvas, under the copy.
-   The old P12-2c layer (side-column stage, fog bed, floating chips,
-   hero grid/dock rules) was retired in this commit. */
+/* ═══ 18 — P16-A CONCEPT A · THE CHARACTER LAYER ═══════════════════════
+   The authored GLB character IS the protagonist: the canvas fills the
+   whole hero and the camera is framed from the composition tokens
+   below, so the FULL figure (antenna crown → pedestal base) + its
+   grid-floor stage always compose inside the first viewport. The stage
+   sits at z1 ABOVE the console/status island (z0) — the alpha canvas
+   lets the character's body physically anchor the interface boxes
+   (real depth interlock). The decorative circuit traces + tethers were
+   RETIRED with the primitives robot (P16-A): the character's ONE
+   emissive edge strip is the light signature — the void stays clean. */
 .landing {
   --sb-chamfer: 12px; /* the 45° cut size — the landing card law */
 }
@@ -2139,13 +2139,15 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
    chrome (the 73px landing header + hairline, measured live), a
    petrol void with a faint teal horizon breath at the floor line. */
 .landing .ln-hero-robot {
-  /* the framing contract: the figure fills 66% of the host height and
-   * the floor line lands at 72% — solved so the head's chin clears the
-   * display block's eyebrow by ~30px at 1440 (the face NEVER collides
-   * with the headline; the title's left end overlaps only the torso/
-   * pedestal zone, the reference's h1-over-legs grammar) */
-  --sb-fig: 0.66;   /* the figure's share of the host height */
-  --sb-floor: 0.72; /* where the grid floor line lands (from top) */
+  /* the framing contract (P16-A re-anchored for the authored
+   * character): the figure fills 76% of the host height and the floor
+   * line lands at 84% — solved so the character (≈62% of the viewport,
+   * head near the vertical midline) owns the center while the h1
+   * lockup's zone overlaps only the pedestal/hips band (the
+   * reference's h1-over-legs grammar) with the reflection hint +
+   * contact glow in the 16% below the floor line) */
+  --sb-fig: 0.76;   /* the figure's share of the host height */
+  --sb-floor: 0.84; /* where the grid floor line lands (from top) */
   display: block;
   padding: 0;
   overflow: clip;
@@ -2258,64 +2260,6 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   );
 }
 
-/* the circuit line — the thin animated teal→lime trace crossing the
-   machine's zone (traveling right→left, the RTL flow direction),
-   tying the text world to the machine. It rides UNDER the canvas, so
-   the machine's body OCCLUDES its middle — the line reads on both
-   sides of the robot and the character visibly stands IN the circuit
-   (one more depth interlock, the reference's text→machine trace).
-   2-e · directive 4: a SECOND trace (.ln-circuit-floor) rides at the
-   FLOOR band — routed so it passes fully BEHIND the pedestal (the
-   widest silhouette in the scene): the trace visibly disappears for
-   ~half the machine's width and re-emerges on the far side, the
-   mid-span occlusion extended into a full behind-the-body route.
-   Decorative (aria-hidden). 2-e · directive 8: the lime stop calmed
-   0.95 → 0.7 — the circuit joins the teal→lime gradient family
-   without out-shining the eye band. */
-.landing .ln-circuit {
-  position: absolute;
-  inset-inline: 6%;
-  inset-block-start: 42%;
-  block-size: 6px;
-  /* 2-g (P1 — acceptance gap 1): SVG is a REPLACED abspos element — its
-     auto inline-size resolved through the viewBox aspect (600:2 → 1800px
-     at 6px height) instead of the intended inset stretch, bleeding 446px
-     off the inline-end and stopping 86px short of the reading-start
-     edge. CAUTION (r2): the first attempt used inline-size: 100%, which
-     OVER-CONSTRAINS against inset-inline 6% — in RTL the inline-start
-     offset wins, so the 1440px box sat 86px off the inline-start edge
-     AND bled 86px past the inline-end (measured live: x=-86). The
-     correct arithmetic is 88% (100% − 2×6%): start inset 86.4 + width
-     1267.2 resolves to EXACTLY the 6%-inset span on both edges, and
-     preserveAspectRatio="none" (already on the SVG) stretches the
-     gradient + node dots across the REAL span; the dash-run keyframes
-     ride the viewBox coordinate space unchanged. */
-  inline-size: 88%;
-  overflow: visible;
-  pointer-events: none;
-}
-.landing .ln-circuit-floor {
-  inset-block-start: auto;
-  inset-block-end: calc((1 - var(--sb-floor)) * 100% - 3px);
-  block-size: 8px;
-  /* 2-g (P1 — acceptance gap 1, the floor twin): same replaced-element
-     aspect bug — 600:34 at 8px height resolved to a 141px STUB at the
-     inline-end, so the behind-the-pedestal occlusion read was entirely
-     missing. Same 88% arithmetic as the main trace (r2 — 100% was
-     over-constrained): the full-stage route restores, the 45° elbows
-     dip under the machine and the trace passes BEHIND the pedestal
-     across ~1/3 of the span. */
-  inline-size: 88%;
-}
-.landing .ln-circuit .ln-circuit-base { opacity: 0.75; }
-.landing .ln-circuit .ln-circuit-run {
-  stroke-dasharray: 88 512;
-  animation: ln-circuit-run 3.6s var(--ln-ease-linear) infinite;
-}
-@keyframes ln-circuit-run {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: 600; }
-}
 
 /* ═══ 19 — BRACKET + CHAMFER FRAMING (P12-2c §19, kept) ══════════════════
    The ChainGPT interface framing: section headings framed with bracket
@@ -2395,20 +2339,22 @@ html.light .landing .ln-chapter-head::after {
   background: rgb(10 36 46 / 0.28);
 }
 
-/* ═══ 20 — P15 CONCEPT A · THE HERO COMPOSITION ═════════════════════════
-   The interface composed AROUND the machine (desktop ≥1025px):
-   · the ticker island (z0, UNDER the alpha canvas) — a bracket-cornered
-     prompt box at the reading start (RTL: right, ~17% down) + a mono
-     status micro-panel on the far side (left, ~26% down), one synced
-     state machine;
+/* ═══ 20 — P16-A CONCEPT A · THE HERO COMPOSITION ═════════════════════
+   The interface composed AROUND the character (desktop ≥1025px) — the
+   layout IS the product story (ChainGPT-informed, RTL-adapted):
+   · the prompt console (z0, UNDER the alpha canvas) — the typed
+     scenario console at the INLINE-START (RTL: right, upper band) +
+     the status/capability readout at the INLINE-END (left, stepped
+     below), one synced state machine — prompt → agent → result with
+     the character dead-center between the two;
    · the display block (z3) — mono-caps eyebrow + the oversized Arabic
      display headline (IBM Plex Sans Arabic 700 — Space Grotesk never
      renders Arabic, so the h1 finally gets a REAL display face) +
      sub, anchored bottom-start; the CTA foot closes it at the floor;
    · the scroll invitation at the reading end.
    Massive negative space is the composition's air: nothing fills the
-   void around the machine except hairlines. Mobile (≤1024px): the
-   deliberate vertical stack — copy → full-figure stage → ticker → CTA. */
+   void around the character except hairlines. Mobile (≤1024px): its
+   own composition — the character-first stack (§20f). */
 
 /* the composition boxes on desktop (≥1025px) */
 @media (min-width: 1025px) {
@@ -2423,21 +2369,22 @@ html.light .landing .ln-chapter-head::after {
     z-index: 0;
     pointer-events: none;
   }
-  /* the prompt ticker — reading start (RTL right), upper band: the
-     display block below it clears it by a full display line (the 68vw
-     measure is measured for the 2-line lockup — never a 4-line wrap) */
+  /* the prompt console — INLINE-START (RTL right), upper band: the
+     typed scenario console flanks the character's head (the display
+     block below it clears it by a full display line; the 68vw measure
+     is measured for the 2-line lockup — never a 4-line wrap) */
   .landing .ln-ticker {
     position: absolute;
     inset-inline-start: 8vw;
-    inset-block-start: 15%;
+    inset-block-start: 14%;
     inline-size: min(30vw, 400px);
   }
-  /* the status micro-panel — far side (RTL left), stepped below the
-     ticker's band (the reference's asymmetric rail heights) */
+  /* the status micro-panel — INLINE-END (RTL left), stepped below the
+     console's band (the reference's asymmetric rail heights) */
   .landing .ln-status {
     position: absolute;
     inset-inline-end: 7vw;
-    inset-block-start: 24%;
+    inset-block-start: 23%;
     inline-size: min(24vw, 300px);
   }
   /* the display block — the reference's bottom-anchored display: the
@@ -2475,45 +2422,9 @@ html.light .landing .ln-chapter-head::after {
     inset-block-end: 34px;
     bottom: 34px;
   }
-  /* the tether stubs — 1px hairline leads from each interface box's
-     machine-facing edge into the void toward the circuit line's band:
-     the boxes stop floating and become part of the circuit's world
-     (the reference's "holographic UI anchored to the machine").
-     i5: leads lengthened 30→44px + end alpha 0.55→0.8 — the boxes
-     still read as pasted HTML at the verify pass; the longer, firmer
-     leads + the bloom edge make the anchoring register.
-     2-e (round 2, VLM r1): the ticker gains a vertical DATA DROP — a
-     1px line from its floor edge down into the circuit's band (the
-     circuit the machine's body occludes) — the readout is now wired
-     to the machine's world on TWO axes. */
-  .landing .ln-ticker::after,
-  .landing .ln-status::after {
-    content: '';
-    position: absolute;
-    block-size: 1px;
-    inline-size: 44px;
-    background: linear-gradient(90deg, transparent, rgb(23 195 164 / 0.8));
-    pointer-events: none;
-  }
-  .landing .ln-ticker::after {
-    inset-inline-start: 100%; /* extends from the box's far (left) edge toward the machine */
-    inset-block-start: 24px;
-  }
-  .landing .ln-ticker::before {
-    content: '';
-    position: absolute;
-    inset-inline-end: 26px;
-    inset-block-start: 100%;
-    block-size: 64px;
-    inline-size: 1px;
-    background: linear-gradient(180deg, rgb(23 195 164 / 0.75), transparent);
-    pointer-events: none;
-  }
-  .landing .ln-status::after {
-    inset-inline-end: 100%; /* extends from the panel's spine (right) toward the machine */
-    inset-block-start: 18px;
-    background: linear-gradient(270deg, transparent, rgb(23 195 164 / 0.8));
-  }
+  /* P16-A: the tether stubs + the circuit traces were RETIRED with
+     the primitives robot — the void stays clean; the character's ONE
+     emissive edge strip is the light signature. */
 }
 
 /* ── 20a · the prompt ticker ────────────────────────────────────────────
@@ -2863,13 +2774,6 @@ html.light .landing .ln-status li i[data-tone='lime'] {
 }
 html.light .landing .ln-eyebrow-latin { color: var(--ln-lime-deep); }
 html.light .landing .ln-eyebrow-sep { background: var(--ln-lime-deep); }
-html.light .landing .ln-ticker::after,
-html.light .landing .ln-status::after {
-  background: linear-gradient(90deg, transparent, rgb(12 117 99 / 0.6));
-}
-html.light .landing .ln-ticker::before { /* the mobile data lead's mist twin */
-  background: linear-gradient(180deg, transparent, rgb(12 117 99 / 0.65));
-}
 html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   border-bottom-color: rgb(12 117 99 / 0.6);
 }
@@ -2882,24 +2786,24 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
    holds, the entrance snaps in. */
 @media (prefers-reduced-motion: reduce) {
   .landing .ln-robot-frame { animation-duration: 1ms; animation-delay: 0s; }
-  .landing .ln-circuit-run { animation: none; }
   .landing .ln-ticker-beat > * { animation: none; }
   .landing .ln-typing i { animation: none; }
   .landing .ln-ticker-demo-dot { animation: none; }
   .landing .ln-status li[data-active='true'] i { animation: none; }
 }
 
-/* ── 20f · mobile (≤1024px) — the deliberate vertical stack ──────────────
-   Composed for the small screen, not scaled down: eyebrow + headline
-   first (the instant server paint), the FULL-FIGURE robot center
-   (~44svh — never a cropped head; the framing solver tightens its own
-   composition tokens), the ticker (with its compact status line) below,
-   the CTA foot last. The status side panel and the circuit line are
-   desktop furniture — hidden, their truth carried by the ticker line.
-   2-e · directive 6: the gaps around the figure stage are capped at
-   sp-6 (≤12svh at every phone height) — the ~140px undecorated void
-   band the evaluator measured is gone; the stage's own in-box air is
-   tightened by the 0.84 figure share. */
+/* ── 20f · mobile (≤1024px) — THE CHARACTER-FIRST STACK (P16-A) ────────
+   Composed for the small screen, not scaled down — its OWN composition,
+   the reference's mobile grammar: the CHARACTER first and centered
+   (~62svh stage, the figure filling ~51-52svh of it — never a cropped
+   head), the demo console collapsing to ONE line above the title
+   lockup (the side status panel is desktop furniture — its truth rides
+   the console's compact status line), the eyebrow + Arabic display
+   headline + sub, the CTA foot last. The h1/sub still paint inline
+   (server HTML) — LCP doctrine untouched; the full stack lands in-fold
+   at 844 or the CTA sits within one 44px touch target below it
+   (measured, deliberate — the figure's discipline is never squeezed
+   to chase a fold-perfect CTA). */
 @media (max-width: 1024px) {
   .landing .ln-hero-robot {
     display: flex;
@@ -2907,52 +2811,71 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     block-size: auto;
     min-block-size: 0;
     padding: 16px 20px var(--sp-6);
-    gap: var(--sp-5);
+    gap: var(--sp-4);
   }
-  .landing .ln-hero-copy { order: 1; }
+  /* the protagonist first — the figure owns the opening beat */
   .landing .ln-robot-stage {
-    order: 2;
+    order: 1;
     position: relative;
     inline-size: 100%;
-    block-size: 44svh;
-    min-block-size: 296px;
-    --sb-fig: 0.84;
-    --sb-floor: 0.86;
+    block-size: 62svh;
+    min-block-size: 340px;
+    --sb-fig: 0.92;
+    --sb-floor: 0.94;
+    --sb-ringfit: 0.72; /* the landing rings clamp for the narrow box */
   }
   .landing .ln-robot-exit,
   .landing .ln-robot-frame { position: absolute; inset: 0; }
-  /* i5 (VLM verify, tablet+mobile): the ticker read as "a footer
-     element that got lost" — no-man's-land between the machine's
-     pedestal and the bottom edge. The data lead: a 1px vertical
-     hairline + node dot dropping from the readout's head up into the
-     stage's floor band — the box becomes a readout TETHERED to the
-     machine's world (the desktop tethers' mobile twin). */
-  .landing .ln-ticker::before {
-    content: '';
-    position: absolute;
-    inset-inline-start: 26px;
-    inset-block-start: -26px;
-    block-size: 26px;
-    inline-size: 1px;
-    background: linear-gradient(180deg, transparent, rgb(23 195 164 / 0.9));
-  }
-  /* 2-e · directive 4: the compact-stage twin of the contact pool — a
-     tight bright ellipse + the hard dark core (the 44svh box shrinks
-     the wide radials until the anchor reads as nothing) */
+  /* the compact-stage twin of the contact pool — a tight bright
+     ellipse + the hard dark core (the tall narrow box shrinks the
+     wide radials until the anchor reads as nothing) */
   .landing .ln-robot-glow {
     background:
       linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.3) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.08) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-      radial-gradient(38% 9% at 50% calc(var(--sb-floor) * 100% + 0.3%), rgb(23 195 164 / 0.36) 0%, rgb(23 195 164 / 0.14) 44%, transparent 74%),
-      radial-gradient(11% 3% at 50% calc(var(--sb-floor) * 100% + 0.6%), rgb(3 10 13 / 0.92) 0%, rgb(3 10 13 / 0.64) 46%, transparent 82%);
+      radial-gradient(38% 9% at 50% calc(var(--sb-floor) * 100% + 0.2%), rgb(23 195 164 / 0.36) 0%, rgb(23 195 164 / 0.14) 44%, transparent 74%),
+      radial-gradient(11% 3% at 50% calc(var(--sb-floor) * 100% + 0.4%), rgb(3 10 13 / 0.92) 0%, rgb(3 10 13 / 0.64) 46%, transparent 82%);
   }
   .landing .ln-ticker-island {
-    order: 3;
+    order: 2;
     display: contents; /* the island's box vanishes — its children become
-                           flow items, so THEY need the island's rung */
+                          flow items, so THEY need the island's rung */
   }
-  .landing .ln-ticker { order: 3; position: relative; inline-size: 100%; }
+  /* the ONE-LINE console: the honest head row (DEMO badge + index) +
+     one line of the current beat (ellipsis carries the rest; the
+     sr-only announcer narrates it whole) + the compact status line */
+  .landing .ln-ticker {
+    order: 2;
+    position: relative;
+    inline-size: 100%;
+    padding: 8px 14px 9px; /* the one-line console is compact by law —
+                              its rhythm air is the cheapest honest trim
+                              on the mobile fold ladder */
+  }
+  .landing .ln-ticker-head { margin: 0 0 5px; }
+  .landing .ln-ticker-beat {
+    min-block-size: 0; /* the desktop 5.4em floor is a two-line body —
+                          the mobile console is ONE line by design */
+    gap: 0;
+  }
+  .landing .ln-ticker-beat-label { display: none; }
+  .landing .ln-ticker-msg {
+    font-size: 14.5px;
+    line-height: 1.55;
+    font-weight: var(--fw-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .landing .ln-ticker-msg-meta,
+  .landing .ln-ticker-badge { display: none; }
+  /* the compact status line switches ON (the side panel's mobile twin) —
+     the ONE-LINE console's closing register */
+  .landing .ln-ticker-status {
+    display: flex;
+    margin-block-start: 5px;
+  }
   .landing .ln-status { order: 5; display: none; }
-  .landing .ln-circuit { display: none; }
+  .landing .ln-hero-copy { order: 3; }
   .landing .ln-hero-foot { order: 4; }
   .landing .ln-hero-scroll { display: none; }
   .landing .ln-hero-robot .ln-hero-title {
@@ -2968,72 +2891,46 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     line-height: 1.65;
     max-inline-size: 40ch;
   }
-  .landing .ln-ticker-status {
-    display: flex;
-  }
   .landing .ln-hero-eyebrow { gap: 8px; margin-block-end: var(--sp-3); }
 }
 @media (max-width: 640px) {
-  .landing .ln-hero-robot { padding: 10px 16px var(--sp-5); gap: var(--sp-4); }
+  .landing .ln-hero-robot { padding: 8px 16px var(--sp-5); gap: 10px; }
   .landing .ln-hero-meta { display: none; } /* the sub carries the honest terms */
   .landing .ln-hero-robot .ln-hero-title { font-size: clamp(1.85rem, 7.8vw, 2.5rem); }
-  .landing .ln-robot-stage { min-block-size: 270px; --sb-fig: 0.88; }
-  /* 2-g (P2 — acceptance gap 4, mobile fold): the display block's
-     DECORATIVE air trims so the primary CTA lands at/near the 844 fold —
-     the flex column stacks title mb (sp-7 32) + sub mt (sp-4 16) into a
-     48px gap and the sub's trailing sp-9 (48) adds another: 84px of
-     rhythm air, not content. Trims: title→sub 48→20 (both margins, one
-     rhythm), sub trailing 48→24, the hero's flex gaps 16→12, the top pad
-     10→8. The robot's 44svh discipline, the stage min-blocks, the
-     ticker's beat floor and every pinned value are untouched — this is
-     pure inter-block air (the gap the evaluator named: title→stage). */
-  .landing .ln-hero-robot .ln-hero-title { margin-block-end: 20px; }
-  .landing .ln-hero-robot .ln-hero-sub { margin-block-start: 0; margin-block-end: var(--sp-6); }
-  .landing .ln-hero-robot { gap: var(--sp-3); padding: 8px 16px var(--sp-5); }
-  .landing .ln-hero-actions { gap: 10px; }
-  /* 2-g round 2: the last decorative air — the eyebrow's sp-5 floor and
-     the tether's 10px lead trim one rung each (the eyebrow rhythm and the
-     ticker's ::before tether still span their gaps visually). */
-  .landing .ln-hero-eyebrow { margin-block-end: var(--sp-3); }
-  .landing .ln-hero-robot { gap: 10px; padding: 6px 16px var(--sp-5); }
-  .landing .ln-ticker { margin-block-start: 6px; }
-  /* 2-g round 3: the round-1/2 trims NEVER WON — the base rules carry the
-     (0,3,0) .ln-hero-robot prefix while the media-block trims used the
-     (0,2,0) flat selectors (live-measured: eyebrow mb still 20px, sub mb
-     still 24px). Re-issued at winning specificity: eyebrow 20→12, title
-     20→14, sub 24→14, ticker lead 10→6 — 28px of pure rhythm air; the
-     robot's 44svh figure discipline and every content block untouched.
-     Result: primary CTA ~30px under the 844 fold (< one 44px touch
-     target — a thumb-flick) with the FULL stack (headline + full-figure
-     robot + sample-interaction ticker) in-fold. Squeezing the figure
-     further to chase a fold-perfect CTA would re-create the «squeezed
-     mobile» P0 the redesign exists to kill. */
+  .landing .ln-robot-stage { min-block-size: 330px; }
+  /* the P16-A fold ladder (live-measured at 390×844, the honest numbers):
+     the figure keeps its 62svh discipline (the character-first stack is
+     the concept — ~152px more stage than the P15 44svh stack), the
+     CTAs share ONE row (52px, both ≥44px touch targets — the stacked
+     full-width pair cost 58px of fold), the inter-block rhythm trims to
+     minimums (stage→console 10, title→sub 12, sub→CTA 10, the console's
+     own padding −5). Result: eyebrow + BOTH h1 lines land IN the fold
+     (h1 bottom ≈ 828 of 844), the sub crosses it, and the CTA row sits
+     ≈ 70px under the fold — ~1.6 thumb-targets, the measured price of
+     the protagonist discipline. Squeezing the figure (62svh → 56svh)
+     would buy a fold-perfect CTA and re-create the «squeezed mobile»
+     P0 the redesign exists to kill; a thumb-flick reveals the CTA and
+     the scroll cue + gold contrast make the next beat obvious. */
   .landing .ln-hero-robot .ln-hero-eyebrow { margin-block-end: var(--sp-3); }
-  .landing .ln-hero-robot .ln-hero-title { margin-block-end: 14px; }
-  .landing .ln-hero-robot .ln-hero-sub { margin-block-end: 14px; }
-  /* r3-i2 (round 3, VLM mobile pass): one extra breath between the
-     figure's contact pool and the readout — the 17px junction read as
-     "cramped" while the ≤640 ladder lands everywhere else; the tether's
-     own 26px lead already spans this gap visually, so the air reads as
-     composed, not empty (still ≪ the 12svh directive-6 cap). */
-  .landing .ln-ticker { margin-block-start: 10px; }
+  .landing .ln-hero-robot .ln-hero-title { margin-block-end: 12px; }
+  .landing .ln-hero-robot .ln-hero-sub { margin-block-start: 0; margin-block-end: 10px; line-height: 1.58; }
+  /* the hero's CTA pair shares ONE row under the fold pressure (the
+     ≤560px full-width stacking stays for the FINALE block, where there
+     is no fold budget to honor) — both buttons keep ≥44px touch targets */
+  .landing .ln-hero-robot .ln-hero-actions .ln-btn-gold,
+  .landing .ln-hero-robot .ln-hero-actions .ln-btn-ghost { inline-size: auto; }
+  .landing .ln-hero-actions { gap: 10px; }
+  .landing .ln-ticker { margin-block-start: 0; }
 }
 
-/* ── 20g · tablet (641–1024px) — THE TWO-BEAT COMPOSITION (2-e · directive 7)
-   Tablet was mobile-with-padding; it now gets its own composition:
-   beat 1 = the copy block (eyebrow + display + sub) owning the top;
-   beat 2 = the PAIRED BAND — the full-figure stage growing to 50svh on
-   the reading end with the demo ticker docked beside it at reading
-   start, bottom-aligned to the machine's floor band (a data-lead
-   tether ties the readout to the stage); the CTA foot closes. The
-   floor fraction drops to 0.78 — the floor camera is clamped so the
-   landing rings never crop at the band's bottom edge.
-   Round 3 (r3-i1): 54svh → 50svh + the end paddings trimmed — the
-   hero now lands INSIDE the 1024 fold (A's exact 100svh−header
-   discipline, carried to tablet: the CTA foot + the directive-5
-   seam sit at the fold edge, not 50px under it). The figure still
-   grows with the viewport: 512px on a 1024-tall tablet vs 371px on
-   a phone. */
+/* ── 20g · tablet (641–1024px) — THE TWO-BEAT COMPOSITION ────────────
+   Beat 1 = the copy block (eyebrow + display + sub) owning the top;
+   beat 2 = the PAIRED BAND — the character stage on the reading end
+   with the one-line demo console docked beside it at reading start,
+   bottom-aligned to the figure's floor band; the CTA foot closes. The
+   framing re-poses for the wide band (fig 0.88, floor 0.90 — the
+   level camera keeps the full figure in-box with its breathing room,
+   the rings clamp under the dock). */
 @media (min-width: 641px) and (max-width: 1024px) {
   .landing .ln-hero-robot {
     display: grid;
@@ -3051,10 +2948,10 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   .landing .ln-robot-stage {
     grid-area: figure;
     position: relative;
-    block-size: 50svh;
+    block-size: 54svh;
     min-block-size: 380px;
-    --sb-fig: 0.84;
-    --sb-floor: 0.78; /* the floor camera clamp — more floor below the line */
+    --sb-fig: 0.88;
+    --sb-floor: 0.90;
     --sb-ringfit: 0.76; /* the landing rings' fit clamp: the outer ring
                            scales to r≈1.79 world so its near edge NEVER
                            crops at the band's bottom edge (the solver
@@ -3066,18 +2963,26 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     grid-area: ticker;
     position: relative;
     display: block;
-    align-self: end; /* docked to the machine's floor band */
-    /* 2-g (P3 — acceptance gap 5, tablet dock overlap): the dock's 2svh
-       floor left the ticker's bottom edge kissing the outer landing
-       ring's near edge (evaluator 2-f measured a slight overlap in this
-       band). One more 2svh rung of clearance lifts the box clear of the
-       ring geometry without detaching it from the floor band's visual
-       dock — the rings still pass under the ticker's side tethers. */
+    align-self: end; /* docked to the figure's floor band */
+    /* one 2svh rung of clearance keeps the console clear of the outer
+       landing ring's near edge without detaching it from the floor
+       band's visual dock */
     padding-block-end: 4svh;
   }
+  /* the one-line console grammar carries to tablet (the docked box) */
   .landing .ln-ticker { position: relative; inline-size: 100%; }
+  .landing .ln-ticker-beat {
+    min-block-size: 5.4em; /* the wider box gives the beat its two-line
+                              floor back — the console breathes at tablet */
+  }
+  .landing .ln-ticker-msg {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .landing .ln-ticker-msg-meta,
+  .landing .ln-ticker-badge { display: inline-block; }
   .landing .ln-status { display: none; }
-  .landing .ln-circuit { display: none; }
   .landing .ln-hero-foot { grid-area: foot; }
   .landing .ln-hero-scroll { display: none; }
   .landing .ln-hero-robot .ln-hero-title {
@@ -3090,4 +2995,23 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   }
   .landing .ln-ticker-status { display: flex; }
   .landing .ln-hero-eyebrow { gap: 8px; margin-block-end: var(--sp-3); }
+}
+
+/* ── 20h · the static character fallback (P16-A) ───────────────────────
+   WebGL absent or the GLB unfetchable → the art-directed SVG frame of
+   the character renders INSIDE the same host box, at the framing
+   fractions (≈84% of the host height, riding just above the floor
+   line's glow). The stage ground (glow/vignette/scrim) still carries
+   the world around it — the hero never shows a broken canvas. */
+.landing .ln-character-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.landing .ln-character-fallback svg {
+  block-size: 86%;
+  max-block-size: 640px;
+  margin-block-end: 8%;
 }

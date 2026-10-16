@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { dispatchHeroBeat } from './heroBus';
 
 /* STAGE 3 INTEGRATION (2-e · directive 2) — CONCEPT B'S HONEST SCENARIO
  * ENGINE, PORTED INTO A'S TICKER.
@@ -184,6 +185,17 @@ export function HeroTicker() {
     }, ms);
     return () => window.clearTimeout(t);
   }, [stageIdx, scenarioIdx, running, reduced, script]);
+
+  /* P16-A — the beat channel: every stage change is announced on the
+   * heroBus so the CHARACTER reacts to the conversation it is having
+   * (head turn toward this console on inbound, core pulse on classify,
+   * eye scan while the reply types, arm raise on handoff). The engine
+   * itself is untouched — same stages, same honesty, one more
+   * listener. Under reduced-motion the scene ignores the channel (its
+   * own static-frame contract) — the dispatch stays, it is inert. */
+  useEffect(() => {
+    dispatchHeroBeat({ beat, scenarioId: scenario.id });
+  }, [beat, scenario]);
 
   /* inbound typing beads (B's engine) */
   useEffect(() => {

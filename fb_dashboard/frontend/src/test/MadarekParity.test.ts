@@ -694,36 +694,40 @@ describe("p10a parity — chart ink contract: recharts text/cursor = the TEXT to
   })
 })
 
-describe("P15 concept A parity — the character-led hero composition", () => {
-  /* The vitest twin of parity.mjs's §P15 block (same contracts, the
+describe("P15→P16-A concept A parity — the character-led cinematic hero", () => {
+  /* The vitest twin of parity.mjs's §P15→§P16-A block (same contracts, the
      compact mirror): the owner rejected the P12-2c hero; concept A
-     re-composes the hero around ONE protagonist — the full-figure
-     machine on a visible stage inside the first viewport, the
-     ticker/status island under the transparent canvas, the Arabic
-     display headline bottom-anchored, the sink-and-fade scroll exit.
-     The retired files (BotChatSimulator / HeroCompanion / OrbitScene /
-     HeroDepthLayer) are deleted in the same commit. */
+     re-composed the hero around ONE protagonist (P15: the primitives
+     robot), and P16-A re-anchors on the AUTHORED GLB character — the
+     full-figure machine on a visible stage inside the first viewport,
+     the console/status island under the transparent canvas, the Arabic
+     display headline bottom-anchored, the sink-and-fade scroll exit, the
+     heroBus beat channel. The retired files (BotChatSimulator /
+     HeroCompanion / OrbitScene / HeroDepthLayer / the primitives
+     RobotScene) are deleted in the same commit. Honesty pins (ticker
+     digits, DEMO badge, sr-only announcer) are UNCHANGED. */
   const read = (p: string) => readFileSync(p, "utf8")
   const exists = (p: string) => {
     try { readFileSync(p, "utf8"); return true } catch { return false }
   }
   const rawLanding = read("src/app/landing.css").replace(/\/\*[\s\S]*?\*\//g, " ")
 
-  it("the retired hero layer is DELETED (BotChatSimulator, HeroCompanion, OrbitScene, HeroDepthLayer)", () => {
+  it("the retired hero layer is DELETED (BotChatSimulator, HeroCompanion, OrbitScene, HeroDepthLayer, the primitives RobotScene)", () => {
     for (const f of [
       "src/components/landing/BotChatSimulator.tsx",
       "src/components/landing/HeroCompanion.tsx",
       "src/components/landing/OrbitScene.tsx",
       "src/components/landing/HeroDepthLayer.tsx",
+      "src/components/landing/RobotScene.tsx",
     ]) {
-      expect(exists(f), `${f} must be deleted (P15 retirement)`).toBe(false)
+      expect(exists(f), `${f} must be deleted (P15/P16-A retirement)`).toBe(false)
     }
   })
 
-  it("the composition tokens: --sb-fig 0.66 / --sb-floor 0.72 + the mobile re-pose 0.84/0.86", () => {
-    expect(rawLanding).toMatch(/--sb-fig:\s*0\.66;/)
-    expect(rawLanding).toMatch(/--sb-floor:\s*0\.72;/)
-    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*0\.84;[^@]*?--sb-floor:\s*0\.86;/)
+  it("the composition tokens (P16-A): --sb-fig 0.76 / --sb-floor 0.84 + the character-first mobile re-pose 0.92/0.94", () => {
+    expect(rawLanding).toMatch(/--sb-fig:\s*0\.76;/)
+    expect(rawLanding).toMatch(/--sb-floor:\s*0\.84;/)
+    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*0\.92;[^@]*?--sb-floor:\s*0\.94;/)
   })
 
   it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the 70vw display measure", () => {
@@ -789,8 +793,8 @@ describe("P15 concept A parity — the character-led hero composition", () => {
     expect(rawExit).toContain("matchMedia('(prefers-reduced-motion: reduce)').matches")
   })
 
-  it("the machine scene (RobotScene): solver + pauses + disposal + RM static pose + DPR 2", () => {
-    const rawRobot = read("src/components/landing/RobotScene.tsx")
+  it("the character scene (P16-A CharacterScene): solver + pauses + disposal + RM static pose + DPR 2 + the GLB/fallback contract", () => {
+    const rawRobot = read("src/components/landing/CharacterScene.tsx")
     expect(rawRobot).toContain("getPropertyValue('--sb-fig'")
     expect(rawRobot).toContain("getPropertyValue('--sb-floor'")
     expect(rawRobot).toMatch(/Math\.min\(window\.devicePixelRatio \|\| 1, 2\)/)
@@ -803,27 +807,43 @@ describe("P15 concept A parity — the character-led hero composition", () => {
     expect(rawRobot).toContain("matchMedia('(pointer: fine)')")
     expect(rawRobot).toContain("degToRad(25)")
     expect(rawRobot).toContain("degToRad(12)")
+    // the P16-A additions: the GLB contract + the art-directed fallback
+    expect(rawRobot).toContain("'/models/smartbot-character.glb'")
+    expect(rawRobot).toContain("import('three/examples/jsm/loaders/GLTFLoader.js')")
+    expect(rawRobot).toContain("setFailed(true)")
   })
 
-  it("the page composes the scene: exit-wrapped machine layer + glow/vignette + circuit + ticker + honest CTAs", () => {
+  it("the heroBus beat channel (P16-A): the honest engine dispatches, the character subscribes", () => {
+    const rawBus = read("src/components/landing/heroBus.ts")
+    const rawTicker = read("src/components/landing/HeroTicker.tsx")
+    const rawChar = read("src/components/landing/CharacterScene.tsx")
+    expect(rawBus).toContain("export const HERO_BEAT_EVENT = 'smartbot:hero-beat'")
+    expect(rawTicker).toContain("import { dispatchHeroBeat } from './heroBus'")
+    expect(rawTicker).toContain("dispatchHeroBeat({ beat, scenarioId: scenario.id })")
+    expect(rawChar).toContain("import { subscribeHeroBeat, lastHeroBeat, type HeroBeat, type HeroBeatDetail } from './heroBus'")
+    expect(exists("public/models/smartbot-character.glb")).toBe(true)
+  })
+
+  it("the page composes the scene: exit-wrapped character layer + glow/vignette + canvas mount + ticker + honest CTAs", () => {
     const rawPage = read("src/app/page.tsx")
     expect(rawPage).toContain("<HeroTicker />")
     expect(rawPage).toContain("<HeroExit>")
     expect(rawPage).toContain('className="ln-robot-glow"')
     expect(rawPage).toContain('className="ln-robot-vignette"')
-    expect(rawPage).toContain('className="ln-circuit"')
+    expect(rawPage).toContain('className="ln-robot-canvas"')
     expect(rawPage).toContain('<MagneticGoldLink href="/subscribe" xl withArrow')
     expect(rawPage).toContain('<Link href="/demo" className="ln-btn-ghost">')
     expect(rawPage).toContain("تعرّف على")
   })
 
-  it("the mobile stack (≤1024px): 44svh full-figure stage, island display:contents, compact status ON", () => {
+  it("the mobile stack (P16-A: ≤1024px character-first): 62svh full-figure stage, island display:contents, compact status ON, ONE-line console", () => {
     const raw = read("src/app/landing.css")
     const mob = raw.match(/@media \(max-width: 1024px\)\s*\{([\s\S]*)\}\s*$/)?.[1]
       ?? raw.slice(raw.lastIndexOf("@media (max-width: 1024px)"))
-    expect(mob).toMatch(/\.ln-robot-stage\s*\{[^}]*block-size:\s*44svh/)
+    expect(mob).toMatch(/\.ln-robot-stage\s*\{[^}]*block-size:\s*62svh/)
     expect(mob).toMatch(/\.ln-ticker-island\s*\{[^}]*display:\s*contents/)
     expect(mob).toMatch(/\.ln-ticker-status\s*\{[^}]*display:\s*flex/)
     expect(mob).toMatch(/\.ln-status\s*\{[^}]*display:\s*none/)
+    expect(mob).toMatch(/\.ln-ticker-msg\s*\{[^}]*white-space:\s*nowrap/) // the ONE-line console
   })
 })

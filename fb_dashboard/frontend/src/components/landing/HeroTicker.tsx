@@ -186,6 +186,22 @@ export function HeroTicker() {
     return () => window.clearTimeout(t);
   }, [stageIdx, scenarioIdx, running, reduced, script]);
 
+  /* P16-W3 · P1-c (evaluation: "no user scenario agency") — the scenario
+   * selector, ported from Concept B's strongest feature. Real buttons:
+   * selecting a scenario restarts the engine at ITS inbound beat (the
+   * whole machine — typing beads, classifier, reply typing, handoff —
+   * re-runs for the chosen conversation). Keyboard: native buttons
+   * (Tab + Enter/Space), focus-visible ring in CSS, aria-pressed state,
+   * ≥44px targets. Under reduced-motion the static frame re-composes
+   * for the chosen scenario (scenario is derived state). The honest
+   * auto-cycle continues from the selection — the demo never stops
+   * being honest, the user just chooses where to look. */
+  const selectScenario = (i: number) => {
+    if (i === scenarioIdx && stageIdx === 0) return; /* already its first beat */
+    setScenarioIdx(i);
+    setStageIdx(0);
+  };
+
   /* P16-A — the beat channel: every stage change is announced on the
    * heroBus so the CHARACTER reacts to the conversation it is having
    * (head turn toward this console on inbound, core pulse on classify,
@@ -316,6 +332,23 @@ export function HeroTicker() {
               <span className="ln-ticker-msg-meta">السيناريو التالي</span>
             </p>
           )}
+        </div>
+
+        {/* the scenario selector — P16-W3 P1-c: real user agency over the
+            demo (B's port). Three honest conversations, one per button. */}
+        <div className="ln-scenario-tabs" role="group" aria-label="اختيار سيناريو العرض">
+          {SCENARIOS.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              className="ln-scenario-tab"
+              aria-pressed={i === scenarioIdx ? 'true' : 'false'}
+              onClick={() => selectScenario(i)}
+            >
+              <span className="ln-mono" dir="ltr">{pad(i + 1)}</span>
+              <span>{s.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* the compact status line — the side panel's mobile twin

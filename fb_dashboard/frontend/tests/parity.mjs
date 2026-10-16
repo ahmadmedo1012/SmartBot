@@ -2580,8 +2580,13 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     const mob = mobs.find((m) => m.body.includes('.ln-robot-stage')) ?? mobs[mobs.length - 1];
     const stage = mob ? nestedBlock(mob.body, '.landing .ln-robot-stage') : null;
     const bs = stage ? declOf(stage, 'block-size') : undefined;
-    if (bs === '62svh') pass += 1;
-    else fails.push(`P16-A mobile stage: the ≤1024px character box must be 62svh (full figure first, got ${bs ?? '<missing>'})`);
+    // P16-W3 re-anchor: 62svh → 56svh — the scenario selector (the agency
+    // port from Concept B) added ~86px to the mobile stack; the stage
+    // breathes so the h1 lockup returns in-fold (measured 815/844) with
+    // the CTA within the disclosed protagonist-discipline gesture budget.
+    // The figure fractions (0.92/0.94, pinned above) are UNCHANGED.
+    if (bs === '56svh') pass += 1;
+    else fails.push(`P16-A mobile stage: the ≤1024px character box must be 56svh (full figure first, got ${bs ?? '<missing>'})`);
     const statusLine = mob ? nestedBlock(mob.body, '.landing .ln-ticker-status') : null;
     if (statusLine && /display\s*:\s*flex/.test(statusLine)) pass += 1;
     else fails.push('P16-A mobile status: the console\'s compact status line must switch ON at ≤1024px (the side panel\'s mobile twin)');

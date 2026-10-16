@@ -184,7 +184,12 @@ function samplePalette(): Palette {
      * record (recorded at load); only the live emissives are sampled
      * so the eyes + the status register stay lockstep with the tokens */
     body: 0x163f4b,
-    chest: 0xc6d9d2,
+    /* P16-W3 (P1-a): the sage chest plate dimmed 0xc6d9d2 → 0x6e847c —
+     * its lit pixels crossed the h1 display band between the glyphs
+     * (measured: 9.8% of the line-1 background carried >80-lum machine
+     * px, p99 = 184 ≈ glyph brightness). The plate stays readable at
+     * chest height but no longer competes with the display lockup. */
+    chest: 0x6e847c,
     joint: 0x0e2b33,
     visor: 0x0d3340,
     visorGlow: 0x0e5a4b,
@@ -331,11 +336,16 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      *     stays the focal anchor, and the pedestal spill washes the
      *     hips from the emissive rim below (the machine's own ground
      *     light, not a scene lamp). */
-    const key = new DirectionalLight(0xf2fbf7, 2.1);
+    const key = new DirectionalLight(0xf2fbf7, 2.2);
     key.position.set(2.6, 4.2, 3.2);
     scene.add(key);
-    const rim = new DirectionalLight(TEAL, 1.6);
-    rim.position.set(-3.4, 2.8, -2.6);
+    /* P16-W3 (P1-b, evaluator: "stock/generic at hero scale",
+   "dropped onto the background"): the rim doubles down — a sharper
+   cooler edge separation carves the silhouette out of the dark stage
+   (the ChainGPT single-edge-strip lesson: light as identity), and the
+   key lifts one notch so the PBR shells model more strongly. */
+    const rim = new DirectionalLight(TEAL, 1.8);
+    rim.position.set(-3.6, 3.3, -2.4);
     scene.add(rim);
     const fill = new AmbientLight(0x22333a, 1.15);
     scene.add(fill);
@@ -769,7 +779,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
                 : kind === 'core'
                   ? palette.coreIntensity
                   : kind === 'strip'
-                    ? 1.0
+                    ? 0.75 /* P16-W3 (P1-a): the strip emissive eased — it crossed the h1 band */
                     : kind === 'visor'
                       ? palette.visorIntensity
                       : orig.emissiveIntensity;
@@ -882,10 +892,18 @@ export function CharacterScene({ className }: CharacterSceneProps) {
         }
         if (torso) torso.rotation.y = torsoYaw + wander * 0.4 + lookBias * 0.45;
 
-        /* arm counter-swing + the handoff lift (the -x arm raises) */
+        /* arm pose + counter-swing + the handoff lift (the -x arm
+         * raises). P16-W3 (P1-a, pixel-verified): the rest pose lifts
+         * the arms FORWARD (rotation.x ≈ -0.58) — a friendly
+         * presentation stance whose hands sit at chest height, well
+         * above the display lockup's band, so no lit arm pixels cross
+         * the h1 ground (the h1 block spans nearly the full width —
+         * horizontal tucking cannot dodge it; only height clears it).
+         * Counter-sway rides the z-axis as before; the handoff lift
+         * raises the -x arm exactly as before. */
         const sway = Math.sin(t * 1.5) * 0.03;
-        if (armL) armL.rotation.z = 0.06 + sway + torsoYaw * 0.55;
-        if (armR) armR.rotation.z = -0.06 - sway - torsoYaw * 0.55 - 0.45 * armLift;
+        if (armL) { armL.rotation.x = -0.58; armL.rotation.z = 0.06 + sway + torsoYaw * 0.55; }
+        if (armR) { armR.rotation.x = -0.58; armR.rotation.z = -0.06 - sway - torsoYaw * 0.55 - 0.45 * armLift; }
 
         /* eye blink — scale Y briefly; widen on inbound; scan on reply */
         nextBlink -= dt;

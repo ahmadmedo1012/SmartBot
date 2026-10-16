@@ -836,11 +836,11 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawPage).toContain("تعرّف على")
   })
 
-  it("the mobile stack (P16-A: ≤1024px character-first): 62svh full-figure stage, island display:contents, compact status ON, ONE-line console", () => {
+  it("the mobile stack (P16-A: ≤1024px character-first): 56svh full-figure stage (P16-W3 re-anchor: the selector's stack cost), island display:contents, compact status ON, ONE-line console", () => {
     const raw = read("src/app/landing.css")
     const mob = raw.match(/@media \(max-width: 1024px\)\s*\{([\s\S]*)\}\s*$/)?.[1]
       ?? raw.slice(raw.lastIndexOf("@media (max-width: 1024px)"))
-    expect(mob).toMatch(/\.ln-robot-stage\s*\{[^}]*block-size:\s*62svh/)
+    expect(mob).toMatch(/\.ln-robot-stage\s*\{[^}]*block-size:\s*56svh/) /* P16-W3: 62→56 — parity.mjs re-anchored in lockstep */
     expect(mob).toMatch(/\.ln-ticker-island\s*\{[^}]*display:\s*contents/)
     expect(mob).toMatch(/\.ln-ticker-status\s*\{[^}]*display:\s*flex/)
     expect(mob).toMatch(/\.ln-status\s*\{[^}]*display:\s*none/)

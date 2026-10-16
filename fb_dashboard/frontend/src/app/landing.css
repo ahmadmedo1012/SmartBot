@@ -2241,7 +2241,11 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
    torso-crossing band) and eases to TRANSPARENT by the contact-pool
    zone (floor +3%) so directive 4's grounding glow reads at full
    strength — the lockup's descenders cross only the dimmed body and
-   the machine's own dark pedestal, never a lit silhouette edge. */
+   the machine's own dark pedestal, never a lit silhouette edge.
+   P16-W3 (P1-a, evaluator: arm px at rows 529–545): the h1 band's
+   peak deepens 0.76→0.93 — the arm/hand plane now sinks fully behind
+   near-opaque petrol in the text band (glyphs read on clean ground),
+   while the floor contact zone stays untouched. */
 .landing .ln-robot-scrim {
   position: absolute;
   inset: 0;
@@ -2251,11 +2255,29 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
     transparent 0%,
     transparent calc(var(--sb-floor) * 100% + 3%),
     rgb(7 26 33 / 0.18) calc(var(--sb-floor) * 100% - 4%),
-    rgb(7 26 33 / 0.45) calc(var(--sb-floor) * 100% - 8%),
-    rgb(7 26 33 / 0.7) calc(var(--sb-floor) * 100% - 12%),
-    rgb(7 26 33 / 0.76) calc(var(--sb-floor) * 100% - 18%),
-    rgb(7 26 33 / 0.72) calc(var(--sb-floor) * 100% - 21%),
-    rgb(7 26 33 / 0.55) calc(var(--sb-floor) * 100% - 26%),
+    rgb(7 26 33 / 0.55) calc(var(--sb-floor) * 100% - 8%),
+    rgb(7 26 33 / 0.88) calc(var(--sb-floor) * 100% - 12%),
+    rgb(7 26 33 / 0.94) calc(var(--sb-floor) * 100% - 20%),
+    rgb(7 26 33 / 0.9) calc(var(--sb-floor) * 100% - 26%),
+    rgb(7 26 33 / 0.62) calc(var(--sb-floor) * 100% - 31%),
+    transparent calc(var(--sb-floor) * 100% - 36%)
+  );
+}
+/* P16-W3 (P1-a light twin): the light stage's mist-band equivalent —
+   the light-mode character's dark ink body sinks into rising mist
+   through the same text band (light h1 = deep ink on mist; the band
+   keeps its glyphs on clean ground the same way). */
+html.light .landing .ln-robot-scrim {
+  background: linear-gradient(
+    0deg,
+    transparent 0%,
+    transparent calc(var(--sb-floor) * 100% + 3%),
+    rgb(237 246 243 / 0.22) calc(var(--sb-floor) * 100% - 4%),
+    rgb(237 246 243 / 0.5) calc(var(--sb-floor) * 100% - 8%),
+    rgb(237 246 243 / 0.8) calc(var(--sb-floor) * 100% - 12%),
+    rgb(237 246 243 / 0.9) calc(var(--sb-floor) * 100% - 18%),
+    rgb(237 246 243 / 0.86) calc(var(--sb-floor) * 100% - 21%),
+    rgb(237 246 243 / 0.6) calc(var(--sb-floor) * 100% - 26%),
     transparent calc(var(--sb-floor) * 100% - 30%)
   );
 }
@@ -2606,6 +2628,49 @@ html.light .landing .ln-chapter-head::after {
   color: var(--ln-cream-dim);
 }
 
+/* ── P16-W3 · the scenario selector (P1-c — B's agency port) ────────────
+   Real controls over the honest demo: three conversations, one per
+   button. Machine grammar: hairline top seam, mono index, the ACTIVE
+   conversation carries the lime accent (the ONE accent temperature);
+   ≥44px targets, native focus rings via the global :focus-visible. */
+.landing .ln-scenario-tabs {
+  display: flex;
+  margin-top: 10px;
+  border-top: 1px solid var(--ln-line);
+  padding-top: 2px;
+}
+.landing .ln-scenario-tab {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 8px 6px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ln-cream-dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+.landing .ln-scenario-tab .ln-mono {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  opacity: 0.75;
+}
+.landing .ln-scenario-tab:hover { color: var(--ln-cream); }
+.landing .ln-scenario-tab[aria-pressed='true'] {
+  color: var(--ln-cream);
+  border-bottom-color: var(--ln-lime, #c6f24e);
+}
+.landing .ln-scenario-tab[aria-pressed='true'] .ln-mono {
+  color: var(--ln-lime, #c6f24e);
+  opacity: 1;
+}
+
 /* ── 20b · the status micro-panel ────────────────────────────────────────
    Mono ALL-CAPS machine register synced to the ticker beat: the active
    row lit (dot pulsing in its register — teal = live machine, lime =
@@ -2813,13 +2878,17 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     padding: 16px 20px var(--sp-6);
     gap: var(--sp-4);
   }
-  /* the protagonist first — the figure owns the opening beat */
+  /* the protagonist first — the figure owns the opening beat.
+     P16-W3: 62svh → 57svh — the scenario selector (the agency port)
+     added ~86px to the stack; the stage gives it room so the h1 lockup
+     returns in-fold and the CTA stays within one gesture (the figure
+     fractions 0.92/0.94 are unchanged — only the box breathes). */
   .landing .ln-robot-stage {
     order: 1;
     position: relative;
     inline-size: 100%;
-    block-size: 62svh;
-    min-block-size: 340px;
+    block-size: 56svh;
+    min-block-size: 320px;
     --sb-fig: 0.92;
     --sb-floor: 0.94;
     --sb-ringfit: 0.72; /* the landing rings clamp for the narrow box */
@@ -2874,6 +2943,15 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     display: flex;
     margin-block-start: 5px;
   }
+  /* P16-W3: the selector's compact mobile grade — the 44px touch law
+     holds (min-height), the chrome around it thins so the one-line
+     console + tabs + lockup still land in-fold at 844. */
+  .landing .ln-scenario-tabs { margin-top: 4px; padding-top: 0; }
+  .landing .ln-scenario-tab {
+    min-height: 44px;
+    padding: 4px 4px 6px;
+    font-size: 11.5px;
+  }
   .landing .ln-status { order: 5; display: none; }
   .landing .ln-hero-copy { order: 3; }
   .landing .ln-hero-foot { order: 4; }
@@ -2912,8 +2990,8 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
      P0 the redesign exists to kill; a thumb-flick reveals the CTA and
      the scroll cue + gold contrast make the next beat obvious. */
   .landing .ln-hero-robot .ln-hero-eyebrow { margin-block-end: var(--sp-3); }
-  .landing .ln-hero-robot .ln-hero-title { margin-block-end: 12px; }
-  .landing .ln-hero-robot .ln-hero-sub { margin-block-start: 0; margin-block-end: 10px; line-height: 1.58; }
+  .landing .ln-hero-robot .ln-hero-title { margin-block-end: 8px; } /* P16-W3: 12→8 for the selector's stack cost */
+  .landing .ln-hero-robot .ln-hero-sub { margin-block-start: 0; margin-block-end: 8px; line-height: 1.52; }
   /* the hero's CTA pair shares ONE row under the fold pressure (the
      ≤560px full-width stacking stays for the FINALE block, where there
      is no fold budget to honor) — both buttons keep ≥44px touch targets */

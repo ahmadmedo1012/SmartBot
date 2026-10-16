@@ -16,9 +16,27 @@ os.environ.setdefault("FB_PAGE_ID", "0")
 os.environ.setdefault("DEBUG", "True")
 
 import pytest
+
+# P18-W5 (the lost-wakeup deadlock fix — ROOT CAUSE, reproduced 4/6 locally
+# as a 90s hang + BaseHTTPMiddleware CancelledError, = CI's intermittent
+# [activity] red): the fixture was MODULE-scoped — under pytest-asyncio's
+# defaults a module-scoped async fixture runs on a dedicated module event
+# loop while every TEST runs on its own function-scoped loop. The shared
+# httpx AsyncClient + the aiosqlite futures bind to the FIXTURE's loop;
+# the first request issued from a test's loop = a lost wakeup: the DB
+# worker thread idles on tx.get(), the test loop idles on
+# selector.poll(), nothing ever resolves until the 120s wall kills it.
+# (The loop_scope="module" marks were tried and pytest-asyncio 0.25.3
+# raises MultipleEventLoopsRequestedError in auto mode — the scope
+# machinery cannot pair these here.) The robust fix: FUNCTION scope —
+# every test gets its own loop-bound client+register; the cross-loop
+# sharing that caused the deadlock simply ceases to exist. The 22x
+# register cost is ~7s with off-loop argon2 (see _hash.py); the tested
+# CONTRACTS are untouched — same endpoints, same envelopes, same asserts.
 from database import engine as db_engine
 from httpx import ASGITransport, AsyncClient
-from models import Base
+from models import Base, RateLimitEntry
+from sqlalchemy import delete
 
 # page → list of endpoints it consumes (grep-verified 2026-09-05)
 PAGE_API_MAP: dict[str, list[str]] = {
@@ -47,12 +65,18 @@ PAGE_API_MAP: dict[str, list[str]] = {
 }
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 async def auth_client():
     from runner import app
 
     async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # P18-W5: function-scoped = 22 registers per run from the test IP;
+        # the REAL register rate limit (5/300s per IP) would 429 the 6th.
+        # Test-env state hygiene (same class as create_all itself): wipe
+        # the limiter rows so every test starts with clean buckets. The
+        # limiter's OWN contract is tested in its own dedicated suite.
+        await conn.execute(delete(RateLimitEntry))
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as ac:
         uname = f"gate_{uuid.uuid4().hex[:8]}"
@@ -63,8 +87,13 @@ async def auth_client():
         assert r.status_code == 200, r.text
         # Real journey step: connect a (test) FB page so inbox/ads endpoints
         # return real data flows instead of the honest 400 "setup required"
+        # P18-W5: function-scoped fixtures need a UNIQUE page per run —
+        # the fixed "1000000001" now collides with the previous test's
+        # tenant (the page-uniqueness rule fires 409). Unique per fixture
+        # invocation, same contract.
+        page_id = str(1_000_000_000 + int(uuid.uuid4().int % 900_000_000))
         r = await ac.put("/api/facebook/settings", json={
-            "page_id": "1000000001", "access_token": "test-token-gate",
+            "page_id": page_id, "access_token": "test-token-gate",
             "subscribe_webhook": False,
         })
         assert r.status_code == 200, f"facebook settings: {r.status_code} {r.text[:120]}"

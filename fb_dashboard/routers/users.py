@@ -67,8 +67,8 @@ async def create_user(username: str = Form(...), password: str = Form(...), role
             if seats >= int(max_team):
                 raise HTTPException(403, _TEAM_LIMIT_MSG.format(n=int(max_team)))
 
-    from _hash import hash_password
-    pw_hash = hash_password(password)
+    from _hash import hash_password_async
+    pw_hash = await hash_password_async(password)  # P18-W5: off-loop (event-loop freeze fix)
     user = User(username=username, password_hash=pw_hash, role=role, tenant_id=current_user._tenant_id)
     db.add(user)
     try:
@@ -106,8 +106,8 @@ async def update_user(user_id: int, role: str = Form(...), password: str = Form(
         raise HTTPException(400, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
     user.role = role
     if password:
-        from _hash import hash_password
-        user.password_hash = hash_password(password)
+        from _hash import hash_password_async
+        user.password_hash = await hash_password_async(password)  # P18-W5: off-loop
         # v14-E1 #5 (D5-H1): bump token_ver — exact parity with
         # /api/admin/reset-password (auth.py) and /api/auth/change-password.
         # Without the bump, every JWT minted before this admin-set password

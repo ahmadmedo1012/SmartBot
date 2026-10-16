@@ -31,3 +31,23 @@ def verify_password(password: str, stored: str) -> bool:
         return bcrypt.checkpw(password.encode(), stored.encode())
     except Exception:
         return False
+
+
+# P18-W5 (the event-loop freeze fix): argon2id (64 MB, parallelism=4) was
+# called SYNCHRONOUSLY inside async auth handlers — every register/login/
+# change-password froze the ENTIRE event loop for the hashing duration.
+# Under CPU contention (CI runners, loaded production nodes) that freeze
+# stretched to tens of seconds and surfaced as the intermittent
+# BaseHTTPMiddleware CancelledError flakes in test_page_backend_alive +
+# the "event loop froze during render" class. The off-loop twins move the
+# work to the default thread executor: the loop never blocks, concurrent
+# requests keep flowing (a real production bug, not just a test flake).
+import asyncio
+
+
+async def hash_password_async(password: str) -> str:
+    return await asyncio.to_thread(hash_password, password)
+
+
+async def verify_password_async(password: str, stored: str) -> bool:
+    return await asyncio.to_thread(verify_password, password, stored)

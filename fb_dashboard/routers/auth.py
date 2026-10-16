@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 from _audit import log_audit
-from _hash import hash_password, verify_password
+from _hash import hash_password_async, verify_password_async
 from _responses import ok
 from _subscription import subscription_snapshot
 from _utils import iso_z, utcnow
@@ -207,7 +207,7 @@ async def _authenticate_login(body, request, db):
             select(User).where(func.lower(User.email) == email_lookup.lower())
             .order_by(User.id).limit(1)
         )).scalars().first()
-    if not user or not verify_password(password, user.password_hash):
+    if not user or not (await verify_password_async(password, user.password_hash)):
         raise HTTPException(401, "بيانات تسجيل الدخول غير صحيحة")
     token = make_token(user.username, user.tenant_id, getattr(user, "token_ver", 0))
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
@@ -367,7 +367,7 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
     try:
         db.add(tenant)
         await db.flush()
-        pw_hash = hash_password(password)
+        pw_hash = await hash_password_async(password)
         user = User(username=username, email=email, name=name, password_hash=pw_hash, tenant_id=tenant.id, role="admin")
         db.add(user)
         await db.flush()
@@ -508,7 +508,7 @@ async def admin_reset_password(body: dict = Body(None), request: Request = None,
     user = (await db.execute(stmt)).scalars().first()
     if not user:
         raise HTTPException(404, "المستخدم غير موجود في مساحة عملك")
-    user.password_hash = hash_password(new_password)
+    user.password_hash = await hash_password_async(new_password)
     # v12-E2.4: bump the token version — every session JWT minted for this
     # user (including one stolen before the reset) dies on its next request.
     user.token_ver = int(getattr(user, "token_ver", 0) or 0) + 1
@@ -554,11 +554,11 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
         raise HTTPException(400, "كلمة المرور الحالية مطلوبة")
     if len(new_password) < 8:
         raise HTTPException(400, "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل")
-    if not verify_password(current_password, current_user.password_hash):
+    if not (await verify_password_async(current_password, current_user.password_hash)):
         raise HTTPException(401, "كلمة المرور الحالية غير صحيحة")
-    if verify_password(new_password, current_user.password_hash):
+    if await verify_password_async(new_password, current_user.password_hash):
         raise HTTPException(400, "كلمة المرور الجديدة مطابقة للحالية")
-    current_user.password_hash = hash_password(new_password)
+    current_user.password_hash = await hash_password_async(new_password)
     # v12-E2.4: bump the token version — old sessions (incl. this cookie on
     # other devices) are revoked; the login flow re-mints a fresh token.
     current_user.token_ver = int(getattr(current_user, "token_ver", 0) or 0) + 1

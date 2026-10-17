@@ -12,6 +12,7 @@ import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { TickerStrip } from "@/components/dashboard/TickerStrip"
 import { KpiCard } from "@/components/shared/KpiCard"
 import { ChartCard } from "@/components/shared/ChartCard"
 import { CircuitTrace } from "@/components/shared/CircuitTrace"
@@ -334,12 +335,20 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-        {/* Header — REAL connection state (was hardcoded "متصل")
-            phase6 r154: the topbar trace (the machine-room signature, live
-            lime node = the 60s bundle poll) via the PageHeader option. */}
+        {/* W2-C2a — ticker strip (≈57px cards, muted Δ family): the overview
+            KPIs the page already consumes from /api/dashboard/bundle — every
+            value is a real bundle field (no fabricated metrics). Sits between
+            the shell top band and the page header (reference: topnav →
+            ticker → panels). */}
+        <TickerStrip bundle={bundle} loading={isLoading} />
+
+        {/* Header — REAL connection state (was hardcoded "متصل"). W2-C2a:
+            the route title moved to the shell's top band, so the page's own
+            header names its section (نظرة عامة) and keeps the live trace +
+            connection status (phase6 r154 topbar trace contract). */}
         <PageHeader
           icon={<TrendingUp className="size-4" />}
-          title="لوحة التحكم"
+          title="نظرة عامة"
           subtitle={pageName ? `متصل بـ ${pageName}` : undefined}
           status={connected
             ? { label: "متصل", tone: "success" }

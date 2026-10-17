@@ -225,6 +225,11 @@ export default function HomePage() {
             </RevealCssClass>
 
             <h1 className="ln-hero-title">
+              {/* P21-C: the reference's L-bracket tech-frame — open corner
+                  brackets (top reading-start + bottom inline-end) carrying
+                  the spectrum accent. Decorative: aria-hidden. */}
+              <i className="ln-bracket ln-bracket-a" aria-hidden="true" />
+              <i className="ln-bracket ln-bracket-b" aria-hidden="true" />
               <span className="ln-hero-line">تعرّف على <em className="ln-hero-gold">رفيقك</em> الرقمي</span>
               <span className="ln-hero-line">يرد، يفهم، ويشتغل <em>دائماً</em></span>
             </h1>

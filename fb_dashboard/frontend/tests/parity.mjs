@@ -1658,19 +1658,23 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   if (bareOk) pass += 1;
   else fails.push('r152c globals: .sb-typing--bare (the chrome-free dots variant) is defined');
 
-  // (8) the hero canvas paints the petrol world (phase5 lockstep, P15
-  //     re-anchor, P16-A re-anchor to CharacterScene): the three.js engine
-  //     cannot read CSS vars, so the literals MUST be pinned —
-  //     foam/teal/lime present, the retired Orbit-Ink sand/pistachio/violet
-  //     triplets absent. The retired OrbitScene/HeroDepthLayer (P15) AND
-  //     the primitives RobotScene (P16-A) canvases are DELETED; the
+  // (8) the hero canvas paints the reference world (phase5 lockstep,
+  //     P15 re-anchor, P16-A re-anchor to CharacterScene, P21-C re-anchor
+  //     to the ChainGPT reference character): the three.js engine cannot
+  //     read CSS vars, so the literals MUST be pinned — the P21 matte
+  //     shell/spectrum bezel present + the instrument hue law (cyan/
+  //     violet), the retired Orbit-Ink triplets absent, and the retired
+  //     P19 porcelain literal (0xe7e5e0 — the owner-rejected Vessel)
+  //     absent. The retired OrbitScene/HeroDepthLayer (P15) AND the
+  //     primitives RobotScene (P16-A) canvases are DELETED; the
   //     retirement itself is pinned in §P15.
   const rawRobotScene2 = readRaw('../src/components/landing/CharacterScene.tsx');
-  const canvasOk = rawRobotScene2.includes('0xe7e5e0') && rawRobotScene2.includes('0x56e2f2')
-    && rawRobotScene2.includes('0x9380ff')
+  const canvasOk = rawRobotScene2.includes('0xe8e6e1') && rawRobotScene2.includes('0x56e2f2')
+    && rawRobotScene2.includes('0x9380ff') && rawRobotScene2.includes('SPECTRUM_STOPS')
+    && !rawRobotScene2.includes('0xe7e5e0')
     && !rawRobotScene2.includes('245,243,231') && !rawRobotScene2.includes('223,237,178') && !rawRobotScene2.includes('122,107,242');
   if (canvasOk) pass += 1;
-  else fails.push('P19 canvas lockstep: CharacterScene literals = porcelain/cyan/violet, zero retired Orbit-Ink triplets');
+  else fails.push('P21 canvas lockstep: CharacterScene literals = shell/spectrum + cyan/violet, zero retired Orbit-Ink triplets, zero retired P19 porcelain');
 
   // (9) DASHBOARD CORE cascade (r152d): the thread itself speaks the chat
   //     grammar — mono HH:MM stamps (timeStamp + title fallback), the ONE
@@ -2544,11 +2548,11 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
      * unchanged: the WebGL probe gates the renderer, setFailed(true)
      * renders the art-directed SVG frame — never a broken canvas. */
     const glbOk = !rawRobot.includes("import('three/examples/jsm/loaders/GLTFLoader.js')")
-      && rawRobot.includes('new LatheGeometry(')
+      && rawRobot.includes('new RoundedBoxGeometry(')
       && rawRobot.includes("getContext('webgl2')")
       && rawRobot.includes('setFailed(true)');
     if (glbOk) pass += 1;
-    else fails.push('P19-W2-C procedural vessel: authored LatheGeometry build, NO GLTFLoader on the critical path (GLB retired, provenance-only), WebGL probe → setFailed(true) → art-directed SVG frame (never a broken canvas)');
+    else fails.push('P21-C reference character: authored RoundedBoxGeometry build (the lathe was the owner-rejected P19 Vessel), NO GLTFLoader on the critical path, WebGL probe → setFailed(true) → art-directed SVG frame (never a broken canvas)');
   }
 
   // (8b) the heroBus beat channel (P16-A) — the honest scenario engine

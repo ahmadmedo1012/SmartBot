@@ -795,6 +795,36 @@ html.light .landing .ln-marquee {
 }
 .landing .ln-hero-line { display: block; }
 
+/* ── P21-C: the reference's L-bracket tech-frame on the display lockup.
+ * The ChainGPT hero wraps its headline in OPEN corner brackets (an
+ * L at reading-start top + an L at inline-end bottom) whose strokes
+ * carry the spectrum accent (cyan → violet → amber — the bezel's
+ * family, mapped onto the landing's own lime/violet/amber ink law).
+ * Pure decoration: aria-hidden spans, no focus, pointer-events none. */
+.landing .ln-bracket {
+  position: absolute;
+  width: clamp(18px, 2.6vw, 34px);
+  height: clamp(18px, 2.6vw, 34px);
+  pointer-events: none;
+  border: 0 solid;
+}
+.landing .ln-bracket-a {
+  inset-block-start: calc(-1 * clamp(8px, 1.2vw, 14px));
+  inset-inline-start: calc(-1 * clamp(10px, 1.4vw, 18px));
+  border-block-end-width: 2px;
+  border-inline-end-width: 2px;
+  border-image: linear-gradient(100deg, var(--ln-lime), var(--ln-violet)) 1;
+}
+.landing .ln-bracket-b {
+  inset-block-end: calc(-1 * clamp(8px, 1.2vw, 14px));
+  inset-inline-end: calc(-1 * clamp(10px, 1.4vw, 18px));
+  border-block-start-width: 2px;
+  border-inline-start-width: 2px;
+  border-image: linear-gradient(280deg, var(--ln-lime), var(--ln-amber, #ff9a69)) 1;
+}
+/* the title becomes the bracket's positioning context */
+.landing .ln-hero-title { position: relative; }
+
 /* accent words — the hero carries exactly ONE lime word (.ln-hero-gold);
    a plain <em> stays cream so the accent stays single. */
 .landing .ln-hero-title em {
@@ -2157,6 +2187,31 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
     radial-gradient(42% 30% at var(--sb-glow-x) 24%, rgb(86 226 242 / 0.05) 0%, transparent 70%),
     radial-gradient(64% 44% at var(--sb-glow-x) 34%, rgb(10 11 14 / 0.85) 0%, transparent 78%),
     var(--ln-ink);
+}
+
+/* ── P21-C: the reference's PAGE-COLUMN GRID — faint full-height 1px
+ * rules every 120px (the live ChainGPT hero measures rgba(255,255,255,
+ * ~0.03) column lines behind the character; this is the PAGE grid, not
+ * the retired P17 instrument grid 17/50/83 — full-bleed, uniform,
+ * near-invisible structure). Sits UNDER the canvas layer (z 0), so the
+ * figure occludes its own lines — the reference's exact stack. */
+.landing .ln-hero-robot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    rgb(244 244 246 / 0.038) 0 1px,
+    transparent 1px 120px
+  );
+}
+html.light .landing .ln-hero-robot::before {
+  background: repeating-linear-gradient(
+    90deg,
+    rgb(16 17 22 / 0.05) 0 1px,
+    transparent 1px 120px
+  );
 }
 
 /* the machine stage — full-viewport, above the interface island.

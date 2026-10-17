@@ -817,13 +817,16 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawRobot).toContain("matchMedia('(pointer: fine)')")
     expect(rawRobot).toContain("degToRad(22)") /* P19-W2-C: the vessel's calmer ±22° */
     expect(rawRobot).toContain("degToRad(10)")
-    // the P19-W2-C re-anchor: the GLB protagonist is superseded by the
-    // fully PROCEDURAL VESSEL (authored LatheGeometry turned body — no
-    // loader on the critical path; the retired GLB stays on disk for
-    // provenance, never fetched) + the art-directed fallback contract
-    // is unchanged
+    // the P21-C re-anchor: the owner-rejected P19 Vessel (authored
+    // LatheGeometry turned body) is superseded by the ChainGPT reference
+    // character — authored RoundedBoxGeometry build (filleted head/body,
+    // spectrum bezel, bar eyes — no loader on the critical path; the
+    // retired GLB stays on disk for provenance, never fetched) + the
+    // art-directed fallback contract is unchanged
     expect(rawRobot).not.toContain("import('three/examples/jsm/loaders/GLTFLoader.js')") // the loader is retired with the GLB
-    expect(rawRobot).toContain("new LatheGeometry(") // the authored procedural vessel build
+    expect(rawRobot).not.toContain("new LatheGeometry(") // the lathe = the retired P19 Vessel build
+    expect(rawRobot).toContain("new RoundedBoxGeometry(") // the authored P21 reference character build
+    expect(rawRobot).toContain("SPECTRUM_STOPS") // the bezel's ChainGPT spectrum gradient
     expect(rawRobot).toContain("getContext('webgl2')") // the WebGL probe gates the renderer
     expect(rawRobot).toContain("setFailed(true)")
   })

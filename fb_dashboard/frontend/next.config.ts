@@ -43,6 +43,12 @@ const imagesConfig: NextConfig["images"] = process.env.VERCEL
 
 const nextConfig: NextConfig = {
   images: imagesConfig,
+  // P19-W0: the sandbox's headless browser reaches this dev server
+  // through the machine's network address (21.0.7.139) in addition to
+  // localhost — Next 16 blocks cross-origin dev resources by default,
+  // which silently killed client hydration for those origins (the
+  // hero canvas never mounted). Dev-only setting; no prod effect.
+  allowedDevOrigins: ["127.0.0.1", "localhost", "21.0.7.139"],
   // v15-E6 (D14-H2) — see the block comment above. Inlining happens only
   // when an honest release exists; otherwise the key is omitted entirely.
   ...(sentryRelease

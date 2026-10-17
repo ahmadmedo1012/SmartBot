@@ -724,13 +724,13 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     }
   })
 
-  /* P18-W5 re-anchor: the final-audit mobile grounding — fig 1.24 /
-     floor 1.18 (the pedestal ring peeks into the bust frame; same pose
+  /* P19-W2-C re-anchor: the VESSEL bust window (the vessel is 1.34
+     world units — the bust crop needs fig 1.63 / floor 1.6; same pose
      law, re-pinned values). */
-  it("the composition tokens (P17/P18): --sb-fig 0.76 / --sb-floor 0.84 desktop + the mobile bust re-pose 1.24/1.18", () => {
+  it("the composition tokens (P19): --sb-fig 0.76 / --sb-floor 0.84 desktop + the mobile bust re-pose 1.63/1.6", () => {
     expect(rawLanding).toMatch(/--sb-fig:\s*0\.76;/)
     expect(rawLanding).toMatch(/--sb-floor:\s*0\.84;/)
-    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.24;[^@]*?--sb-floor:\s*1\.18;/)
+    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.63;[^@]*?--sb-floor:\s*1\.6;/)
   })
 
   it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the P18-W2-a 44vw display column measure", () => {
@@ -761,14 +761,13 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawLanding).toMatch(/\.ln-ticker-corner\.c-a\s*\{[^}]*inset-block-start:\s*-5px;[^}]*inset-inline-start:\s*-5px/)
   })
 
-  it("the status panel (P18-W2-a): the wireframe instrument box, synced active row, resting rows at real presence (0.75 alpha)", () => {
-    /* P18-W2-a re-anchor: the bare spine list (border-inline-start only,
-     * 0.55 rows) measured near-invisible on the desktop void (the W1-a
-     * defect) — the panel now carries the ticker's own wireframe box
-     * grammar (full hairline border + ink wash) and 0.75 resting rows */
-    expect(rawLanding).toMatch(/\.ln-status\s*\{[^}]*border:\s*1px solid var\(--ln-line\)/)
-    expect(rawLanding).toMatch(/\.ln-status li\s*\{[^}]*color:\s*rgb\(244 244 246 \/ 0\.75\)/)
-    expect(rawLanding).toMatch(/\.ln-status li\[data-active='true'\]\s*\{[^}]*color:\s*var\(--ln-cream\)/)
+  it("the status surface (P19-W2-C §2.4): ONE surface — the console's compact status line (the standalone SYSTEM micro-panel is retired)", () => {
+    /* P19-W2-C re-anchor: the directive retired the competing floating
+     * status widget; the console's own foot line is the ONE status
+     * surface on every breakpoint — the dot's beat-tone law is pinned. */
+    expect(rawLanding).toMatch(/\.ln-ticker-status\s*b\s*\{[^}]*background:\s*var\(--ln-lime\)/)
+    expect(rawLanding).toMatch(/\.ln-ticker-status\s*b\[data-tone='lime'\]\s*\{[^}]*background:\s*var\(--ln-violet\)/)
+    expect(rawLanding).not.toMatch(/\.ln-status\s*\{/) /* the standalone panel is GONE */
   })
 
   it("the ticker island (HeroTicker, 2-e: B's scenario engine): honest demo cycle, aria-live polite, one stage machine, IO + hidden-tab pause", () => {
@@ -816,14 +815,15 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawRobot).toContain("for (const m of materials) m.dispose()")
     expect(rawRobot).toContain("one static posed frame")
     expect(rawRobot).toContain("matchMedia('(pointer: fine)')")
-    expect(rawRobot).toContain("degToRad(25)")
-    expect(rawRobot).toContain("degToRad(12)")
-    // the P18-W2-a re-anchor: the GLB protagonist is superseded by the
-    // fully PROCEDURAL character (authored BufferGeometry — no loader on
-    // the critical path; the retired GLB stays on disk for provenance,
-    // never fetched) + the art-directed fallback contract is unchanged
+    expect(rawRobot).toContain("degToRad(22)") /* P19-W2-C: the vessel's calmer ±22° */
+    expect(rawRobot).toContain("degToRad(10)")
+    // the P19-W2-C re-anchor: the GLB protagonist is superseded by the
+    // fully PROCEDURAL VESSEL (authored LatheGeometry turned body — no
+    // loader on the critical path; the retired GLB stays on disk for
+    // provenance, never fetched) + the art-directed fallback contract
+    // is unchanged
     expect(rawRobot).not.toContain("import('three/examples/jsm/loaders/GLTFLoader.js')") // the loader is retired with the GLB
-    expect(rawRobot).toContain("new BufferGeometry()") // the authored procedural build
+    expect(rawRobot).toContain("new LatheGeometry(") // the authored procedural vessel build
     expect(rawRobot).toContain("getContext('webgl2')") // the WebGL probe gates the renderer
     expect(rawRobot).toContain("setFailed(true)")
   })
@@ -852,14 +852,13 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawPage).toContain("تعرّف على")
   })
 
-  it("the mobile stack (P17: ≤1024px character-first): 41svh BUST stage (the CTA returns to the fold), island display:contents, compact status ON, ONE-line console", () => {
+  it("the mobile stack (P19: ≤1024px character-first): 41svh BUST stage (the CTA returns to the fold), island display:contents, compact status line ON, ONE-line console", () => {
     const raw = read("src/app/landing.css")
     const mob = raw.match(/@media \(max-width: 1024px\)\s*\{([\s\S]*)\}\s*$/)?.[1]
       ?? raw.slice(raw.lastIndexOf("@media (max-width: 1024px)"))
     expect(mob).toMatch(/\.ln-robot-stage\s*\{[^}]*block-size:\s*41svh/) /* P17: 56→41 + bust crop — parity.mjs re-anchored in lockstep */
     expect(mob).toMatch(/\.ln-ticker-island\s*\{[^}]*display:\s*contents/)
     expect(mob).toMatch(/\.ln-ticker-status\s*\{[^}]*display:\s*flex/)
-    expect(mob).toMatch(/\.ln-status\s*\{[^}]*display:\s*none/)
     expect(mob).toMatch(/\.ln-ticker-msg\s*\{[^}]*white-space:\s*nowrap/) // the ONE-line console
   })
 })

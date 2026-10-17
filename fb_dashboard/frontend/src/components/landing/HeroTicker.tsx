@@ -501,24 +501,13 @@ export function HeroTicker() {
         </p>
       </div>
 
-      {/* ── the status micro-panel (far side — RTL left) ── */}
-      <aside className="ln-status" aria-label="حالة النظام">
-        <p className="ln-status-head">
-          <span className="ln-mono">SYSTEM</span>
-          <span>حالة النظام</span>
-        </p>
-        <ul>
-          {STATUS_ROWS.map((row) => (
-            <li key={row.mono} data-active={activeRow === row.key ? 'true' : undefined}>
-              <i data-tone={row.tone} aria-hidden="true" />
-              <span className="ln-status-label">{row.ar}</span>
-              <span className="ln-status-mono ln-mono" dir="ltr">
-                {row.mono}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </aside>
+      {/* P19-W2-C (§2.4): the standalone SYSTEM status micro-panel is
+          RETIRED — the directive's "collection of overlapping floating
+          panels / competing status widgets" finding. The console's own
+          compact status line (ln-ticker-status) + the beat label +
+          transcript ARE the integrated demonstration surface; one
+          protagonist, one panel. STATUS_ROWS stays as the data source
+          for the compact line's active tone. */}
 
       {/* the RM frame's sr contract (the static conversation, described
           once) + the honesty line — the law, unchanged */}

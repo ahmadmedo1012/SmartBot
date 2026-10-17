@@ -1,56 +1,66 @@
 'use client';
 
-/* P18-W2-a — THE OBELISK ATTENDANT (the §2.1/§2.2 rebuild).
+/* P19-W2-C — THE VESSEL · المَركَب (the §2.2 rebuild, Direction A —
+ * the sculptural intelligence companion, selected by the P19 concept
+ * board evaluation).
  *
- * The chibi boxy-CRT-head GLB is SUPERSEDED by a NEW, fully
- * procedural Three.js character — authored BufferGeometry, no
- * external asset, no loader on the critical path (Blender is absent
- * from this environment; procedural geometry IS the pipeline). The
- * retired GLB stays on disk at public/models/smartbot-character.glb
- * for provenance only — it is never fetched.
+ * The rejected P18 Obelisk (stacked box primitives + wedge head +
+ * protruding face slab + pedestal + landing-pad rings) is SUPERSEDED
+ * by a genuinely different foundation:
  *
- * THE CHARACTER (silhouette of record — asymmetric obelisk):
- * · proportions head : torso : base ≈ 1 : 2.2 : 1.2 (tall monolith,
- *   NOT chibi — a deliberate presence, not a toy);
- * · HEAD — a softly-faceted ASYMMETRIC wedge prism (authored
- *   BufferGeometry, 6 vertical stations + a swept chamfer: the
- *   inline-start brow plane sweeps LOW toward the jaw on one side,
- *   the far side stays clean) — one sculptural volume, never a box;
- * · FACE — a smoked-glass panel SET INTO the head's inline-start
- *   facet (the existing black-glass visor material system), carrying
- * · ONE VERTICAL LUMINOUS APERTURE SLIT (cyan #56E2F2, emissive) —
- *   the single eye; expression = the slit's width/phase, modulated
- *   by the idle breathing (NEVER two dot eyes — the ChainGPT law);
- * · NECK — a graphite gimbal ring stack (two torus segments + a
- *   bearing band) between head and mantle (a modeled transition);
- * · MANTLE — 3 overlapping lathe-turned ceramic shrouds in the
- *   existing #DAD9D6 body-of-record, with a graphite core band
- *   revealed between the upper and lower layers, one cyan core
- *   disc at the chest, and the ONE tri-hue edge strip.
+ * THE CHARACTER (silhouette of record — the turned vessel):
+ * · ONE continuous lathe-turned porcelain body — a rounded foot, a
+ *   drawn-in waist, a chest swell, a shoulder taper into the neck;
+ *   one sculptural volume, never stacked boxes;
+ * · the HEAD is a smooth cranial dome that continues the body's
+ *   curvature across ONE designed articulation seam (the graphite
+ *   collar) — an engineered joint, not a disconnection;
+ * · the FACE is a recessed smoked-glass lens set INTO the dome's
+ *   front (inset, elliptical, framed by a thin graphite bezel) —
+ *   never a protruding slab;
+ * · THE EYE is ONE thin luminous ARC (cyan #56E2F2, emissive + a
+ *   soft additive glow) inside the lens — a calm downward-open
+ *   gaze. NEVER two dot eyes, NEVER a rectangular face border (the
+ *   ChainGPT identity laws); expression = the arc's intensity and
+ *   breathing, modulated by idle + scenario beats;
+ * · deliberate asymmetry: ONE swept pauldron arc riding the
+ *   inline-start shoulder with a visible gap (graphite against
+ *   porcelain) + the dome's resting z-lean;
+ * · the chest carries a QUIET core porthole (small housing + dim
+ *   ring) — the heartbeat register, deliberately subordinate to
+ *   the face;
+ * · materials: warm porcelain (clearcoat 1.0 — bone-china read
+ *   under the neutral key), dark graphite metal (the joints +
+ *   bezels), smoked glass (the lens). The PMREM RoomEnvironment
+ *   gives all three believable reflections — the premium-material
+ *   read the rejected matte-plastic character never had.
  *
- * KEPT FROM P17 (the graded systems — untouched contracts): the
- * ceramic/visor/graphite materials + runtime palette repaint
- * (MutationObserver on html class), the light rig (neutral key +
- * cool cyan rim −x + warm amber kicker +x + face glow), the beat
- * hues (classify→VIOLET, handoff→AMBER on the core + aperture),
- * the idle breathing/blink-equivalent (aperture phase), the
- * framing solver (--sb-fig/--sb-floor with clamps), the pause
- * family (IO + visibilitychange), the disposal sweep, the RM static
- * pose, the DPR 2 cap, and the heroBus beat channel.
+ * THE STAGE (the rejected world is RETIRED): no pedestal, no
+ * landing-pad rings, no grid hairlines, no dust particles, no
+ * mirrored reflection — the vessel stands on a soft contact shadow
+ * in the near-black void; the CSS floor glow (the light spill)
+ * does the rest. The vessel IS the scene's principal light source
+ * (the pale figure on the near-black void).
+ *
+ * KEPT (the graded integration contracts): the token-sampling
+ * palette + runtime theme repaint (MutationObserver on html
+ * class), the beat channel (heroBus: inbound/classify/reply/
+ * handoff — the eye + core carry the phase-17 hue law: cyan = the
+ * machine's voice, VIOLET = the AI register, AMBER = the human
+ * handoff), pointer head-tracking, the framing solver (--sb-fig/
+ * --sb-floor/--sb-x with clamps), the pause family (IO +
+ * visibilitychange), the RM static pose, the DPR 2 cap, the
+ * disposal sweep, and the WebGL probe + art-directed SVG fallback
+ * (redrawn to the SAME vessel silhouette).
  *
  * ALIVENESS — three timescales, instrument-grade amplitudes:
- * (1) POINTER: head ±25°/±12°, mantle ~40% (critically damped);
- * (2) IDLE: breathing bob ±1.2% of height, aperture width phase,
- *     strip cyan→violet→amber rotation (18s);
- * (3) SCENARIO (heroBus): inbound → head turns toward the console +
- *     aperture WIDENS; classify → core + aperture pulse VIOLET;
- *     reply → aperture phase scans (the slit breathes quickly);
- *     handoff → the mantle tips forward + core warms AMBER.
- *
- * The fallback SVG (WebGL failure) is redrawn to the SAME obelisk
- * silhouette — asymmetric wedge head + vertical aperture + mantle —
- * so the WebGL-less client sees the same character, never the old
- * chibi. */
+ * (1) POINTER: head ±22°/±10° (critically damped);
+ * (2) IDLE: breathing bob ±1.3% of height, the arc's luminous
+ *     breath, the head's slow wander + resting z-lean;
+ * (3) SCENARIO (heroBus): inbound → the head turns toward the
+ *     console + the arc brightens; classify → the arc + core
+ *     warm VIOLET; reply → a fast scan shimmer on the arc;
+ *     handoff → the body tips forward + the registers warm AMBER. */
 
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -59,75 +69,60 @@ import {
   WebGLRenderer,
   Group,
   Mesh,
+  MeshPhysicalMaterial,
   MeshStandardMaterial,
   MeshBasicMaterial,
+  LatheGeometry,
+  SphereGeometry,
   CylinderGeometry,
   TorusGeometry,
-  LatheGeometry,
   PlaneGeometry,
-  BoxGeometry,
   BufferGeometry,
-  BufferAttribute,
-  Points,
-  PointsMaterial,
-  Fog,
-  DirectionalLight,
-  AmbientLight,
-  PointLight,
   Color,
   MathUtils,
   CanvasTexture,
   ACESFilmicToneMapping,
+  PMREMGenerator,
+  Fog,
+  DirectionalLight,
+  AmbientLight,
+  PointLight,
+  AdditiveBlending,
   Box3,
   Vector2,
   Vector3,
-  DoubleSide,
   type Material,
 } from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { subscribeHeroBeat, lastHeroBeat, type HeroBeat, type HeroBeatDetail } from './heroBus';
 
 export type CharacterSceneProps = {
   className?: string;
 };
 
-/* Emissive constants — the phase-17 accent registers (the machine
- * instrument law): CYAN = the machine's voice; VIOLET = the AI register
- * (classify beats); AMBER = the human/handoff warm register. These are
- * the fallbacks; the live values are sampled from the .landing token
- * scope so the character repaints with the theme. */
+/* Emissive constants — the machine instrument law (unchanged):
+ * CYAN = the machine's voice; VIOLET = the AI register (classify);
+ * AMBER = the human/handoff warm register. */
 const CYAN = 0x56e2f2;
 const VIOLET = 0x9380ff;
 const AMBER = 0xff9a69;
 
 /* ── the composition contract (world units) ────────────────────────
  * The framing solver places these inside the host box:
- *   FLOOR_Y — the grid floor the pedestal base stands on
- *   CHAR_H  — the character's normalized height (feet ON the pedestal)
- *   TOP_Y   — the figure's crown (head crown + breathing margin)   */
-const FLOOR_Y = -0.19;
-const CHAR_H = 1.9;
-const TOP_Y = CHAR_H + 0.04;
+ *   FLOOR_Y — the floor line the contact shadow sits on
+ *   TOP_Y   — the figure's crown (dome + breathing margin)       */
+const FLOOR_Y = 0;
+const CHAR_H = 1.34;
+const TOP_Y = CHAR_H + 0.06;
 
-/* ── the OBELISK proportion constants (P18 proportions of record) ──
- * head : torso : base ≈ 1 : 2.2 : 1.2 — the tall monolith presence.
- * HEAD_H 0.42, MANTLE_H 0.92, PLINTH_H 0.50 ≈ 1 : 2.2 : 1.2 scaled. */
-const HEAD_H = 0.44;
-const MANTLE_H = 0.94;
-const NECK_H = 0.10;
-const GIMBAL_Y = MANTLE_H + NECK_H; /* neck sits on the mantle */
-const HEAD_Y0 = GIMBAL_Y + HEAD_H * 0.5; /* head's pivot (its center) */
-
-/* Sampling bridge: read the landing token vars off <html> (the .landing
- * scope declares them; a landing mount implies html context) and parse
+/* Sampling bridge: read the landing token vars off <html> and parse
  * hex/rgb() to a number. Falls back to the dark-stage constant. */
 function readVar(el: Element | null, name: string, fallback: number): number {
   try {
     if (!el) return fallback;
     const raw = getComputedStyle(el).getPropertyValue(name).trim();
     if (!raw) return fallback;
-    const m = raw.match(
-      /^#([0-9a-f]{6})$/i,
-    );
+    const m = raw.match(/^#([0-9a-f]{6})$/i);
     if (m) return parseInt(m[1], 16);
     const rgb = raw.match(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i);
     if (rgb) {
@@ -144,21 +139,15 @@ function readVar(el: Element | null, name: string, fallback: number): number {
 
 type Palette = {
   dark: boolean;
-  body: number;
-  mantleLower: number;
-  joint: number;
-  visor: number;
-  visorGlow: number;
-  visorIntensity: number;
-  aperture: number;
-  apertureIntensity: number;
+  porcelain: number;
+  graphite: number;
+  lens: number;
+  eye: number;
+  eyeIntensity: number;
   core: number;
   coreIntensity: number;
-  stage: number;
-  pedTop: number;
-  pedRing: number;
-  grid: number;
-  particle: number;
+  glowOpacity: number;
+  shadowStrength: number;
   fogColor: Color;
 };
 
@@ -167,140 +156,139 @@ function samplePalette(): Palette {
   if (html.classList.contains('light')) {
     return {
       dark: false,
-      /* the porcelain-day stage: the ceramic obelisk holds via its
-       * graphite gimbal + black glass face (contrast carries the
-       * silhouette); the accents drop to their ink grades */
-      body: 0xdad9d6,
-      mantleLower: 0xc9c8c4,
-      joint: 0x898b90,
-      visor: 0x090a0d,
-      visorGlow: 0x14262c,
-      visorIntensity: 0.35,
-      aperture: 0x0e7a8a,
-      apertureIntensity: 1.6, /* P18-W3: legible slit on the light stage too */
+      /* porcelain-day stage: the vessel holds via its graphite seams
+       * + black glass lens (contrast carries the silhouette); the
+       * accents drop to their ink grades */
+      porcelain: 0xd9d7d2,
+      graphite: 0x2a2c33,
+      lens: 0x090b0f,
+      eye: 0x0e7a8a,
+      eyeIntensity: 1.9,
       core: 0x0e7a8a,
-      coreIntensity: 0.7,
-      stage: 0xe1e1de,
-      pedTop: 0xc9c9c6,
-      pedRing: 0x0e7a8a,
-      grid: 0x8a9ba3,
-      particle: 0x55585f,
+      coreIntensity: 0.9,
+      glowOpacity: 0.55,
+      shadowStrength: 0.32,
       fogColor: new Color(0xf2f2f0),
     };
   }
   return {
     dark: true,
-    /* dark stage — THE phase-17 inversion: the ceramic obelisk
-     * (#DAD9D6 — --sb-robot-body) is the scene's principal light
-     * source (the light figure on the near-black void). The face is
-     * black glass set into the wedge; the aperture slit is the cyan
-     * heartbeat; the core disc breathes the beat hues. */
-    body: 0xdad9d6,
-    mantleLower: 0xc9c8c4,
-    joint: 0x898b90,
-    visor: 0x090a0d,
-    visorGlow: 0x08151c,
-    visorIntensity: 0.35,
-    aperture: 0x56e2f2, /* P18-W3: the machine-voice register — cyan #56E2F2
-     * (was 0xffffff, the retired P17 white-dot-eyes value; the aperture
-     * IS the cyan heartbeat per the art direction contract) */
-    apertureIntensity: 1.55, /* P18-W3b: 3.4 clamped cyan→white; 1.55
-     * keeps the hue legible after tone mapping */
+    /* dark stage — THE inversion: the warm porcelain vessel
+     * (#E7E5E0) is the scene's principal light source (the light
+     * figure on the near-black void). The lens is smoked glass set
+     * into the dome; the arc is the cyan heartbeat. */
+    porcelain: 0xe7e5e0,
+    graphite: 0x1e2026,
+    lens: 0x05070b,
+    eye: readVar(html, '--ln-lime', CYAN),
+    eyeIntensity: 2.3, /* survives ACES at mobile scale; the halo carries the cyan hue */
     core: readVar(html, '--ln-lime', CYAN),
-    coreIntensity: 1.15,
-    stage: 0x0a0b0e,
-    pedTop: 0x17181d,
-    pedRing: readVar(html, '--ln-lime', CYAN),
-    grid: 0x1e3a40,
-    particle: 0x777983,
+    coreIntensity: 1.2,
+    glowOpacity: 0.9,
+    shadowStrength: 0.62,
     fogColor: new Color(0x050506),
   };
 }
 
 /* ── the art-directed static fallback frame (WebGL absent / failed) ──
- * A composed SVG portrait of the SAME obelisk character — the
- * asymmetric wedge head with the swept brow chamfer, the smoked-glass
- * facet, the ONE vertical aperture slit, the graphite gimbal rings,
- * the layered ceramic mantle with the metallic core band, the cyan
- * core disc + the tri-hue edge strip — so a WebGL-less client gets
- * the P18 hero, never a hole. Same phase-17 values as the scene. */
+ * A composed SVG portrait of the SAME vessel character — the
+ * continuous turned body, the cranial dome, the recessed lens with
+ * the ONE cyan arc, the graphite collar + foot ring, the swept
+ * pauldron, the chest porthole — so a WebGL-less client gets the
+ * P19 hero, never a hole. */
 function CharacterFallbackSvg() {
   return (
     <svg viewBox="0 0 360 470" role="presentation" focusable="false" aria-hidden="true">
       <defs>
-        <linearGradient id="sb-fb-wedge" x1="0" y1="0" x2="1" y2="0.2">
-          <stop offset="0" stopColor="#E4E4E0" />
-          <stop offset="0.5" stopColor="#DAD9D6" />
-          <stop offset="1" stopColor="#BDBDB9" />
+        <linearGradient id="sb-fb-body" x1="0" y1="0" x2="1" y2="0.15">
+          <stop offset="0" stopColor="#EFEDE8" />
+          <stop offset="0.5" stopColor="#E7E5E0" />
+          <stop offset="1" stopColor="#C8C6C1" />
         </linearGradient>
-        <linearGradient id="sb-fb-visor" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0B0C10" />
-          <stop offset="1" stopColor="#050507" />
+        <linearGradient id="sb-fb-lens" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0B0D12" />
+          <stop offset="1" stopColor="#04060A" />
         </linearGradient>
-        <linearGradient id="sb-fb-strip" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#56E2F2" />
-          <stop offset="1" stopColor="#9380FF" />
-        </linearGradient>
-        <radialGradient id="sb-fb-apglow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#56E2F2" stopOpacity="0.5" />
-          <stop offset="1" stopColor="#56E2F2" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="sb-fb-coreglow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#56E2F2" stopOpacity="0.5" />
+        <radialGradient id="sb-fb-eyeglow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#56E2F2" stopOpacity="0.55" />
           <stop offset="1" stopColor="#56E2F2" stopOpacity="0" />
         </radialGradient>
       </defs>
 
-      {/* contact shadow */}
-      <ellipse cx="180" cy="452" rx="112" ry="12" fill="rgb(1 1 2 / 0.85)" />
+      {/* the contact shadow */}
+      <ellipse cx="180" cy="452" rx="118" ry="14" fill="rgb(1 1 2 / 0.85)" />
 
-      {/* the pedestal — the turned plinth + emissive rim */}
-      <path d="M 84 384 L 276 384 L 286 416 L 74 416 Z" fill="#141519" stroke="#292A30" strokeWidth="1" />
-      <path d="M 74 416 L 286 416 L 296 442 L 64 442 Z" fill="#0A0B0E" />
-      <ellipse cx="180" cy="384" rx="94" ry="10" fill="#101115" />
-      <ellipse cx="180" cy="384" rx="94" ry="10" fill="none" stroke="#56E2F2" strokeWidth="2" opacity="0.7" />
+      {/* the foot ring — graphite */}
+      <path d="M 96 402 L 264 402 L 258 428 L 102 428 Z" fill="#26282F" />
 
-      {/* the plinth base of the obelisk (proportion tier 3) */}
-      <path d="M 108 340 L 252 340 L 244 384 L 116 384 Z" fill="url(#sb-fb-wedge)" stroke="#898B90" strokeWidth="1" />
-
-      {/* the mantle — layered ceramic shrouds (tier 2) */}
-      <path d="M 100 220 C 100 200 118 190 180 190 C 242 190 260 200 260 220 L 252 344 L 108 344 Z" fill="url(#sb-fb-wedge)" stroke="#898B90" strokeWidth="1" />
-      {/* the upper shroud overlaps lower — the layered mantle read */}
-      <path d="M 118 196 C 136 186 156 182 180 182 C 204 182 224 186 242 196 L 234 262 L 126 262 Z" fill="#E9E9E5" stroke="#898B90" strokeWidth="1" opacity="0.95" />
-      {/* the metallic core band revealed between layers */}
-      <path d="M 126 262 L 234 262 L 232 276 L 128 276 Z" fill="#898B90" opacity="0.9" />
-      {/* the chest core disc — the cyan heartbeat */}
-      <circle cx="180" cy="298" r="30" fill="url(#sb-fb-coreglow)" />
-      <circle cx="180" cy="298" r="10" fill="#56E2F2" />
-      {/* the lower shroud */}
-      <path d="M 128 276 L 232 276 L 244 336 L 116 336 Z" fill="#CFCFCC" stroke="#898B90" strokeWidth="1" />
-
-      {/* the ONE edge strip — the tri-hue light signature */}
-      <path d="M 254 214 C 258 254 258 300 250 342" stroke="url(#sb-fb-strip)" strokeWidth="8" fill="none" opacity="0.2" />
-      <path d="M 254 214 C 258 254 258 300 250 342" stroke="url(#sb-fb-strip)" strokeWidth="3" fill="none" opacity="0.9" />
-
-      {/* the graphite gimbal ring stack (the neck) */}
-      <rect x="126" y="160" width="108" height="7" rx="3" fill="#898B90" />
-      <rect x="132" y="170" width="96" height="6" rx="3" fill="#74767B" />
-      <rect x="128" y="178" width="104" height="5" rx="2.5" fill="#898B90" opacity="0.85" />
-
-      {/* THE HEAD — the asymmetric wedge prism: the inline-start
-          brow sweeps low (the chamfer), the far side stays clean */}
+      {/* THE VESSEL — the continuous turned body (one volume) */}
       <path
-        d="M 118 156 L 242 156 L 250 88 L 226 34 L 118 34 Z"
-        fill="url(#sb-fb-wedge)"
-        stroke="#898B90"
+        d="M 180 92
+           C 214 92 232 118 232 150
+           C 232 190 214 208 202 236
+           C 192 260 196 286 210 316
+           C 224 346 228 374 220 400
+           C 214 420 200 428 180 428
+           C 160 428 146 420 140 400
+           C 132 374 136 346 150 316
+           C 164 286 168 260 158 236
+           C 146 208 128 190 128 150
+           C 128 118 146 92 180 92 Z"
+        fill="url(#sb-fb-body)"
+        stroke="#8A8C90"
         strokeWidth="1"
       />
-      {/* the swept brow plane — the inline-start chamfer read */}
-      <path d="M 118 34 L 100 78 L 112 156 L 118 156 Z" fill="#C9C9C5" stroke="#898B90" strokeWidth="1" />
+      {/* the waist read — a soft inner shade line */}
+      <path d="M 150 250 C 168 240 192 240 210 250" stroke="#B9B7B2" strokeWidth="2" fill="none" opacity="0.6" />
 
-      {/* the smoked-glass facet SET INTO the wedge's inline-start face */}
-      <path d="M 118 48 L 224 46 L 230 142 L 118 148 Z" fill="url(#sb-fb-visor)" stroke="#56E2F2" strokeOpacity="0.3" strokeWidth="1" />
+      {/* the swept pauldron — the ONE asymmetric arc (inline-start) */}
+      <path
+        d="M 236 214 C 244 206 250 196 252 184"
+        stroke="#26282F"
+        strokeWidth="9"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M 116 210 C 110 200 108 190 110 180"
+        stroke="#26282F"
+        strokeWidth="8"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.85"
+      />
 
-      {/* THE ONE VERTICAL APERTURE SLIT — cyan, luminous (the eye) */}
-      <ellipse cx="166" cy="96" rx="16" ry="30" fill="url(#sb-fb-apglow)" />
-      <path d="M 162 66 L 170 66 L 172 126 L 160 126 Z" fill="#56E2F2" />
+      {/* the chest porthole — the quiet heartbeat */}
+      <circle cx="180" cy="330" r="17" fill="none" stroke="#26282F" strokeWidth="4" />
+      <circle cx="180" cy="330" r="6" fill="#56E2F2" opacity="0.9" />
+
+      {/* the graphite collar — the designed articulation seam */}
+      <path d="M 148 118 L 212 118 L 210 106 L 150 106 Z" fill="#26282F" />
+
+      {/* THE DOME — the cranial head continuing the curvature */}
+      <path
+        d="M 180 18
+           C 214 18 240 44 240 78
+           C 240 104 214 116 180 116
+           C 146 116 120 104 120 78
+           C 120 44 146 18 180 18 Z"
+        fill="url(#sb-fb-body)"
+        stroke="#8A8C90"
+        strokeWidth="1"
+      />
+
+      {/* the recessed smoked-glass lens, set INTO the dome */}
+      <ellipse cx="180" cy="76" rx="44" ry="30" fill="url(#sb-fb-lens)" stroke="#26282F" strokeWidth="2.5" />
+
+      {/* THE ONE LUMINOUS ARC — the eye (cyan, calm downward gaze) */}
+      <ellipse cx="180" cy="74" rx="30" ry="20" fill="url(#sb-fb-eyeglow)" />
+      <path
+        d="M 156 82 C 164 66 196 66 204 82"
+        stroke="#56E2F2"
+        strokeWidth="5"
+        strokeLinecap="round"
+        fill="none"
+      />
     </svg>
   );
 }
@@ -334,35 +322,49 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     renderer.domElement.style.height = '100%';
     renderer.domElement.style.display = 'block';
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.14;
     host.appendChild(renderer.domElement);
 
     const scene = new Scene();
     const camera = new PerspectiveCamera(34, 1, 0.1, 40);
 
-    /* ── light rig (phase 17 — the multicolor rim treatment): neutral
-     *     key, COOL CYAN rim (-x, the machine's edge), WARM AMBER kicker
-     *     (+x, low — the human/handoff register at rim strength), cool
-     *     fill, white face glow, cyan pedestal spill (6 lamps, all
-     *     shadow-less). The ceramic PBR shells need strong keys — the
-     *     controlled-illumination law lives in the RIM HUES. */
-    const key = new DirectionalLight(0xf7f8fa, 2.1);
-    key.position.set(2.6, 4.2, 3.2);
+    /* ── THE PREMIUM MATERIAL BASE — PMREM RoomEnvironment ───────
+     * The single biggest craft upgrade over the rejected matte
+     * character: believable reflections on the porcelain clearcoat,
+     * the graphite metal, and the smoked glass. Low intensity keeps
+     * the near-black void dark — the environment READS as material,
+     * never as a light source. */
+    const pmrem = new PMREMGenerator(renderer);
+    const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+    scene.environment = envRT.texture;
+    scene.environmentIntensity = 0.34;
+
+    /* ── light rig (the controlled-illumination law): neutral warm
+     *     key, COOL CYAN rim (-x, the machine's edge), WARM AMBER
+     *     kicker (+x, low — the human/handoff register at rim
+     *     strength), quiet fill, white face glow. The porcelain
+     *     clearcoat needs a strong key; the rim hues carry the
+     *     register. All shadow-less. */
+    const key = new DirectionalLight(0xfff1e4, 2.35);
+    key.position.set(2.4, 4.0, 3.0);
     scene.add(key);
-    const rim = new DirectionalLight(CYAN, 1.8);
-    rim.position.set(-3.6, 3.3, -2.4);
+    const rim = new DirectionalLight(CYAN, 1.9);
+    rim.position.set(-3.4, 3.0, -2.3);
     scene.add(rim);
-    const kicker = new DirectionalLight(AMBER, 1.05);
-    kicker.position.set(3.4, 2.1, -2.6);
+    const kicker = new DirectionalLight(AMBER, 0.85);
+    kicker.position.set(3.2, 1.5, -2.5);
     scene.add(kicker);
-    const fill = new AmbientLight(0x16181d, 1.15);
+    const fill = new AmbientLight(0x14161c, 0.95);
     scene.add(fill);
-    const faceGlow = new PointLight(0xffffff, 2.0, 3.0, 2);
-    faceGlow.position.set(0, CHAR_H * 0.85, 1.15);
+    const faceGlow = new PointLight(0xffffff, 1.15, 3.4, 2);
+    faceGlow.position.set(0, CHAR_H * 0.86, 1.05);
     scene.add(faceGlow);
-    const pedGlow = new PointLight(CYAN, 1.2, 2.8, 2);
-    pedGlow.position.set(0, 0.42, 0.9);
-    scene.add(pedGlow);
+    /* the eye's floor bounce — a faint cyan spill from under the
+     * vessel's face (the grounding half: the light the arc eye
+     * would cast onto the void's floor + the body's lower curve) */
+    const bounce = new PointLight(CYAN, 0.5, 2.2, 2);
+    bounce.position.set(0.15, 0.35, 0.75);
+    scene.add(bounce);
 
     /* ── registry for full disposal (scene-built) ── */
     const geometries: BufferGeometry[] = [];
@@ -375,157 +377,33 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
     let palette = samplePalette();
 
-    /* ═══ THE WORLD (the machine's stage — kept from P17) ═══
-     * Pedestal: a lathe-tiered plinth matching the character's own
-     * turned-shell grammar (two chamfered tiers + emissive rim), the
-     * two landing-pad rings, the grid hairlines, dust, and the contact
-     * shadow + mirrored reflection grounding pair. */
-    const figure = new Group(); // character + pedestal (mirrored below)
+    /* ═══ THE WORLD — the vessel stands in the void ═══
+     * No pedestal, no rings, no grid, no dust: a soft contact shadow
+     * + the fog. The CSS floor glow (the light spill under the
+     * figure) is the other half of the grounding. */
+    const figure = new Group();
     scene.add(figure);
 
-    const pedestal = new Group();
-    figure.add(pedestal);
-    const stageMat = track(new MeshStandardMaterial({ color: palette.stage, roughness: 0.92, metalness: 0.1 }));
-    const pedTopMat = track(new MeshStandardMaterial({ color: palette.pedTop, roughness: 0.85, metalness: 0.15 }));
-    const pedRingMat = track(
-      new MeshBasicMaterial({ color: palette.pedRing, transparent: true, opacity: 0.85, depthWrite: false }),
-    );
-    /* tier 1 — the crown the character stands on (top at y = 0) */
-    const pedTier1 = new Mesh(track(new CylinderGeometry(0.66, 0.7, 0.12, 48)), stageMat);
-    pedTier1.position.y = -0.06;
-    pedestal.add(pedTier1);
-    /* tier 2 — the chamfered base (bottom exactly at FLOOR_Y) */
-    const pedTier2 = new Mesh(track(new CylinderGeometry(0.7, 0.78, 0.07, 48)), stageMat);
-    pedTier2.position.y = -0.155;
-    pedestal.add(pedTier2);
-    /* the top plate — a shade lighter (a lit platform, not a flat disc) */
-    const pedTop = new Mesh(track(new CylinderGeometry(0.64, 0.66, 0.012, 48)), pedTopMat);
-    pedTop.position.y = -0.004;
-    pedestal.add(pedTop);
-    /* the emissive rim — the pedestal's own light signature */
-    const pedEdge = new Mesh(track(new TorusGeometry(0.655, 0.011, 8, 72)), pedRingMat);
-    pedEdge.rotation.x = Math.PI / 2;
-    pedEdge.position.y = 0.002;
-    pedestal.add(pedEdge);
-
-    /* the landing-pad rings (the world's scale read) */
-    const floorRingMat = track(
-      new MeshBasicMaterial({ color: palette.pedRing, transparent: true, opacity: 0.4, depthWrite: false }),
-    );
-    const floorRing = new Mesh(track(new TorusGeometry(1.55, 0.008, 6, 72)), floorRingMat);
-    floorRing.rotation.x = Math.PI / 2;
-    floorRing.position.set(0, FLOOR_Y + 0.002, 0);
-    scene.add(floorRing);
-    const floorRing2Mat = track(
-      new MeshBasicMaterial({ color: palette.pedRing, transparent: true, opacity: 0.16, depthWrite: false }),
-    );
-    const floorRing2 = new Mesh(track(new TorusGeometry(2.35, 0.006, 6, 80)), floorRing2Mat);
-    floorRing2.rotation.x = Math.PI / 2;
-    floorRing2.position.set(0, FLOOR_Y + 0.002, 0);
-    scene.add(floorRing2);
-
-    /* the faint grid floor */
-    const gridMat = track(new MeshBasicMaterial({ color: palette.grid, transparent: true, opacity: 0.44 }));
-    for (let i = -5; i <= 5; i++) {
-      if (i === 0) continue;
-      const h = track(new PlaneGeometry(12, 0.012));
-      const mh = new Mesh(h, gridMat);
-      mh.rotation.x = -Math.PI / 2;
-      mh.position.set(0, FLOOR_Y, i * 1.1);
-      scene.add(mh);
-      const v = track(new PlaneGeometry(0.012, 12));
-      const mv = new Mesh(v, gridMat);
-      mv.rotation.x = -Math.PI / 2;
-      mv.position.set(i * 1.1, FLOOR_Y, 0);
-      scene.add(mv);
-    }
-
-    /* sparse particles, two depth layers (the soft round dust sprite) */
-    const COUNT = 140;
-    const pos = new Float32Array(COUNT * 3);
-    const nearPos = new Float32Array((COUNT >> 1) * 3);
-    for (let i = 0; i < COUNT; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 11;
-      pos[i * 3 + 1] = Math.random() * 3.2 - 0.2;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 7;
-      if (i < COUNT >> 1) {
-        nearPos[i * 3] = (Math.random() - 0.5) * 9;
-        nearPos[i * 3 + 1] = Math.random() * 3 - 0.1;
-        nearPos[i * 3 + 2] = 2.4 + Math.random() * 1.2;
-      }
-    }
-    const pGeo = track(new BufferGeometry());
-    pGeo.setAttribute('position', new BufferAttribute(pos, 3));
-    const pGeoNear = track(new BufferGeometry());
-    pGeoNear.setAttribute('position', new BufferAttribute(nearPos, 3));
-    const spriteCanvas = document.createElement('canvas');
-    spriteCanvas.width = 32;
-    spriteCanvas.height = 32;
-    const spriteCtx = spriteCanvas.getContext('2d');
-    if (spriteCtx) {
-      const g = spriteCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
-      g.addColorStop(0, 'rgba(255,255,255,1)');
-      g.addColorStop(0.5, 'rgba(255,255,255,0.5)');
-      g.addColorStop(1, 'rgba(255,255,255,0)');
-      spriteCtx.fillStyle = g;
-      spriteCtx.fillRect(0, 0, 32, 32);
-    }
-    const dustTexture = new CanvasTexture(spriteCanvas);
-    const pMat = track(
-      new PointsMaterial({
-        color: palette.particle,
-        size: 0.028,
-        map: dustTexture,
-        transparent: true,
-        opacity: 0.62,
-        depthWrite: false,
-        sizeAttenuation: true,
-      }),
-    );
-    const pMatNear = track(
-      new PointsMaterial({
-        color: palette.particle,
-        size: 0.06,
-        map: dustTexture,
-        transparent: true,
-        opacity: 0.3,
-        depthWrite: false,
-        sizeAttenuation: true,
-      }),
-    );
-    const particles = new Points(pGeo, pMat);
-    scene.add(particles);
-    const particlesNear = new Points(pGeoNear, pMatNear);
-    scene.add(particlesNear);
-
-    /* the contact shadow — the elliptical dark pool under the pedestal
-     * (the in-scene half of the grounding; the CSS floor glow is the
-     * light half) */
+    /* the contact shadow — a soft radial canvas pool under the feet */
     const shadowCanvas = document.createElement('canvas');
-    shadowCanvas.width = 64;
-    shadowCanvas.height = 64;
-    const shadowCtx = shadowCanvas.getContext('2d');
-    if (shadowCtx) {
-      const g = shadowCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0, 'rgba(3,10,13,0.88)');
-      g.addColorStop(0.4, 'rgba(3,10,13,0.55)');
-      g.addColorStop(0.75, 'rgba(3,10,13,0.18)');
-      g.addColorStop(1, 'rgba(3,10,13,0)');
-      shadowCtx.fillStyle = g;
-      shadowCtx.fillRect(0, 0, 64, 64);
+    shadowCanvas.width = 256;
+    shadowCanvas.height = 128;
+    {
+      const ctx = shadowCanvas.getContext('2d')!;
+      const g = ctx.createRadialGradient(128, 64, 6, 128, 64, 118);
+      g.addColorStop(0, `rgba(0,0,2,${palette.shadowStrength})`);
+      g.addColorStop(0.55, `rgba(0,0,2,${palette.shadowStrength * 0.42})`);
+      g.addColorStop(1, 'rgba(0,0,2,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 256, 128);
     }
     const shadowTexture = new CanvasTexture(shadowCanvas);
     const shadowMat = track(
-      new MeshBasicMaterial({
-        map: shadowTexture,
-        transparent: true,
-        depthWrite: false,
-      }),
+      new MeshBasicMaterial({ map: shadowTexture, transparent: true, depthWrite: false, opacity: 1 }),
     );
-    const contactShadow = new Mesh(track(new PlaneGeometry(3.4, 2.1)), shadowMat);
+    const contactShadow = new Mesh(track(new PlaneGeometry(0.92, 0.46)), shadowMat);
     contactShadow.rotation.x = -Math.PI / 2;
-    contactShadow.scale.set(1, 0.62, 1);
-    contactShadow.position.set(0, FLOOR_Y + 0.004, 0.1);
+    contactShadow.position.set(0, FLOOR_Y + 0.004, 0.02);
     contactShadow.renderOrder = 1;
     scene.add(contactShadow);
 
@@ -534,9 +412,8 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
     /* ── the framing solver — the layout owns the composition ────
      * The host's --sb-fig (figure fraction of host height) and
-     * --sb-floor (floor line fraction) place the full figure + its
-     * stage inside the box; the fog keeps the character crisp (near >
-     * camera distance) while the far grid dissolves. */
+     * --sb-floor (floor line fraction) place the figure inside the
+     * box; fig/floor may EXCEED 1 (the mobile bust close-up). */
     const frame = () => {
       const w = host.clientWidth || 600;
       const h = host.clientHeight || 600;
@@ -544,29 +421,22 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       renderer.setSize(w, h, false);
       camera.aspect = w / Math.max(h, 1);
       const style = getComputedStyle(host);
-      /* P17: fig/floor may EXCEED 1 — the mobile bust close-up (fig 1.3 /
-       * floor 1.35) deliberately overflows the box: the head stays whole,
-       * the hips/pedestal crop below. Clamps widened accordingly. */
-      const figFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-fig')) || 0.62, 0.3), 1.6);
+      /* P19-W2-C: the clamp ceiling is 1.9 — the mobile BUST crop
+       * (visible window ≈ 0.86 world units of the 1.40 span) needs
+       * fig ≈ 1.63, beyond the P17 ceiling of 1.6 */
+      const figFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-fig')) || 0.62, 0.3), 1.9);
       const floorFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-floor')) || 0.78, 0.5), 1.8);
-      /* the RING FIT clamp: the layout can cap the landing-pad rings
-       * (--sb-ringfit, default 1) so their near edges never crop at
-       * the host's bottom edge on narrow/tall boxes. */
-      const ringFit = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-ringfit')) || 1, 0.4), 1);
-      floorRing.scale.setScalar(Math.min(1, (ringFit * 2.35) / 1.55));
-      floorRing2.scale.setScalar(ringFit);
       const span = TOP_Y - FLOOR_Y;
       const hUnits = span / figFrac;
       const dist = hUnits / (2 * Math.tan(MathUtils.degToRad(camera.fov / 2)));
       const lookY = FLOOR_Y + (floorFrac - 0.5) * hUnits;
-      /* P18-W2-a — the LATERAL COMPOSITION BIAS: --sb-x shifts the whole
-       * camera rig (+ world stage) sideways so the figure renders at the
-       * host's inline-end band while the canvas stays FULL-WIDTH (no
-       * hard crop edges — the rings/grid bleed off-frame cinematically).
-       * Default 0 = centered (mobile bust + tablet band grammar). */
+      /* the LATERAL COMPOSITION BIAS: --sb-x shifts the camera rig
+       * sideways so the figure renders at the host's inline-end band
+       * while the canvas stays FULL-WIDTH (the composition bleeds
+       * off-frame cinematically). Default 0 = centered. */
       const xBias = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-x')) || 0, -1.5), 1.5);
       /* level camera (y == lookY) — the y→screen mapping is exact, so
-       * the CSS floor glow at --sb-floor lands on the pedestal */
+       * the CSS floor glow at --sb-floor lands on the contact shadow */
       camera.position.set(xBias, lookY, dist);
       camera.lookAt(xBias, lookY, 0);
       camera.updateProjectionMatrix();
@@ -579,7 +449,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     ro.observe(host);
     renderer.render(scene, camera); /* the world paints pre-character */
 
-    /* ── lifecycle state (character-ready values live here) ──────── */
+    /* ── lifecycle state ─────────────────────────────────────────── */
     let raf = 0;
     let mo: MutationObserver | null = null;
     let io: IntersectionObserver | null = null;
@@ -588,11 +458,11 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     let unsubBeat: (() => void) | null = null;
     let frameLoop: (now: number) => void = () => {};
 
-    /* ── the beat channel state (scenario engine → character) ────── */
+    /* ── the beat channel state ──────────────────────────────────── */
     let beat: HeroBeat | null = null;
     let beatAt = -1e9;
 
-    /* ── pointer tracking targets (armed on character ready) ─────── */
+    /* ── pointer tracking targets ────────────────────────────────── */
     let targetX = 0;
     let targetY = 0;
     const onMove = (e: PointerEvent) => {
@@ -615,32 +485,45 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       }
     };
 
-    /* ═══ THE CHARACTER — THE OBELISK ATTENDANT, procedural build ═══
-     * One authored geometry pass, no loader, no external asset. All
-     * meshes are built from LatheGeometry (the turned ceramic mantle
-     * grammar), BufferGeometry (the asymmetric wedge head), torus
-     * segments (the gimbal neck), and thin prisms (the aperture slit +
-     * core band + edge strip). Total vertex budget < 6k. */
+    /* ═══ THE CHARACTER — THE VESSEL, procedural build ═══
+     * One authored geometry pass, no loader, no external asset. The
+     * body is a single LatheGeometry (the turned volume), the head a
+     * squashed sphere dome riding the graphite collar, the face a
+     * recessed lens + bezel + the ONE arc. Vertex budget < 5k. */
 
-    /* the materials of record (the P17 systems, unchanged values) */
-    const bodyMat = track(new MeshStandardMaterial({ color: palette.body, roughness: 0.72, metalness: 0.04 }));
-    const mantleLowerMat = track(new MeshStandardMaterial({ color: palette.mantleLower, roughness: 0.72, metalness: 0.04 }));
-    /* P18-W3 (VLM audit): joint/mantle differentiation — the audit read
-     * the graphite neck as "blending into the mantle". Graphite goes
-     * decisively metallic: metalness 0.1→0.34, roughness 0.6→0.44 — a
-     * visibly different material response (cool specular) against the
-     * matte ceramic. Values stay within the P17 matte-adjacent law. */
-    const jointMat = track(new MeshStandardMaterial({ color: palette.joint, roughness: 0.44, metalness: 0.34 }));
-    const visorMat = track(new MeshStandardMaterial({ color: palette.visor, roughness: 0.35, metalness: 0.2 }));
-    const apertureMat = track(
+    /* the materials of record — the porcelain/graphite/glass system */
+    const porcelainMat = track(
+      new MeshPhysicalMaterial({
+        color: palette.porcelain,
+        roughness: 0.34,
+        metalness: 0.02,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.16,
+      }),
+    );
+    const graphiteMat = track(
+      new MeshPhysicalMaterial({
+        color: palette.graphite,
+        roughness: 0.32,
+        metalness: 0.88,
+        clearcoat: 0.4,
+        clearcoatRoughness: 0.3,
+      }),
+    );
+    const lensMat = track(
+      new MeshPhysicalMaterial({
+        color: palette.lens,
+        roughness: 0.07,
+        metalness: 0.12,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.06,
+      }),
+    );
+    const eyeMat = track(
       new MeshStandardMaterial({
         color: 0x0a1418,
         emissive: new Color(CYAN),
-        /* P18-W3 (VLM audit + pixel proof): the slit measured ~1.5px at
-         * hero scale (0 cyan pixels in the head zone at 1440) — the eye
-         * of the character was invisible. Intensity tuned in the palette
-         * (clamping law: >2 whitens cyan). */
-        emissiveIntensity: 1.55,
+        emissiveIntensity: palette.eyeIntensity,
         roughness: 0.4,
       }),
     );
@@ -648,289 +531,152 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       new MeshStandardMaterial({
         color: 0x0a1418,
         emissive: new Color(CYAN),
-        emissiveIntensity: 1.15,
+        emissiveIntensity: palette.coreIntensity,
         roughness: 0.4,
       }),
     );
-    const stripMat = track(
-      new MeshStandardMaterial({
-        color: 0x0a1418,
-        emissive: new Color(CYAN),
-        emissiveIntensity: 0.95,
-        roughness: 0.4,
+
+    /* the eye-glow sprite — the soft additive halo that makes the
+     * arc legible at every canvas scale (the P18 lesson: a thin
+     * emissive alone measures ~0 px) */
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = 128;
+    glowCanvas.height = 128;
+    {
+      const ctx = glowCanvas.getContext('2d')!;
+      const g = ctx.createRadialGradient(64, 64, 2, 64, 64, 62);
+      g.addColorStop(0, 'rgba(255,255,255,0.9)');
+      g.addColorStop(0.3, 'rgba(255,255,255,0.35)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 128, 128);
+    }
+    const glowTexture = new CanvasTexture(glowCanvas);
+    const glowMat = track(
+      new MeshBasicMaterial({
+        map: glowTexture,
+        color: CYAN,
+        transparent: true,
+        opacity: palette.glowOpacity,
+        depthWrite: false,
+        blending: AdditiveBlending,
       }),
     );
-    const stripA = new Color(CYAN);  /* the tri-hue ramp endpoints: */
-    const stripB = new Color(VIOLET);/* machine → AI → human registers */
-    const stripC = new Color(AMBER); /* (the strip's slow rotation) */
 
     const character = new Group();
     figure.add(character);
 
-    /* ── the mantle — three overlapping lathe shrouds (tier 2) ──────
-     * Each shroud is a turned profile; the upper overlaps the lower's
-     * rim (the layered ceramic mantle), with the graphite core band
-     * revealed in the waist gap between shroud 2 and 3. */
-    const shroud = (
-      profile: [number, number][],
-      mat: Material,
-      segs = 40,
-    ) => {
-      const pts = profile.map(([x, y]) => new Vector2(x, y));
-      const geo = track(new LatheGeometry(pts, segs));
-      return new Mesh(geo, mat);
-    };
-
-    /* shroud A (upper) — the shoulder cape, wide at top, tapering */
-    const shroudA = shroud(
-      [
-        [0.0, 0.0],
-        [0.30, 0.0],
-        [0.315, 0.02],
-        [0.33, 0.10],
-        [0.30, 0.22],
-        [0.245, 0.34],
-        [0.225, 0.40],
-      ],
-      bodyMat,
+    /* THE BODY — the one continuous turned volume (the lathe profile:
+     * foot flare → waist draw-in → chest swell → shoulder taper →
+     * neck). 96 radial segments: the silhouette reads as porcelain,
+     * never faceted. */
+    const profile: Array<[number, number]> = [
+      [0.001, 0.0],
+      [0.2, 0.0],
+      [0.27, 0.02],
+      [0.285, 0.07],
+      [0.26, 0.16],
+      [0.215, 0.32],
+      [0.196, 0.46],
+      [0.205, 0.6],
+      [0.24, 0.74],
+      [0.265, 0.84],
+      [0.262, 0.92],
+      [0.235, 0.99],
+      [0.18, 1.04],
+      [0.115, 1.08],
+      [0.085, 1.11],
+      [0.001, 1.12],
+    ];
+    const body = new Mesh(
+      track(new LatheGeometry(profile.map(([r, y]) => new Vector2(r, y)), 96)),
+      porcelainMat,
     );
-    shroudA.position.y = MANTLE_H - 0.40;
-    character.add(shroudA);
+    character.add(body);
 
-    /* shroud B (mid) — the chest tier, slightly narrower, overlapping
-     * A's hem: carries the smoked-glass core disc + the tri-hue strip */
-    const shroudB = shroud(
-      [
-        [0.0, 0.0],
-        [0.265, 0.0],
-        [0.272, 0.02],
-        [0.272, 0.24],
-        [0.262, 0.30],
-      ],
-      bodyMat,
-    );
-    shroudB.position.y = MANTLE_H - 0.52;
-    character.add(shroudB);
+    /* the foot ring — a graphite rim grounding the volume */
+    const foot = new Mesh(track(new CylinderGeometry(0.285, 0.3, 0.03, 64)), graphiteMat);
+    foot.position.y = 0.045;
+    character.add(foot);
 
-    /* the graphite core band — the revealed metallic waist between
-     * the mid and lower shrouds (the layered mantle's hinge read) */
-    const coreBand = new Mesh(track(new CylinderGeometry(0.236, 0.246, 0.12, 40)), jointMat);
-    coreBand.position.y = MANTLE_H - 0.63;
-    character.add(coreBand);
-
-    /* shroud C (lower) — the base skirt flaring to the plinth */
-    const shroudC = shroud(
-      [
-        [0.0, 0.0],
-        [0.24, 0.0],
-        [0.248, 0.03],
-        [0.286, 0.16],
-        [0.32, 0.34],
-        [0.335, 0.46],
-      ],
-      mantleLowerMat,
-    );
-    shroudC.position.y = MANTLE_H - 1.09;
-    character.add(shroudC);
-
-    /* the chest core — the cyan heartbeat disc set INTO shroud B's
-     * front face (the beat hue carrier: classify VIOLET / handoff
-     * AMBER — the P17 law, kept) */
-    const coreDisc = new Mesh(track(new CylinderGeometry(0.062, 0.062, 0.03, 28)), coreMat);
-    coreDisc.rotation.x = Math.PI / 2;
-    coreDisc.position.set(0, MANTLE_H - 0.36, 0.262);
-    character.add(coreDisc);
-    const coreNode = coreDisc; /* the beat channel's scale node */
-
-    /* the ONE tri-hue edge strip — a thin vertical prism on the
-     * shroud B surface (the rim's inline-end edge), the multicolor
-     * light signature rotating cyan→violet→amber over 18s */
-    const stripGeo = track(new BufferGeometry());
-    {
-      /* a flat quad strip hugging shroud B's side arc */
-      const verts: number[] = [];
-      const ang = 0.52; /* the strip's angular center (inline-end side) */
-      const r = 0.275;
-      const hw = 0.055; /* the strip's arc half-width (radians) */
-      for (const a of [ang - hw, ang + hw]) {
-        verts.push(Math.sin(a) * r, 0, Math.cos(a) * r);
-      }
-      for (const a of [ang - hw, ang + hw]) {
-        verts.push(Math.sin(a) * r, 0.28, Math.cos(a) * r);
-      }
-      stripGeo.setAttribute('position', new BufferAttribute(new Float32Array(verts), 3));
-      stripGeo.setIndex([0, 1, 2, 1, 3, 2]);
-      stripGeo.computeVertexNormals();
-    }
-    const strip = new Mesh(stripGeo, stripMat);
-    strip.position.y = MANTLE_H - 0.52;
-    character.add(strip);
-
-    /* the plinth — the obelisk's tier-3 base (proportion 1.2), a
-     * chamfered foot flaring onto the pedestal */
-    const plinth = shroud(
-      [
-        [0.0, 0.0],
-        [0.30, 0.0],
-        [0.312, 0.02],
-        [0.34, 0.10],
-        [0.38, 0.22],
-        [0.40, 0.34],
-        [0.405, 0.42],
-      ],
-      mantleLowerMat,
-    );
-    plinth.position.y = 0;
-    character.add(plinth);
-
-    /* ── the gimbal neck — graphite ring stack (tier joint) ────────
-     * Two torus segments + a bearing band between mantle and head:
-     * the modeled transition the chibi lacked. */
-    const neckGroup = new Group();
-    neckGroup.position.y = MANTLE_H;
-    character.add(neckGroup);
-    const gimbalA = new Mesh(track(new TorusGeometry(0.16, 0.032, 10, 36)), jointMat);
-    gimbalA.rotation.x = Math.PI / 2;
-    gimbalA.position.y = 0.022;
-    neckGroup.add(gimbalA);
-    const gimbalB = new Mesh(track(new CylinderGeometry(0.138, 0.15, 0.05, 32)), jointMat);
-    gimbalB.position.y = 0.052;
-    neckGroup.add(gimbalB);
-    const gimbalC = new Mesh(track(new TorusGeometry(0.152, 0.026, 10, 36)), jointMat);
-    gimbalC.rotation.x = Math.PI / 2;
-    gimbalC.position.y = 0.084;
-    neckGroup.add(gimbalC);
-
-    /* ── THE HEAD — the asymmetric softly-faceted wedge ────────────
-     * Authored BufferGeometry: 6 stations bottom→top, each a quad
-     * ring whose corners are swept progressively — the inline-start
-     * brow plane drops LOW toward the jaw on one side (the chamfer),
-     * the inline-end side stays clean and full-height. A smoked-glass
-     * facet panel + the vertical aperture slit are SET INTO the
-     * inline-start face (recessed 0.01 behind the facet plane).
-     *
-     * Stations (y from head base; head depth z, half-width x):
-     *   y0.00 base    x±0.20 z 0.20 → 0.14  (the jaw, chamfer begins)
-     *   y0.16 lower   x±0.205 z 0.21 → 0.15 (brow sweep deepens)
-     *   y0.30 brow    x±0.21  z 0.22 → 0.16 (max sweep, near-side low)
-     *   y0.34 crown   x±0.19  z 0.19 → 0.17 (the far side's high plane)
-     *   y0.40 top     x±0.13  z 0.13 → 0.12 (crown platform)
-     *   y0.44 apex    x 0 z 0 (point — the obelisk's peak)
-     */
-    const headGroup = new Group();
-    headGroup.position.y = HEAD_Y0;
-    character.add(headGroup);
-
-    const wedgeGeometry = ((): BufferGeometry => {
-      /* A closed, manifold hexagonal-ring prism: 5 stations bottom→top,
-       * each ring carrying 6 corners swept around the cross-section —
-       *   [0] IS-front   [1] IS-mid   [2] IS-back   [3] IE-back
-       *   [4] IE-mid     [5] IE-front
-       * The IS corners' y is swept DOWN by `sweep` (the brow plane
-       * drops low on the inline-start side — the asymmetric chamfer);
-       * the IE side stays clean and full-height. Rings are stitched
-       * with outward-wound quads, the apex is a single fan vertex, the
-       * base a fan cap: a watertight sculpt (verified closed +
-       * positive-volume winding). */
-      const stations: { y: number; xIS: number; xIE: number; zF: number; zB: number; sweep: number }[] = [
-        { y: 0.0, xIS: 0.20, xIE: 0.20, zF: 0.20, zB: 0.14, sweep: 0.0 },
-        { y: 0.17, xIS: 0.208, xIE: 0.208, zF: 0.21, zB: 0.15, sweep: 0.05 },
-        { y: 0.31, xIS: 0.212, xIE: 0.212, zF: 0.215, zB: 0.155, sweep: 0.11 },
-        { y: 0.375, xIS: 0.19, xIE: 0.205, zF: 0.19, zB: 0.17, sweep: 0.15 },
-        { y: 0.435, xIS: 0.13, xIE: 0.14, zF: 0.13, zB: 0.12, sweep: 0.1 },
-      ];
-      const verts: number[] = [];
-      const indices: number[] = [];
-      let vi = 0;
-      const push = (x: number, y: number, z: number) => {
-        verts.push(x, y, z);
-        return vi++;
-      };
-      const rings: number[][] = [];
-      for (const s of stations) {
-        rings.push([
-          push(-s.xIS, s.y - s.sweep, s.zF), /* 0 IS front */
-          push(-s.xIS * 0.92, s.y - s.sweep * 0.7, (s.zF - s.zB) * 0.15 + s.zB), /* 1 IS mid — the soft facet */
-          push(-s.xIS * 0.8, s.y - s.sweep * 0.55, -s.zB), /* 2 IS back */
-          push(s.xIE * 0.8, s.y, -s.zB), /* 3 IE back */
-          push(s.xIE * 0.92, s.y, (s.zF - s.zB) * 0.15 + s.zB), /* 4 IE mid */
-          push(s.xIE, s.y, s.zF), /* 5 IE front */
-        ]);
-      }
-      const apex = push(0, HEAD_H, 0);
-      const quad = (a: number, b: number, c: number, d: number) => {
-        indices.push(a, b, c, a, c, d);
-      };
-      for (let i = 0; i < rings.length - 1; i++) {
-        const lo = rings[i]!;
-        const hi = rings[i + 1]!;
-        for (let c = 0; c < 6; c++) {
-          const cn = (c + 1) % 6;
-          quad(hi[c]!, hi[cn]!, lo[cn]!, lo[c]!);
-        }
-      }
-      /* the apex fan — the obelisk's peak */
-      const last = rings[rings.length - 1]!;
-      for (let c = 0; c < 6; c++) {
-        const cn = (c + 1) % 6;
-        indices.push(last[cn]!, last[c]!, apex);
-      }
-      /* the base cap fan */
-      const base = push(0, stations[0]!.y, 0);
-      for (let c = 0; c < 6; c++) {
-        const cn = (c + 1) % 6;
-        indices.push(base, rings[0]![c]!, rings[0]![cn]!);
-      }
-      const geo = new BufferGeometry();
-      geo.setAttribute('position', new BufferAttribute(new Float32Array(verts), 3));
-      geo.setIndex(indices);
-      geo.computeVertexNormals();
-      return geo;
-    })();
-
-    /* center the head's pivot at its mid-height (rotation origin) */
-    const head = new Mesh(track(wedgeGeometry), bodyMat);
-    head.position.y = -HEAD_H * 0.5;
-    headGroup.add(head);
-
-    /* the smoked-glass face — P18-W3 FIX: the original placement
-     * (z 0.168, rotY -0.42) was INSIDE the wedge's front surface
-     * (front plane z ≈ 0.21 at every station) — the panel AND the
-     * aperture were buried in the mesh, pixel-proof (0 cyan px, face
-     * invisible). The face now rides the FRONT facet plane, IS-offset
-     * (x -0.05), slightly tilted to echo the brow sweep; z 0.218
-     * clears the 0.215 max zF so it reads as glass SET ONTO the head
-     * (a 0.003 float — the shadowless light rig keeps the seam soft). */
-    const facePanel = new Mesh(track(new PlaneGeometry(0.17, 0.21)), visorMat);
-    facePanel.position.set(-0.05, -0.01, 0.218);
-    facePanel.rotation.y = -0.15;
-    facePanel.rotation.z = 0.0;
-    facePanel.rotation.x = -0.04;
-    headGroup.add(facePanel);
-
-    /* THE ONE VERTICAL APERTURE SLIT — the eye (cyan, emissive): a
-     * thin vertical prism ON the face panel's plane (z 0.223, matching
-     * tilt); its scale.x is the expression channel (breathing phase +
-     * beat widening). */
-    /* P18-W3 (VLM audit + pixel proof): the slit was 0.024 world-units
-     * wide ≈ 1.5px on the 1440 hero AND buried inside the head — the
-     * character's eye did not read. Resized to a legible vertical bar:
-     * 0.055×0.19 (≈30% of the face panel width — still unambiguously
-     * ONE slit, not two eyes; the ChainGPT two-dot law stays retired).
-     * Expression scale.x rides on this base via the animation phase. */
-    const aperture = new Mesh(track(new BoxGeometry(0.055, 0.19, 0.014)), apertureMat);
-    aperture.position.set(-0.05, 0.005, 0.224);
-    aperture.rotation.y = -0.15;
-    headGroup.add(aperture);
-    const apertureNode = aperture; /* the expression node */
-
-    /* the neck's crown plate — the graphite collar the head rides on */
-    const collar = new Mesh(track(new CylinderGeometry(0.148, 0.158, 0.035, 32)), jointMat);
-    collar.position.y = GIMBAL_Y + 0.01;
+    /* the graphite collar — THE designed articulation seam the head
+     * rides on (an engineered joint, not a disconnection) */
+    const collar = new Mesh(track(new TorusGeometry(0.105, 0.018, 14, 48)), graphiteMat);
+    collar.rotation.x = Math.PI / 2;
+    collar.position.y = 1.095;
     character.add(collar);
 
-    /* normalize the figure: the build used MANTLE_H+NECK_H+HEAD_H
-     * directly in world scale (≈ CHAR_H); verify + rescale to contract */
+    /* THE HEAD GROUP — the cranial dome (pivots at the collar for
+     * aliveness; its curvature CONTINUES the body's taper) */
+    const headGroup = new Group();
+    headGroup.position.y = 1.1;
+    character.add(headGroup);
+    const dome = new Mesh(track(new SphereGeometry(0.205, 48, 40)), porcelainMat);
+    dome.scale.set(1, 1.07, 0.97);
+    dome.position.y = 0.15;
+    headGroup.add(dome);
+
+    /* the crown pin — a small graphite datum on the dome (a machined
+     * reference point, quiet) */
+    const crownPin = new Mesh(track(new CylinderGeometry(0.022, 0.028, 0.02, 24)), graphiteMat);
+    crownPin.position.y = 0.352;
+    headGroup.add(crownPin);
+
+    /* THE FACE — the recessed smoked-glass lens SET INTO the dome's
+     * front: an elliptical glass volume (inset by its z-squash), its
+     * curvature echoing the dome. Never a protruding slab. */
+    const lens = new Mesh(track(new SphereGeometry(0.152, 40, 32)), lensMat);
+    lens.scale.set(0.92, 1.16, 0.34);
+    lens.position.set(0.012, 0.16, 0.172);
+    headGroup.add(lens);
+    /* the bezel — the thin elliptical graphite frame of the recess */
+    const bezel = new Mesh(track(new TorusGeometry(0.152, 0.008, 10, 56)), graphiteMat);
+    bezel.scale.set(0.94, 1.18, 0.9);
+    bezel.position.set(0.012, 0.16, 0.176);
+    headGroup.add(bezel);
+
+    /* THE EYE — the ONE thin luminous arc riding the lens's FRONT
+     * surface (z-front 0.245 > the lens front 0.224 — the P18 lesson
+     * repeated and caught: an emissive element buried inside an opaque
+     * mesh never renders; pixel-proof, not VLM-assumed). It reads as
+     * light held INSIDE the glass. Calm downward-open gaze; the
+     * emissive is the expression channel. */
+    const eye = new Mesh(track(new TorusGeometry(0.075, 0.013, 10, 48, Math.PI * 0.85)), eyeMat);
+    eye.rotation.z = Math.PI + Math.PI * 0.075;
+    eye.position.set(0.012, 0.158, 0.232);
+    headGroup.add(eye);
+    /* the arc's glow halo (a camera-facing additive disc, also in
+     * front of the glass) */
+    const eyeGlow = new Mesh(track(new PlaneGeometry(0.4, 0.4)), glowMat);
+    eyeGlow.position.set(0.012, 0.155, 0.236);
+    headGroup.add(eyeGlow);
+
+    /* THE PAULDRON — the ONE swept asymmetric arc riding the
+     * inline-start shoulder: an epaulette that HUGS the shoulder
+     * slope (radius just off the body's chest curve, a flat lie, a
+     * small visible gap) — a graphite sweep against porcelain,
+     * clearly BELOW head height, never a handle over the crown. */
+    const pauldron = new Mesh(
+      track(new TorusGeometry(0.258, 0.026, 14, 48, Math.PI * 1.1)),
+      graphiteMat,
+    );
+    pauldron.rotation.x = Math.PI / 2 + 0.1;
+    pauldron.rotation.z = Math.PI * 0.66;
+    pauldron.position.y = 0.86;
+    character.add(pauldron);
+
+    /* THE CHEST CORE — the quiet heartbeat porthole (subordinate to
+     * the face: small housing + dim ring) */
+    const coreHousing = new Mesh(track(new CylinderGeometry(0.05, 0.056, 0.03, 32)), graphiteMat);
+    coreHousing.rotation.x = Math.PI / 2;
+    coreHousing.position.set(0, 0.72, 0.243);
+    character.add(coreHousing);
+    const coreRing = new Mesh(track(new TorusGeometry(0.03, 0.0045, 8, 40)), coreMat);
+    coreRing.position.set(0, 0.72, 0.259);
+    character.add(coreRing);
+    const coreNode = coreRing; /* the beat pulse node */
+
+    /* normalize the figure to the composition contract */
     let characterBaseY = 0;
     {
       const box = new Box3().setFromObject(character);
@@ -941,81 +687,22 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       characterBaseY = character.position.y;
     }
 
-    /* ── the reflection hint — a faint mirrored copy of the whole
-     * figure under the floor line (the grounding's second half;
-     * unlit clones at low opacity, fog does the fading). The clone's
-     * colors are derived from the PALETTE (live-updating). */
-    const reflMats: { mat: MeshBasicMaterial; kind: 'body' | 'visor' | 'aperture' | 'core' | 'stage' }[] = [];
-    const reflection = character.clone(true);
-    reflection.traverse((o) => {
-      const mesh = o as Mesh;
-      if (!mesh.isMesh) return;
-      const src = mesh.material as MeshStandardMaterial;
-      const kind =
-        src === apertureMat ? 'aperture'
-        : src === coreMat ? 'core'
-        : src === visorMat ? 'visor'
-        : src === bodyMat || src === mantleLowerMat || src === jointMat ? 'body'
-        : 'stage';
-      const reflMat = track(
-        new MeshBasicMaterial({
-          color: 0xffffff,
-          transparent: true,
-          opacity: kind === 'aperture' || kind === 'core' ? 0.22 : 0.13,
-          depthWrite: false,
-          side: DoubleSide,
-        }),
-      );
-      reflMats.push({ mat: reflMat, kind: kind as 'body' | 'visor' | 'aperture' | 'core' | 'stage' });
-      mesh.material = reflMat;
-      mesh.renderOrder = -1;
-    });
-    reflection.scale.setScalar(character.scale.x);
-    reflection.scale.y = -character.scale.x;
-    reflection.position.y = 2 * FLOOR_Y;
-    scene.add(reflection);
-    /* the reflection's palette derivation — called from repaint() */
-    const paintReflection = () => {
-      for (const { mat: rm, kind } of reflMats) {
-        const fromEmissive = kind === 'aperture' || kind === 'core';
-        const hex =
-          kind === 'body' ? palette.body
-          : kind === 'visor' ? palette.visor
-          : kind === 'aperture' ? palette.aperture
-          : kind === 'core' ? palette.core
-          : palette.stage;
-        rm.color.setHex(hex).multiplyScalar(fromEmissive ? 0.85 : 0.55);
-        rm.opacity = fromEmissive ? 0.22 : 0.13;
-      }
-    };
-
     /* ── theme repaint (MutationObserver on html class) — the
-     * procedural materials repaint with the theme (P17 contract). */
+     * procedural materials repaint with the theme. */
     const repaint = () => {
       palette = samplePalette();
-      stageMat.color.setHex(palette.stage);
-      pedTopMat.color.setHex(palette.pedTop);
-      pedRingMat.color.setHex(palette.pedRing);
-      floorRingMat.color.setHex(palette.pedRing);
-      floorRing2Mat.color.setHex(palette.pedRing);
-      gridMat.color.setHex(palette.grid);
-      pMat.color.setHex(palette.particle);
-      pMatNear.color.setHex(palette.particle);
       faceGlow.color.setHex(palette.dark ? 0xffffff : 0x0e7a8a);
-      pedGlow.color.setHex(palette.pedRing);
       fog.color.copy(palette.fogColor);
-      bodyMat.color.setHex(palette.body);
-      mantleLowerMat.color.setHex(palette.mantleLower);
-      jointMat.color.setHex(palette.joint);
-      visorMat.color.setHex(palette.visor);
-      apertureMat.emissive.setHex(palette.aperture);
-      apertureMat.emissiveIntensity = palette.apertureIntensity;
+      porcelainMat.color.setHex(palette.porcelain);
+      graphiteMat.color.setHex(palette.graphite);
+      lensMat.color.setHex(palette.lens);
+      eyeMat.emissive.setHex(palette.eye);
+      eyeMat.emissiveIntensity = palette.eyeIntensity;
       coreMat.emissive.setHex(palette.core);
       coreMat.emissiveIntensity = palette.coreIntensity;
-      /* the strip's breathing hue pair follows the theme */
-      stripA.setHex(palette.dark ? CYAN : 0x0e7a8a);
-      stripB.setHex(palette.dark ? VIOLET : 0x6b54e0);
-      paintReflection();
+      glowMat.color.setHex(palette.eye);
+      glowMat.opacity = palette.glowOpacity;
+      shadowMat.opacity = palette.dark ? 1 : 0.55;
       if (!reduced) renderer.render(scene, camera);
     };
     repaint();
@@ -1031,7 +718,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     if (current) onBeat(current);
     if (!reduced) unsubBeat = subscribeHeroBeat(onBeat);
 
-    /* ── pointer tracking: head ±25°/±12°, mantle ±10% ── */
+    /* ── pointer tracking: head ±22°/±10° ── */
     if (!reduced && window.matchMedia('(pointer: fine)').matches) {
       window.addEventListener('pointermove', onMove, { passive: true });
       window.addEventListener('pointerleave', onLeave, { passive: true });
@@ -1039,19 +726,19 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
     /* ── the frame loop — three timescales of aliveness ──────────
      * (1) pointer tracking (damped lerp), (2) idle layers (bob +
-     * aperture breathing phase + strip tri-hue rotation), (3)
-     * scenario reactions (look toward the console, aperture widen,
-     * aperture scan pulse, core pulse + hue, mantle tip). All
-     * smoothed toward per-beat targets; zero per-frame allocations. */
+     * the arc's luminous breath + the head wander + resting lean),
+     * (3) scenario reactions (look toward the console, arc widen +
+     * brighten, scan shimmer, hue law on the registers, body tip).
+     * Zero per-frame allocations. */
     let yaw = 0;
     let pitch = 0;
     let lookBias = 0;
-    let apertureWide = 1;
+    let eyeWide = 1;
     let scanPhase = 0;
-    let mantleTip = 0;
+    let bodyTip = 0;
     const t0 = performance.now();
-    /* the beat hue state — the core's temperature (phase-17 law) */
-    const coreHue = new Color(CYAN);
+    /* the beat hue state — the registers' temperature (the law) */
+    const beatHue = new Color(CYAN);
     const tmpColor = new Color();
 
     frameLoop = (now: number) => {
@@ -1061,15 +748,15 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       const t = (now - t0) / 1000;
 
       /* lerp toward the pointer targets */
-      yaw = MathUtils.lerp(yaw, targetX * MathUtils.degToRad(25), 1 - Math.pow(0.0015, dt));
-      pitch = MathUtils.lerp(pitch, targetY * MathUtils.degToRad(12), 1 - Math.pow(0.0015, dt));
+      yaw = MathUtils.lerp(yaw, targetX * MathUtils.degToRad(22), 1 - Math.pow(0.0015, dt));
+      pitch = MathUtils.lerp(pitch, targetY * MathUtils.degToRad(10), 1 - Math.pow(0.0015, dt));
 
       /* scenario reaction targets (the beat drives the character) */
       const b = beat ?? 'reset';
       lookBias = MathUtils.lerp(lookBias, b === 'inbound' ? 0.34 : 0, 1 - Math.pow(0.02, dt));
-      apertureWide = MathUtils.lerp(apertureWide, b === 'inbound' ? 1.5 : 1, 1 - Math.pow(0.04, dt));
+      eyeWide = MathUtils.lerp(eyeWide, b === 'inbound' ? 1.45 : 1, 1 - Math.pow(0.04, dt));
       scanPhase = MathUtils.lerp(scanPhase, b === 'reply' ? 1 : 0, 1 - Math.pow(0.05, dt));
-      mantleTip = MathUtils.lerp(mantleTip, b === 'handoff' ? 1 : 0, 1 - Math.pow(0.03, dt));
+      bodyTip = MathUtils.lerp(bodyTip, b === 'handoff' ? 1 : 0, 1 - Math.pow(0.03, dt));
       let corePulse = 0;
       if (b === 'classify') {
         const since = (now - beatAt) / 1000;
@@ -1077,67 +764,57 @@ export function CharacterScene({ className }: CharacterSceneProps) {
           corePulse = Math.abs(Math.sin(since * Math.PI * 2.4)) * Math.exp(-since * 2.2);
         }
       }
-      /* the phase-17 beat color law — the core's HUE tells the story:
+      /* the beat color law — the registers' HUE tells the story:
        * cyan (the machine's voice) at rest; VIOLET while classifying
        * (the AI register); AMBER warmth on handoff (the human
        * register). Lerped — a temperature shift, never a flash. */
-      const coreBeatColor = b === 'classify' ? VIOLET : b === 'handoff' ? AMBER : palette.dark ? CYAN : 0x0e7a8a;
-      coreHue.lerp(tmpColor.setHex(coreBeatColor), 1 - Math.pow(0.06, dt));
+      const beatColor = b === 'classify' ? VIOLET : b === 'handoff' ? AMBER : palette.eye;
+      beatHue.lerp(tmpColor.setHex(beatColor), 1 - Math.pow(0.06, dt));
 
-      /* idle bob (breathing) — the whole figure rides ±1.2% */
-      character.position.y = characterBaseY + Math.sin(t * 1.5) * 0.018;
-      headGroup.position.y = HEAD_Y0 + Math.sin(t * 1.5 + 0.6) * 0.01;
+      /* idle bob (breathing) — the whole figure rides ±1.3% */
+      character.position.y = characterBaseY + Math.sin(t * 1.5) * 0.017;
+      headGroup.position.y = 1.1 + Math.sin(t * 1.5 + 0.6) * 0.008;
 
       /* head tracking + the beat's look bias + the autonomous gaze
-       * wander layered under it (a parked pointer never leaves the
-       * character staring dead-center) */
+       * wander + the RESTING Z-LEAN (the deliberate asymmetry) */
       const wander = Math.sin(t * 0.21) * 0.12 + Math.sin(t * 0.07) * 0.05;
       headGroup.rotation.y = yaw + wander + lookBias;
-      headGroup.rotation.x = pitch + Math.sin(t * 0.17) * 0.03 + mantleTip * 0.06;
-      /* the mantle tips slightly with the beat (the whole body's
+      headGroup.rotation.x = pitch + Math.sin(t * 0.17) * 0.03 + bodyTip * 0.05;
+      headGroup.rotation.z = 0.035 + Math.sin(t * 0.13) * 0.012;
+      /* the body tips slightly with the beat (the whole vessel's
        * attention — an instrument-grade lean, never a toy sway) */
-      character.rotation.x = mantleTip * 0.045;
+      character.rotation.x = bodyTip * 0.04;
       character.rotation.y = MathUtils.lerp(character.rotation.y, lookBias * 0.3, 1 - Math.pow(0.01, dt));
 
-      /* THE APERTURE — the single eye's expression channel: the idle
-       * breathing phase modulates the slit's width ±18%; inbound
-       * widens it (apertureWide); reply runs a fast scan shimmer. */
-      const breath = 1 + Math.sin(t * 1.5) * 0.18;
-      const scan = 1 + Math.sin(t * 9) * 0.1 * scanPhase;
-      apertureNode.scale.set(apertureWide * breath * scan, 1, 1);
-      apertureMat.emissiveIntensity =
-        palette.apertureIntensity + Math.sin(t * 1.5) * 0.12 + corePulse * 0.25;
+      /* THE ARC — the eye's expression channel: the idle luminous
+       * breath ±16%; inbound brightens + widens; reply runs a fast
+       * scan shimmer; the hue follows the beat law. */
+      const breath = 1 + Math.sin(t * 1.5) * 0.16;
+      const scan = 1 + Math.sin(t * 9) * 0.09 * scanPhase;
+      eye.scale.setScalar(eyeWide * scan);
+      eyeGlow.scale.setScalar(breath * eyeWide * (1 + corePulse * 0.35));
+      eyeMat.emissiveIntensity =
+        palette.eyeIntensity * breath * eyeWide + scanPhase * 0.4 + corePulse * 0.5;
+      eyeMat.emissive.copy(beatHue);
+      glowMat.color.copy(beatHue);
 
-      /* the emissive registers: the core pulses with its beat hue
-       * (violet on classify / amber on handoff), the ONE tri-hue edge
-       * strip breathes + rotates cyan→violet→amber (18s) */
-      coreMat.emissiveIntensity = palette.coreIntensity + corePulse * 1.8;
-      coreMat.emissive.copy(coreHue);
+      /* the core porthole pulses with its beat hue (violet on
+       * classify / amber on handoff) — the quiet heartbeat */
+      coreMat.emissiveIntensity = palette.coreIntensity + corePulse * 1.7;
+      coreMat.emissive.copy(beatHue);
       {
-        const cs = 1 + corePulse * 0.07;
+        const cs = 1 + corePulse * 0.08;
         coreNode.scale.set(cs, cs, 1);
       }
-      stripMat.emissiveIntensity = palette.dark
-        ? 0.95 + Math.sin(t * 0.9) * 0.3
-        : 0.7 + Math.sin(t * 0.9) * 0.15;
-      const phase = (t % 18) / 6; // 0..3
-      if (phase < 1) stripMat.emissive.copy(stripA).lerp(stripB, phase);
-      else if (phase < 2) stripMat.emissive.copy(stripB).lerp(stripC, phase - 1);
-      else stripMat.emissive.copy(stripC).lerp(stripA, phase - 2);
-
-      /* particle drift (two depth layers, the near one slower) */
-      particles.position.y = Math.sin(t * 0.22) * 0.12;
-      particlesNear.position.y = Math.sin(t * 0.13 + 1.2) * 0.08;
 
       renderer.render(scene, camera);
       if (visible && !document.hidden) raf = requestAnimationFrame(frameLoop);
     };
 
     if (reduced) {
-      /* one static posed frame — the obelisk mid-idle: a soft 3/4
-         gaze, the aperture at its resting width, no rAF, no
-         tracking, no beat channel (the ticker composes its own
-         static first beat) */
+      /* one static posed frame — the vessel mid-idle: a soft 3/4
+         gaze, the arc at rest, no rAF, no tracking, no beat channel
+         (the ticker composes its own static first beat) */
       headGroup.rotation.y = MathUtils.degToRad(-12);
       headGroup.rotation.x = 0.02;
       character.rotation.y = MathUtils.degToRad(-4);
@@ -1174,8 +851,10 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       window.removeEventListener('pointerleave', onLeave);
       for (const g of geometries) g.dispose();
       for (const m of materials) m.dispose();
-      dustTexture.dispose();
       shadowTexture.dispose();
+      glowTexture.dispose();
+      envRT.dispose();
+      pmrem.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement);
     };

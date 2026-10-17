@@ -1666,11 +1666,11 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   //     the primitives RobotScene (P16-A) canvases are DELETED; the
   //     retirement itself is pinned in §P15.
   const rawRobotScene2 = readRaw('../src/components/landing/CharacterScene.tsx');
-  const canvasOk = rawRobotScene2.includes('0xdad9d6') && rawRobotScene2.includes('0x56e2f2')
+  const canvasOk = rawRobotScene2.includes('0xe7e5e0') && rawRobotScene2.includes('0x56e2f2')
     && rawRobotScene2.includes('0x9380ff')
     && !rawRobotScene2.includes('245,243,231') && !rawRobotScene2.includes('223,237,178') && !rawRobotScene2.includes('122,107,242');
   if (canvasOk) pass += 1;
-  else fails.push('P15 canvas lockstep: CharacterScene literals = petrol foam/teal/lime, zero retired Orbit-Ink triplets');
+  else fails.push('P19 canvas lockstep: CharacterScene literals = porcelain/cyan/violet, zero retired Orbit-Ink triplets');
 
   // (9) DASHBOARD CORE cascade (r152d): the thread itself speaks the chat
   //     grammar — mono HH:MM stamps (timeStamp + title fallback), the ONE
@@ -2368,12 +2368,13 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     else fails.push(`P16-A-tokens --sb-floor: expected 0.84 (the floor line fraction), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
   }
   {
-    /* P18-W5 re-anchor: the final VLM audit grounded the mobile bust —
-       fig 1.3→1.24, floor 1.35→1.18 (the pedestal ring peeks in). Same
-       pose law (bust close-up, >1 crop), re-pinned values. */
-    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 1\.24;[^@]*?--sb-floor: 1\.18;/s;
+    /* P19-W2-C re-anchor: the VESSEL is 1.34 world units (feet 0 →
+       crown 1.36) — unlike the old obelisk+pedestal (1.9) the bust
+       window ≈ [0.52, 1.38] needs fig 1.63 / floor 1.6. Same pose law
+       (bust close-up, >1 crop), re-pinned values. */
+    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 1\.63;[^@]*?--sb-floor: 1\.6;/s;
     if (mobileRe.test(rawLanding)) pass += 1;
-    else fails.push('P17/P18 mobile pose: the ≤1024px character-first stack must re-pose the figure (--sb-fig 1.24 / --sb-floor 1.18 — grounded bust close-up)');
+    else fails.push('P19 mobile pose: the ≤1024px character-first stack must re-pose the vessel (--sb-fig 1.63 / --sb-floor 1.6 — grounded bust close-up)');
   }
 
   // (3) ONE composed viewport: desktop hero = 100svh minus the sticky
@@ -2451,9 +2452,12 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   //     — the ticker's own grammar (full hairline box + ink wash) and
   //     resting rows lifted 0.55 → 0.75 so they hold real presence on
   //     the void; the synced active row stays cream
-  pinDecl('P15-status', '.landing .ln-status', 'border', '1px solid var(--ln-line)');
-  pinDecl('P15-status', '.landing .ln-status li', 'color', 'rgb(244 244 246 / 0.75)');
-  pinDecl('P15-status', '.landing .ln-status li[data-active=\'true\']', 'color', 'var(--ln-cream)');
+  /* P19-W2-C re-anchor (§2.4): the standalone SYSTEM micro-panel is
+     * RETIRED — the console's compact status line is the ONE status
+     * surface. The pins follow the new composition law. */
+  pinDecl('P19-status', '.landing .ln-ticker-status b', 'background', 'var(--ln-lime)');
+  pinDecl('P19-status', '.landing .ln-ticker-status b', 'box-shadow', '0 0 8px rgb(86 226 242 / 0.6)');
+  pinDecl('P19-status', '.landing .ln-ticker-status b[data-tone=\'lime\']', 'background', 'var(--ln-violet)');
 
   // (6) the ticker island (source contract, 2-e: B's scenario engine) —
   //     the honest DEMO cycle: three scenarios (price/booking/complaint)
@@ -2514,9 +2518,9 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     const rawRobot = readRaw('../src/components/landing/CharacterScene.tsx');
     const solverOk = rawRobot.includes('getPropertyValue(\'--sb-fig\'')
       && rawRobot.includes('getPropertyValue(\'--sb-floor\'')
-      && rawRobot.includes(', 0.3), 1.6') && rawRobot.includes(', 0.5), 1.8');
+      && rawRobot.includes(', 0.3), 1.9') && rawRobot.includes(', 0.5), 1.8');
     if (solverOk) pass += 1;
-    else fails.push('P17 solver: the scene camera must read --sb-fig/--sb-floor off the host (clamped 0.3-1.6 / 0.5-1.8 — bust-capable) — the layout owns the composition');
+    else fails.push('P19 solver: the scene camera must read --sb-fig/--sb-floor off the host (clamped 0.3-1.9 / 0.5-1.8 — vessel-bust-capable) — the layout owns the composition');
     const pauseOk = rawRobot.includes('IntersectionObserver')
       && rawRobot.includes('visibilitychange')
       && rawRobot.includes('renderer.dispose()')
@@ -2529,9 +2533,9 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     if (rmOk) pass += 1;
     else fails.push('P16-A scene RM: reduced-motion = one static posed frame, no rAF');
     const trackOk = rawRobot.includes("matchMedia('(pointer: fine)')")
-      && rawRobot.includes('degToRad(25)') && rawRobot.includes('degToRad(12)');
+      && rawRobot.includes('degToRad(22)') && rawRobot.includes('degToRad(10)');
     if (trackOk) pass += 1;
-    else fails.push('P16-A tracking: pointer-follow gated on (pointer: fine), head ±25°/±12°');
+    else fails.push('P19 tracking: pointer-follow gated on (pointer: fine), head ±22°/±10° (the vessel)');
     /* P18-W2-a re-anchor (the §2.1/§2.2 rebuild): the GLB protagonist is
      * SUPERSEDED by the fully procedural character — authored
      * BufferGeometry, zero loader bytes on the critical path (the
@@ -2540,11 +2544,11 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
      * unchanged: the WebGL probe gates the renderer, setFailed(true)
      * renders the art-directed SVG frame — never a broken canvas. */
     const glbOk = !rawRobot.includes("import('three/examples/jsm/loaders/GLTFLoader.js')")
-      && rawRobot.includes('new BufferGeometry()')
+      && rawRobot.includes('new LatheGeometry(')
       && rawRobot.includes("getContext('webgl2')")
       && rawRobot.includes('setFailed(true)');
     if (glbOk) pass += 1;
-    else fails.push('P18-W2-a procedural character: authored BufferGeometry build, NO GLTFLoader on the critical path (GLB retired, provenance-only), WebGL probe → setFailed(true) → art-directed SVG frame (never a broken canvas)');
+    else fails.push('P19-W2-C procedural vessel: authored LatheGeometry build, NO GLTFLoader on the critical path (GLB retired, provenance-only), WebGL probe → setFailed(true) → art-directed SVG frame (never a broken canvas)');
   }
 
   // (8b) the heroBus beat channel (P16-A) — the honest scenario engine

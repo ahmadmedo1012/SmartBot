@@ -118,28 +118,16 @@
   background: var(--ln-ink); color: var(--ln-cream);
 }
 
-/* ── 1b · the instrument grid (phase 17 · ChainGPT's signature detail) —
- * three 1px vertical hairlines at 17% / 50% / 17% across the hero,
- * behind content and canvas, above the ground. Mobile: outer lines only. */
-.landing .ln-hero-robot::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent calc(17% - 0.5px), var(--ln-line) calc(17% - 0.5px), var(--ln-line) calc(17% + 0.5px), transparent calc(17% + 0.5px)),
-    linear-gradient(90deg, transparent calc(50% - 0.5px), var(--ln-line-soft) calc(50% - 0.5px), var(--ln-line-soft) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-    linear-gradient(90deg, transparent calc(83% - 0.5px), var(--ln-line) calc(83% - 0.5px), var(--ln-line) calc(83% + 0.5px), transparent calc(83% + 0.5px));
-  opacity: 0.75;
-}
-@media (max-width: 1024px) {
-  .landing .ln-hero-robot::before {
-    background:
-      linear-gradient(90deg, transparent calc(12% - 0.5px), var(--ln-line-soft) calc(12% - 0.5px), var(--ln-line-soft) calc(12% + 0.5px), transparent calc(12% + 0.5px)),
-      linear-gradient(90deg, transparent calc(88% - 0.5px), var(--ln-line-soft) calc(88% - 0.5px), var(--ln-line-soft) calc(88% + 0.5px), transparent calc(88% + 0.5px));
-  }
-}
+/* ── 1b · the instrument grid — RETIRED (P20-C1) ──────────────────────
+ * The Phase-17 3-line grid (1px verticals at 17/50/83, mobile 2 outer
+ * lines) survived the Vessel rebuild although the Phase-19 contract
+ * retires it with the rest of the old stage ("No pedestal. No landing-
+ * pad rings. No grid hairlines. No dust." — design-system/smartbot-
+ * phase19/ART-DIRECTION.md §The stage; the 1916a63 commit message also
+ * claims "grid … ALL retired" while this rule kept painting). VLM
+ * evidence on the production crop (/tmp/p20-evidence/before/bot-1440-
+ * hero-top.png): hairlines visible at 17% and 83% on the Vessel's void.
+ * The vessel stands alone on the void now — for real. */
 
 /* ── 2 · base utilities — landing.css:68-114 ────────────────────────── */
 

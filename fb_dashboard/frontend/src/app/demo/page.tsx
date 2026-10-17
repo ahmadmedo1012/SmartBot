@@ -120,9 +120,12 @@ const mockStats = {
     { id: 4, time: "09:58", text: "رسالة جديدة من خالد المزوغي", level: "WARN" },
   ],
   scheduled_posts: [
-    { id: 1, text: "عرض خاص على البيتزا — خصم 20% اليوم فقط", at: "الجمعة 18:00", status: "scheduled" },
-    { id: 2, text: "افتتاح الفرع الجديد في بنغازي", at: "السبت 12:00", status: "scheduled" },
-    { id: 3, text: "عيد ميلادنا السنوي — هدايا للجميع", at: "الأحد 10:00", status: "draft" },
+    /* P20-C1: the mock rows carry day/time split — the HH:MM value rides
+       the mono machine stamp exactly like the real /dashboard/scheduled
+       twin (Arabic date + font-mono tabular-nums dir=ltr stamp). */
+    { id: 1, text: "عرض خاص على البيتزا — خصم 20% اليوم فقط", day: "الجمعة", time: "18:00", status: "scheduled" },
+    { id: 2, text: "افتتاح الفرع الجديد في بنغازي", day: "السبت", time: "12:00", status: "scheduled" },
+    { id: 3, text: "عيد ميلادنا السنوي — هدايا للجميع", day: "الأحد", time: "10:00", status: "draft" },
   ],
 }
 
@@ -311,6 +314,7 @@ function StatsTab() {
               <table aria-labelledby="demo-rules-title" className="tbl-stack w-full text-(length:--fs-sm)">
                 <thead>
                   <tr className="border-b border-border bg-muted text-muted-foreground text-[11px] font-semibold uppercase">
+                    <th scope="col" aria-label="رقم القاعدة" className="w-10 px-2 py-3 font-semibold" />
                     <th scope="col" className="text-start px-4 py-3 font-semibold">القاعدة</th>
                     <th scope="col" className="text-start px-4 py-3 font-semibold">الكلمة المفتاحية</th>
                     <th scope="col" className="text-center px-4 py-3 font-semibold">الردود</th>
@@ -320,6 +324,10 @@ function StatsTab() {
                 <tbody>
                   {mockStats.rules_data.map((r, i) => (
                     <tr key={i} className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/40">
+                      {/* P20-C1: the mono index column joins the real dashboard
+                          rules-table twin (zero-padded operational codes,
+                          dir=ltr — presentation only, no data change). */}
+                      <td data-label="رقم" dir="ltr" className="p-3 px-2 font-mono text-xs tabular-nums text-muted-foreground select-none">{String(i + 1).padStart(2, "0")}</td>
                       <td data-label="القاعدة" className="relative p-3 px-4 font-medium before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">{r.name}</td>
                       <td data-label="الكلمة المفتاحية" className="p-3 px-4 text-muted-foreground">{r.keyword}</td>
                       <td data-label="الردود" className="p-3 px-4 text-center tabular-nums">{r.count}</td>
@@ -532,7 +540,9 @@ function AudienceTab() {
       </CardHeader>
       <CardContent className="p-0">
         {mockStats.subscribers.map((s) => (
-          <div key={s.id} className="flex items-center justify-between px-6 py-3 border-b border-border last:border-0">
+          /* P20-C1: the quiet hover wash joins the real /dashboard/audience
+             twin (hover:bg-muted/40 — the operational row affordance). */
+          <div key={s.id} className="flex items-center justify-between px-6 py-3 border-b border-border last:border-0 transition-colors hover:bg-muted/40">
             <div className="flex items-center gap-3">
               <span className="size-8 rounded-full bg-accent-foreground/10 text-accent-foreground text-xs font-bold flex items-center justify-center">
                 {s.name.split(" ").map((w) => w[0]).join("")}
@@ -563,7 +573,10 @@ function ActivityTab() {
       <CardContent className="p-0">
         {mockStats.logs.map((l) => (
           <div key={l.id} className="flex items-center gap-3 px-6 py-3 border-b border-border last:border-0 text-sm">
-            <span className="text-xs text-muted-foreground w-10 shrink-0" dir="ltr">{l.time}</span>
+            {/* P20-C1: the HH:MM stamp joins the mono machine register — the
+                real /dashboard/activity twin renders font-mono tabular-nums
+                (the demo painted the same stamp in the sans body face). */}
+            <span className="text-xs text-muted-foreground w-10 shrink-0 font-mono tabular-nums" dir="ltr">{l.time}</span>
             <Badge variant={l.level === "WARN" ? "warning" : "secondary"} className="shrink-0 tabular-nums">
               {l.level}
             </Badge>
@@ -621,7 +634,9 @@ function ScheduleTab() {
             <Clock className="size-4 text-muted-foreground shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm truncate">{p.text}</p>
-              <p className="text-xs text-muted-foreground">{p.at}</p>
+              {/* P20-C1: Arabic day + the mono HH:MM stamp — the real
+                  /dashboard/scheduled twin's grammar. */}
+              <p className="text-xs text-muted-foreground">{p.day} <span className="font-mono tabular-nums" dir="ltr">{p.time}</span></p>
             </div>
             <Badge variant={p.status === "scheduled" ? "info" : "secondary"}>
               {p.status === "scheduled" ? "مجدول" : "مسودة"}

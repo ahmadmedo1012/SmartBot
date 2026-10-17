@@ -201,6 +201,41 @@ export default function HomePage() {
                     canvas */}
                 <span className="ln-robot-glow" />
                 <span className="ln-robot-vignette" />
+                {/* W2-C1 (delta 1) — CONNECTOR TRACES: the reference's
+                    circuit grammar — thin 1px traces with 45° elbows and
+                    small node pads linking the machine to the terminal
+                    console (head + chest) and down the far rail to the
+                    scroll invitation. DOM/SVG so the paths respect the
+                    layout layer (viewBox maps the ≥1025px hero box);
+                    desktop composition only — the CSS layer gates it off
+                    below 1025px and mirrors it for LTR. Decorative
+                    (aria-hidden); rides INSIDE the exit frame so it sinks
+                    with the machine layer on scroll. */}
+                <svg
+                  className="ln-hero-traces"
+                  viewBox="0 0 1440 900"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  {/* console → head (the upper terminal line) */}
+                  <path className="ln-tx" d="M 962 250 H 660 L 600 190 H 312" />
+                  {/* console → chest (the lower terminal line — exits the
+                      console's bottom corner, verified against the live
+                      rects: console [968,116→312] hero-rel) */}
+                  <path className="ln-tx" d="M 962 312 H 700 L 627 385 H 322" />
+                  {/* machine → far rail → the scroll invitation (the drop
+                      lands just above the invitation label — live rect
+                      [65,721] hero-rel, the invitation line at x≈104) */}
+                  <path className="ln-tx" d="M 135 505 H 118 L 104 519 V 712" />
+                  {/* the node pads — ports on the console edge, live nodes
+                      at the machine, one terminal above the invitation */}
+                  <rect className="ln-tx-node" x="959" y="247" width="5" height="5" />
+                  <rect className="ln-tx-node" x="959" y="309" width="5" height="5" />
+                  <rect className="ln-tx-node ln-tx-live" x="308" y="187" width="6" height="6" />
+                  <rect className="ln-tx-node ln-tx-live" x="318" y="382" width="6" height="6" />
+                  <rect className="ln-tx-node" x="101" y="709" width="6" height="6" />
+                </svg>
                 <RobotSceneMount className="ln-robot-canvas" />
               </div>
             </HeroExit>

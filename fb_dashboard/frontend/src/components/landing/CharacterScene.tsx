@@ -30,6 +30,16 @@
  * · THE PEDESTAL: the figure stands on a dark near-black plinth (the
  *   reference's staging), grounded by the contact shadow.
  *
+ * W2-C1 (the four documented deltas): (1) the bezel sweep is sampled
+ *   DENSELY off the anchors' unwrapped HSL hue path at 2× resolution —
+ *   the five-stop piecewise conic read banded at hero scale; (2) the
+ *   body gains the reference's mechanical read — segmented arm seams,
+ *   wrist cuffs, ankle collars, torso panel lines, one cyan chest LED
+ *   (all shell/graphite family, detail not noise); (3) the head corner
+ *   radii are heavier (0.1 → 0.125 — "heavily filleted") and the screen
+ *   rides higher + larger; (4) the hero circuit traces live in the CSS
+ *   layer (page.tsx), not here.
+ *
  * MOTION — reference-led stillness (the directive: remove primitive
  * bobbing): NO body bob, NO sway. What remains is exactly the
  * reference's instrument-grade life: (1) POINTER head tracking
@@ -92,8 +102,65 @@ const VIOLET = 0x9380ff;
 const AMBER = 0xff9a69;
 
 /* The ChainGPT spectrum rim (the bezel's gradient stops — measured off
- * the reference hero: cyan → blue → purple → pink → orange). */
+ * the reference hero: cyan → blue → purple → pink → orange). W2-C1: the
+ * five anchors are the HUE PATH of record, not the render list — the
+ * sweep below samples them densely (HSL, monotonic unwrapped hue) so the
+ * conic frame reads as ONE continuous spectrum (the five-stop piecewise
+ * gradient produced visible band boundaries at hero scale). */
 const SPECTRUM_STOPS = ['#00f0ff', '#4a6bff', '#b04dff', '#ff5ac8', '#ff8a3c'];
+
+type Hsl = { h: number; s: number; l: number };
+
+function hexToHsl(hex: string): Hsl {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return { h, s, l };
+}
+
+function hslToCss(c: Hsl): string {
+  const f = (n: number) => {
+    const k = (n + c.h * 12) % 12;
+    const a = c.s * Math.min(c.l, 1 - c.l);
+    const v = c.l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(v * 255);
+  };
+  return `rgb(${f(0)}, ${f(8)}, ${f(4)})`;
+}
+
+/* the smooth bezel sweep — n+1 (offset, color) samples along the
+ * anchors' hue path (piecewise-linear in HSL, hue unwrapped monotone:
+ * 187° → 227° → 275° → 322° → 389°), clockwise as the reference reads */
+function spectrumSweep(n: number): Array<[number, string]> {
+  const anchors = SPECTRUM_STOPS.map(hexToHsl);
+  for (let i = 1; i < anchors.length; i++) {
+    if (anchors[i].h < anchors[i - 1].h) anchors[i].h += 1;
+  }
+  const out: Array<[number, string]> = [];
+  for (let k = 0; k <= n; k++) {
+    const t = k / n;
+    const f = Math.min(t * (anchors.length - 1), anchors.length - 1 - 1e-4);
+    const i = Math.floor(f);
+    const u = f - i;
+    const a = anchors[i];
+    const b = anchors[i + 1];
+    out.push([
+      t,
+      hslToCss({ h: a.h + (b.h - a.h) * u, s: a.s + (b.s - a.s) * u, l: a.l + (b.l - a.l) * u }),
+    ]);
+  }
+  return out;
+}
 
 /* ── the composition contract (world units) ────────────────────────
  * The framing solver places these inside the host box:
@@ -183,8 +250,11 @@ function samplePalette(): Palette {
  * reads as the character's principal light at ANY distance. */
 function makeBezelTexture(): CanvasTexture {
   const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 400;
+  /* W2-C1 (delta 2): 512×400 → 1024×800 — doubled resolution + the
+   * dense HSL sweep kill the banding (8-bit canvas quantization was
+   * amplified by additive blending at hero scale). All geometry ×2. */
+  c.width = 1024;
+  c.height = 800;
   const ctx = c.getContext('2d')!;
   /* the reference's rim is a CLOCKWISE spectrum sweep around the frame
    * (cyan → blue → purple → pink → orange → back) — a conic gradient
@@ -193,23 +263,29 @@ function makeBezelTexture(): CanvasTexture {
    * measured: all four hue families visible). Fallback: linear. */
   let g: CanvasGradient;
   if (typeof ctx.createConicGradient === 'function') {
-    g = ctx.createConicGradient(-Math.PI / 2, 256, 200);
+    g = ctx.createConicGradient(-Math.PI / 2, 512, 400);
   } else {
-    g = ctx.createLinearGradient(24, 20, 488, 380);
+    g = ctx.createLinearGradient(48, 40, 976, 760);
   }
-  SPECTRUM_STOPS.forEach((hex, i) => g.addColorStop(i / (SPECTRUM_STOPS.length - 1), hex));
+  /* the dense sweep — 45 samples, one continuous spectrum, no segment
+   * boundaries (the five-stop version banded between anchors) */
+  for (const [offset, color] of spectrumSweep(45)) g.addColorStop(offset, color);
   /* the wide soft bloom FIRST (under the core stroke) — the glow that
-   * bleeds onto the shell cheeks, the reference's rim-light spill */
+   * bleeds onto the shell cheeks, the reference's rim-light spill;
+   * blurred in-canvas so the halo is stepless (ctx.filter is ignored
+   * by engines without it — the un-blurred pass is a fine fallback) */
+  ctx.filter = 'blur(18px)';
   ctx.strokeStyle = g;
-  ctx.lineWidth = 104;
-  ctx.globalAlpha = 0.4;
-  roundRectPath(ctx, 26, 22, 460, 356, 54);
+  ctx.lineWidth = 208;
+  ctx.globalAlpha = 0.38;
+  roundRectPath(ctx, 52, 44, 920, 712, 108);
   ctx.stroke();
+  ctx.filter = 'none';
   ctx.globalAlpha = 1;
   /* the CORE stroke — thick, fully saturated, the principal light */
   ctx.strokeStyle = g;
-  ctx.lineWidth = 64;
-  roundRectPath(ctx, 26, 22, 460, 356, 54);
+  ctx.lineWidth = 128;
+  roundRectPath(ctx, 52, 44, 920, 712, 108);
   ctx.stroke();
   return new CanvasTexture(c);
 }
@@ -309,35 +385,41 @@ function CharacterFallbackSvg() {
       {/* the ball-joint shoulders — graphite */}
       <circle cx="114" cy="266" r="16" fill="#26282F" />
       <circle cx="246" cy="266" r="16" fill="#26282F" />
-      {/* the segmented arms (hanging, slightly bent) */}
+      {/* the segmented arms (hanging, slightly bent) + W2-C1: the
+          graphite collar seams that segment each limb */}
       <path d="M 100 282 L 96 318 L 102 344 L 106 344 L 106 318 L 110 284 Z" fill="url(#sb-fb-shell)" stroke="#8A8C90" strokeWidth="1" />
+      <rect x="90" y="308" width="24" height="7" rx="3" fill="#26282F" />
       <circle cx="102" cy="322" r="8" fill="#26282F" />
       <path d="M 260 282 L 264 318 L 258 344 L 254 344 L 254 318 L 250 284 Z" fill="url(#sb-fb-shell)" stroke="#8A8C90" strokeWidth="1" />
+      <rect x="246" y="308" width="24" height="7" rx="3" fill="#26282F" />
       <circle cx="258" cy="322" r="8" fill="#26282F" />
       {/* the mitt hands */}
       <rect x="94" y="344" width="20" height="24" rx="6" fill="url(#sb-fb-shell)" stroke="#8A8C90" strokeWidth="1" />
       <rect x="246" y="344" width="20" height="24" rx="6" fill="url(#sb-fb-shell)" stroke="#8A8C90" strokeWidth="1" />
 
-      {/* the chest vent — a quiet graphite datum strip */}
+      {/* the chest vent — a quiet graphite datum strip + W2-C1: the
+          status LED beside it (the machine's cyan voice) */}
       <rect x="152" y="282" width="56" height="6" rx="3" fill="#26282F" />
+      <circle cx="137" cy="285" r="3" fill="#56E2F2" />
 
       {/* THE NECK — the graphite collar the head rides on */}
       <rect x="162" y="236" width="36" height="24" rx="6" fill="#26282F" />
 
-      {/* THE HEAD — the filleted cube */}
-      <rect x="106" y="62" width="148" height="122" rx="26" fill="url(#sb-fb-shell)" stroke="#8A8C90" strokeWidth="1" />
+      {/* THE HEAD — the filleted cube (W2-C1: heavier corner radii) */}
+      <rect x="106" y="62" width="148" height="122" rx="30" fill="url(#sb-fb-shell)" stroke="#8A8C90" strokeWidth="1" />
 
-      {/* THE SCREEN — the recessed black glass (≈70% of the face) */}
-      <rect x="124" y="84" width="112" height="78" rx="14" fill="url(#sb-fb-screen)" />
+      {/* THE SCREEN — the recessed black glass (≈70% of the face,
+          W2-C1: larger + riding higher, per the reference) */}
+      <rect x="122" y="76" width="116" height="88" rx="15" fill="url(#sb-fb-screen)" />
 
       {/* THE BEZEL — the spectrum rim-light frame */}
-      <rect x="119" y="79" width="122" height="88" rx="17" fill="none" stroke="url(#sb-fb-bezel)" strokeWidth="6" />
+      <rect x="117" y="71" width="126" height="98" rx="18" fill="none" stroke="url(#sb-fb-bezel)" strokeWidth="6" />
 
       {/* THE EYES — two white bars, softly glowing */}
-      <ellipse cx="146" cy="122" rx="24" ry="14" fill="url(#sb-fb-eyeglow)" />
-      <ellipse cx="214" cy="122" rx="24" ry="14" fill="url(#sb-fb-eyeglow)" />
-      <rect x="136" y="115" width="22" height="13" rx="4" fill="#FFFFFF" />
-      <rect x="202" y="115" width="22" height="13" rx="4" fill="#FFFFFF" />
+      <ellipse cx="146" cy="117" rx="24" ry="14" fill="url(#sb-fb-eyeglow)" />
+      <ellipse cx="214" cy="117" rx="24" ry="14" fill="url(#sb-fb-eyeglow)" />
+      <rect x="136" y="110" width="22" height="13" rx="4" fill="#FFFFFF" />
+      <rect x="202" y="110" width="22" height="13" rx="4" fill="#FFFFFF" />
     </svg>
   );
 }
@@ -628,119 +710,189 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
     /* THE BODY — boxy: chest block (filleted) + waist + hips, one
      * matte-shell family with graphite datum strips. */
-    const chest = new Mesh(track(new RoundedBoxGeometry(0.5, 0.44, 0.34, 4, 0.09)), shellMat);
-    chest.position.y = 0.55;
+    /* W2-C1r (coordinator surgery — the VLM's #1 delta, the "chibi
+     * factor"): the reference's figure is compact and bulky — the torso
+     * shortens + deepens, the stack tightens, and the head (below)
+     * grows ~30% so it dominates like the reference's. */
+    const chest = new Mesh(track(new RoundedBoxGeometry(0.5, 0.36, 0.36, 4, 0.09)), shellMat);
+    chest.position.y = 0.5;
     character.add(chest);
-    const waist = new Mesh(track(new RoundedBoxGeometry(0.34, 0.14, 0.24, 3, 0.05)), shellMat);
-    waist.position.y = 0.29;
+    const waist = new Mesh(track(new RoundedBoxGeometry(0.36, 0.12, 0.26, 3, 0.05)), shellMat);
+    waist.position.y = 0.27;
     character.add(waist);
-    const hips = new Mesh(track(new RoundedBoxGeometry(0.42, 0.16, 0.3, 3, 0.06)), shellMat);
-    hips.position.y = 0.19;
+    const hips = new Mesh(track(new RoundedBoxGeometry(0.44, 0.16, 0.32, 3, 0.06)), shellMat);
+    hips.position.y = 0.175;
     character.add(hips);
 
     /* the chest datum strip (the quiet machine vent) + v5: the chest
      * PANEL grammar — a slightly recessed graphite-edged panel with
      * three vent slits (the reference's mechanical chest read) */
-    const chestPanel = new Mesh(track(new RoundedBoxGeometry(0.34, 0.16, 0.02, 2, 0.01)), graphiteMat);
-    chestPanel.position.set(0, 0.62, 0.168);
+    const chestPanel = new Mesh(track(new RoundedBoxGeometry(0.36, 0.15, 0.02, 2, 0.01)), graphiteMat);
+    chestPanel.position.set(0, 0.56, 0.185);
     character.add(chestPanel);
-    for (const vy of [0.585, 0.62, 0.655]) {
-      const vent = new Mesh(track(new RoundedBoxGeometry(0.26, 0.018, 0.014, 2, 0.007)), shellMat);
-      vent.position.set(0, vy, 0.181);
+    for (const vy of [0.525, 0.56, 0.595]) {
+      const vent = new Mesh(track(new RoundedBoxGeometry(0.28, 0.018, 0.014, 2, 0.007)), shellMat);
+      vent.position.set(0, vy, 0.198);
       character.add(vent);
     }
 
     /* THE LEGS — short cylinders + flat feet (the reference's stance) */
-    const legGeo = track(new CylinderGeometry(0.062, 0.055, 0.22, 24));
-    for (const sx of [-0.13, 0.13]) {
+    /* W2-C1r: stumpy — shorter + thicker legs/feet (the bulky stance) */
+    const legGeo = track(new CylinderGeometry(0.07, 0.062, 0.16, 24));
+    for (const sx of [-0.14, 0.14]) {
       const leg = new Mesh(legGeo, shellMat);
-      leg.position.set(sx, 0.145, 0);
+      leg.position.set(sx, 0.125, 0);
       character.add(leg);
-      const foot = new Mesh(track(new RoundedBoxGeometry(0.12, 0.06, 0.2, 2, 0.02)), graphiteMat);
-      foot.position.set(sx, 0.135, 0.03);
+      const foot = new Mesh(track(new RoundedBoxGeometry(0.13, 0.06, 0.21, 2, 0.02)), graphiteMat);
+      foot.position.set(sx, 0.12, 0.03);
       character.add(foot);
     }
 
     /* THE ARMS — ball-joint shoulders (graphite spheres) + segmented
      * cylinders + elbow spheres + mitt hands, hanging with a slight
      * bend (the reference's relaxed stance). */
-    for (const sx of [-0.3, 0.3]) {
+    for (const sx of [-0.32, 0.32]) {
       const shoulder = new Mesh(track(new SphereGeometry(0.085, 24, 20)), graphiteMat);
-      shoulder.position.set(sx, 0.72, 0);
+      shoulder.position.set(sx, 0.66, 0);
       character.add(shoulder);
-      const upper = new Mesh(track(new CylinderGeometry(0.05, 0.045, 0.24, 20)), shellMat);
-      upper.position.set(sx * 1.06, 0.56, 0.02);
+      const upper = new Mesh(track(new CylinderGeometry(0.058, 0.052, 0.22, 20)), shellMat);
+      upper.position.set(sx * 1.05, 0.51, 0.02);
       character.add(upper);
-      const elbow = new Mesh(track(new SphereGeometry(0.048, 20, 16)), graphiteMat);
-      elbow.position.set(sx * 1.1, 0.44, 0.03);
+      const elbow = new Mesh(track(new SphereGeometry(0.054, 20, 16)), graphiteMat);
+      elbow.position.set(sx * 1.08, 0.4, 0.03);
       character.add(elbow);
-      const forearm = new Mesh(track(new CylinderGeometry(0.043, 0.04, 0.2, 20)), shellMat);
-      forearm.position.set(sx * 1.12, 0.33, 0.055);
+      const forearm = new Mesh(track(new CylinderGeometry(0.05, 0.046, 0.18, 20)), shellMat);
+      forearm.position.set(sx * 1.1, 0.3, 0.06);
       character.add(forearm);
-      const hand = new Mesh(track(new RoundedBoxGeometry(0.09, 0.12, 0.08, 2, 0.03)), shellMat);
-      hand.position.set(sx * 1.13, 0.22, 0.07);
+      const hand = new Mesh(track(new RoundedBoxGeometry(0.1, 0.11, 0.09, 2, 0.03)), shellMat);
+      hand.position.set(sx * 1.1, 0.215, 0.075);
       character.add(hand);
     }
 
+    /* W2-C1 (delta 3) — BODY MECHANICAL DETAIL, the reference's
+     * segmented-limb + panel-line grammar, ALL in the existing material
+     * families (detail, not noise): graphite collar seams segment the
+     * upper arms + forearms, wrist cuffs articulate the hands, ankle
+     * collars ground the stance, thin horizontal seams line the torso
+     * (chest / waist / hips), and the chest panel gains ONE status LED
+     * (the machine's cyan voice — a whisper, not a new light source). */
+    const upperSeamGeo = track(new CylinderGeometry(0.064, 0.064, 0.028, 16));
+    const forearmSeamGeo = track(new CylinderGeometry(0.055, 0.055, 0.024, 16));
+    const cuffGeo = track(new CylinderGeometry(0.057, 0.057, 0.026, 16));
+    for (const x of [-0.336, 0.336]) {
+      const seam = new Mesh(upperSeamGeo, graphiteMat);
+      seam.position.set(x, 0.555, 0.02);
+      character.add(seam);
+    }
+    for (const x of [-0.352, 0.352]) {
+      const seam = new Mesh(forearmSeamGeo, graphiteMat);
+      seam.position.set(x, 0.335, 0.06);
+      character.add(seam);
+      const cuff = new Mesh(cuffGeo, graphiteMat);
+      cuff.position.set(x * 1.009, 0.25, 0.072);
+      character.add(cuff);
+    }
+    const ankleGeo = track(new CylinderGeometry(0.062, 0.062, 0.024, 16));
+    for (const x of [-0.14, 0.14]) {
+      const collar = new Mesh(ankleGeo, graphiteMat);
+      collar.position.set(x, 0.055, 0);
+      character.add(collar);
+    }
+    /* the torso seams — thin horizontal graphite lines, front only */
+    const seamLineGeo = track(new RoundedBoxGeometry(0.36, 0.012, 0.01, 1, 0.004));
+    const chestSeam = new Mesh(seamLineGeo, graphiteMat);
+    chestSeam.position.set(0, 0.665, 0.185);
+    character.add(chestSeam);
+    const waistSeam = new Mesh(seamLineGeo, graphiteMat);
+    waistSeam.scale.x = 0.83; /* the waist is narrower — the seam follows */
+    waistSeam.position.set(0, 0.285, 0.128);
+    character.add(waistSeam);
+    const hipSeam = new Mesh(seamLineGeo, graphiteMat);
+    hipSeam.position.set(0, 0.21, 0.158);
+    character.add(hipSeam);
+    /* the chest status LED — one small emissive dot on the graphite
+     * panel (the machine-voice register; rides beside the vent slits) */
+    const ledMat = track(
+      new MeshStandardMaterial({
+        color: 0x0a0c10,
+        emissive: new Color(palette.lime),
+        emissiveIntensity: palette.dark ? 1.2 : 0.55,
+        roughness: 0.4,
+        toneMapped: false, /* a light, not a surface — raw, no ACES */
+      }),
+    );
+    const led = new Mesh(track(new SphereGeometry(0.017, 12, 10)), ledMat);
+    led.position.set(-0.15, 0.56, 0.2);
+    character.add(led);
+
     /* THE NECK — the graphite collar the head rides on (the
      * articulation seam, engineered not dislocated) */
-    const neck = new Mesh(track(new CylinderGeometry(0.085, 0.1, 0.1, 28)), graphiteMat);
-    neck.position.y = 0.8;
+    const neck = new Mesh(track(new CylinderGeometry(0.095, 0.11, 0.1, 28)), graphiteMat);
+    neck.position.y = 0.74;
     character.add(neck);
 
     /* THE HEAD GROUP — the filleted THICK cube (pivots at the neck for
      * pointer/gaze aliveness; the reference's big square skull reads as
      * a SOLID BLOCK — v5: depth up 0.42 → 0.5, width down to a cube-ish
-     * 0.5, never a flat picture-frame) */
+     * 0.5, never a flat picture-frame. W2-C1 (delta 4): corner radii
+     * 0.1 → 0.125 — the reference's "heavily filleted" skull, ~28% of
+     * the face height) */
     const headGroup = new Group();
-    headGroup.position.y = 0.86;
+    headGroup.position.y = 0.78;
     character.add(headGroup);
-    const skull = new Mesh(track(new RoundedBoxGeometry(0.5, 0.44, 0.5, 5, 0.1)), shellMat);
-    skull.position.y = 0.22;
+    /* W2-C1r: the head GROWS to dominate — 0.5×0.44×0.5 → 0.62×0.54×0.62
+     * (≈ +25-30% — the reference's massive head over a compact body,
+     * now ≈41% of the figure's height vs 34% before) with heavier 0.15
+     * fillets; it reads WIDER than the chest, chibi-correct. */
+    const skull = new Mesh(track(new RoundedBoxGeometry(0.62, 0.54, 0.62, 5, 0.15)), shellMat);
+    skull.position.y = 0.27;
     headGroup.add(skull);
 
     /* THE SCREEN — the recessed black-glass panel filling ~70% of the
      * head's front: an inset slab + the instrument-grid face. Set INTO
-     * the skull (its front sits just inside the shell's front face). */
-    const screen = new Mesh(track(new RoundedBoxGeometry(0.37, 0.28, 0.035, 3, 0.02)), screenMat);
-    screen.position.set(0, 0.23, 0.235);
+     * the skull (its front sits just inside the shell's front face).
+     * W2-C1 (delta 4): 0.37×0.28 → 0.38×0.30 and rides higher
+     * (y 0.23 → 0.245) — the reference's face reads larger and sits
+     * above the skull's equator. */
+    const screen = new Mesh(track(new RoundedBoxGeometry(0.46, 0.36, 0.035, 3, 0.02)), screenMat);
+    screen.position.set(0, 0.3, 0.295);
     headGroup.add(screen);
-    const screenGrid = new Mesh(track(new PlaneGeometry(0.33, 0.24)), screenGridMat);
-    screenGrid.position.set(0, 0.23, 0.254);
+    const screenGrid = new Mesh(track(new PlaneGeometry(0.42, 0.32)), screenGridMat);
+    screenGrid.position.set(0, 0.3, 0.314);
     headGroup.add(screenGrid);
 
     /* THE EYES — TWO bright white horizontal bars on the screen (the
      * reference's LED grammar: slightly rounded, softly glowing). The
      * emissive + the additive halos carry them past ACES at any scale. */
-    const eyeGeo = track(new RoundedBoxGeometry(0.115, 0.038, 0.014, 2, 0.006));
+    const eyeGeo = track(new RoundedBoxGeometry(0.128, 0.042, 0.014, 2, 0.006));
     const eyeL = new Mesh(eyeGeo, eyeMat);
-    eyeL.position.set(-0.088, 0.235, 0.264);
+    eyeL.position.set(-0.1, 0.315, 0.324);
     headGroup.add(eyeL);
     const eyeR = new Mesh(eyeGeo, eyeMat);
-    eyeR.position.set(0.088, 0.235, 0.264);
+    eyeR.position.set(0.1, 0.315, 0.324);
     headGroup.add(eyeR);
-    const eyeGlowGeo = track(new PlaneGeometry(0.3, 0.18));
+    const eyeGlowGeo = track(new PlaneGeometry(0.34, 0.2));
     const eyeGlowL = new Mesh(eyeGlowGeo, glowMat);
-    eyeGlowL.position.set(-0.088, 0.235, 0.27);
+    eyeGlowL.position.set(-0.1, 0.315, 0.33);
     headGroup.add(eyeGlowL);
     const eyeGlowR = new Mesh(eyeGlowGeo, glowMat);
-    eyeGlowR.position.set(0.088, 0.235, 0.27);
+    eyeGlowR.position.set(0.1, 0.315, 0.33);
     headGroup.add(eyeGlowR);
 
     /* THE BEZEL — the spectrum rim-light frame around the screen (the
      * character's principal light source, the ChainGPT gradient). An
      * additive plane carrying the gradient frame texture, riding just
      * in front of the screen's edges. */
-    const bezel = new Mesh(track(new PlaneGeometry(0.5, 0.39)), bezelMat);
-    bezel.position.set(0, 0.23, 0.258);
+    const bezel = new Mesh(track(new PlaneGeometry(0.63, 0.52)), bezelMat);
+    bezel.position.set(0, 0.3, 0.318);
     headGroup.add(bezel);
 
     /* the side mechanical detail — a small graphite ear puck on each
      * side of the skull (the reference's side profile datum) */
-    for (const sx of [-0.255, 0.255]) {
-      const puck = new Mesh(track(new CylinderGeometry(0.035, 0.035, 0.03, 20)), graphiteMat);
+    for (const sx of [-0.315, 0.315]) {
+      const puck = new Mesh(track(new CylinderGeometry(0.038, 0.038, 0.03, 20)), graphiteMat);
       puck.rotation.z = Math.PI / 2;
-      puck.position.set(sx, 0.23, 0);
+      puck.position.set(sx, 0.28, 0);
       headGroup.add(puck);
     }
 
@@ -768,6 +920,8 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       bezelMat.opacity = palette.bezelOpacity;
       glowMat.opacity = palette.glowOpacity;
       shadowMat.opacity = palette.dark ? 1 : 0.55;
+      ledMat.emissive.setHex(palette.lime);
+      ledMat.emissiveIntensity = palette.dark ? 1.2 : 0.55;
       if (!reduced) renderer.render(scene, camera);
     };
     repaint();

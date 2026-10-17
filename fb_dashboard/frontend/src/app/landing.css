@@ -2499,6 +2499,62 @@ html.light .landing .ln-chapter-head::after {
   }
 }
 
+/* ── 20b · W2-C1 — the hero CIRCUIT TRACES (the reference's connector
+   web, ours) ─────────────────────────────────────────────────────────
+   The ChainGPT reference links the machine to its flanking interface
+   with thin circuit traces: 1px lines, 45° elbows, small node pads.
+   Ours: two traces from the console's near edge to the head + chest,
+   one hairline down the far rail to the scroll invitation — the
+   machine WIRED into its interface. Restrained by law: hairline-quiet
+   (between the page grid's 0.038 and the console border), under the
+   transparent canvas so the figure occludes its own traces, sinking
+   with the machine layer (it rides inside .ln-robot-frame). Static
+   (no verb to reduce). Desktop composition only — the ≤1024px stack
+   has its own grammar; LTR mirrors the SVG with the composition. */
+.landing .ln-hero-traces {
+  position: absolute;
+  inset: 0;
+  /* explicit sizing — an SVG with only viewBox + inset:0 sizes to its
+     INTRINSIC aspect (1440×900) and can overflow the hero box at other
+     viewports; 100%×100% forces the percentage fill the viewBox maps */
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+}
+.landing .ln-hero-traces .ln-tx {
+  fill: none;
+  stroke: rgb(244 244 246 / 0.3);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke; /* true 1px at any hero size */
+}
+.landing .ln-hero-traces .ln-tx-node {
+  fill: rgb(244 244 246 / 0.42);
+}
+/* the machine-side terminals carry the cyan voice (the .sb-trace
+   data-live node grammar, hero-scoped) */
+.landing .ln-hero-traces .ln-tx-live {
+  fill: rgb(86 226 242 / 0.55);
+}
+html.light .landing .ln-hero-traces .ln-tx {
+  stroke: rgb(16 17 21 / 0.38);
+}
+html.light .landing .ln-hero-traces .ln-tx-node {
+  fill: rgb(16 17 21 / 0.5);
+}
+html.light .landing .ln-hero-traces .ln-tx-live {
+  fill: rgb(14 122 138 / 0.7);
+}
+@media (min-width: 1025px) {
+  /* scoped inside the media (the family's LTR-mirror law — traces only
+     compose the ≥1025px stage, so the mirror rides the same gate) */
+  [dir='ltr'] .landing .ln-hero-traces {
+    transform: scaleX(-1);
+  }
+}
+@media (max-width: 1024px) {
+  .landing .ln-hero-traces { display: none; }
+}
+
 /* ── 20a · the prompt ticker ────────────────────────────────────────────
    The ChainGPT ticker grammar, ours — now carrying B's honest demo
    cycle (directive 2) DEEPENED into a real conversation (P18-W4-a

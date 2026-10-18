@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+from _plan_gates import enforce_plan_feature
 from _responses import ok
 from _utils import day_expr, iso_z, tripoli_day_start, utcnow
 from database import get_db
@@ -245,18 +246,26 @@ async def analytics_dashboard(days: int = Query(30, ge=1, le=365), db=Depends(ge
 
 @router.get("/api/analytics/daily-trend")
 async def analytics_daily_trend(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    # P21-W3-B: has_analytics_advanced gate — the v17-D6 §3 definition of the
+    # sold «تحليلات متقدمة» surface (Premium+). The web analytics page ships
+    # the honest 403 → PremiumLock branch since v17-E-F10; this makes it
+    # reachable. overview/dashboard/sentiment/top-commenters stay open (basic
+    # surfaces — the mobile analytics tab and audience page consume them).
+    await enforce_plan_feature(db, current_user._tenant_id, "has_analytics_advanced")
     from _services import analytics_engine
     return ok(await analytics_engine.get_daily_trend(days, db, tenant_id=current_user._tenant_id))
 
 
 @router.get("/api/analytics/hourly-heatmap")
 async def analytics_hourly_heatmap(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    await enforce_plan_feature(db, current_user._tenant_id, "has_analytics_advanced")
     from _services import analytics_engine
     return ok(await analytics_engine.get_hourly_heatmap(days, db, tenant_id=current_user._tenant_id))
 
 
 @router.get("/api/analytics/top-rules")
 async def analytics_top_rules(days: int = Query(30, ge=1, le=365), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    await enforce_plan_feature(db, current_user._tenant_id, "has_analytics_advanced")
     from _services import analytics_engine
     return ok(await analytics_engine.get_top_rules(days, limit, db, tenant_id=current_user._tenant_id))
 
@@ -269,6 +278,7 @@ async def analytics_sentiment_trend(days: int = Query(30, ge=1, le=365), db=Depe
 
 @router.get("/api/analytics/peak-hour")
 async def analytics_peak_hour(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    await enforce_plan_feature(db, current_user._tenant_id, "has_analytics_advanced")
     from _services import analytics_engine
     peak = await analytics_engine.get_peak_hour(days, db, tenant_id=current_user._tenant_id)
     return ok({"peak_hour": peak})
@@ -282,5 +292,6 @@ async def analytics_top_commenters(days: int = Query(30, ge=1, le=365), limit: i
 
 @router.get("/api/analytics/period-comparison")
 async def analytics_period_comparison(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    await enforce_plan_feature(db, current_user._tenant_id, "has_analytics_advanced")
     from _services import analytics_engine
     return ok(await analytics_engine.get_period_comparison(days, db, tenant_id=current_user._tenant_id))

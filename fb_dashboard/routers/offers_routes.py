@@ -1,6 +1,7 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from datetime import datetime
 
+from _plan_gates import enforce_plan_feature
 from _responses import ok
 from _utils import iso_z
 from database import get_db
@@ -37,6 +38,12 @@ async def create_offer(
     discount_type: str = Form("percentage"), discount_value: int = Form(0),
     expires_at: str = Form(""), db=Depends(get_db), current_user: User = Depends(require_role("admin")),
 ):
+    # P21-W3-B: the has_offers plan gate — «محرك العروض الترويجية» is a
+    # Premium+ line in the tier feature list while the flag had NO
+    # enforcement point (v17-D6 §3: the Free tenant could create offers the
+    # engine then happily served). Listing/toggling/deleting EXISTING offers
+    # stays open (creation-time gating doctrine).
+    await enforce_plan_feature(db, current_user._tenant_id, "has_offers")
     exp = datetime.fromisoformat(expires_at) if expires_at else None
     offer = Offer(title=title, code=code, description=description,
                   discount_type=discount_type, discount_value=discount_value, expires_at=exp,

@@ -3,6 +3,7 @@
 import base64
 import logging
 
+from _plan_gates import enforce_plan_feature
 from _responses import ok
 from _services import pdf_engine
 from _utils import iso_z, utcnow
@@ -62,7 +63,8 @@ async def pdf_reports_status(_=Depends(get_current_user)):
 
 
 @router.post("/api/reports/generate")
-async def generate_pdf_report(request: Request, current_user: User = Depends(require_role("editor"))):
+async def generate_pdf_report(request: Request, db=Depends(get_db),
+                             current_user: User = Depends(require_role("editor"))):
     """Generate a PDF report.  Returns PDF bytes directly.
 
     v9-A1: the report is generated STRICTLY for the current user's tenant —
@@ -80,6 +82,12 @@ async def generate_pdf_report(request: Request, current_user: User = Depends(req
         raise HTTPException(400, "قيمة days غير صالحة") from None
     if not 1 <= days <= 365:
         raise HTTPException(400, "days يجب أن يكون بين 1 و 365")
+    # P21-W3-B: the has_reports plan gate (Basic+ in the canonical seed —
+    # «تقارير أسبوعية» is Basic's row, «تقارير PDF» Premium's; both carry
+    # has_reports=True). Entitlement precedes infrastructure state: a Free
+    # user must hear «رقِّ خطتك», never a misleading 503 engine-down.
+    # Reading existing schedules (GET) stays open for every tenant.
+    await enforce_plan_feature(db, current_user._tenant_id, "has_reports")
     # v22-F1 (W1-D9): the engine can be legitimately UNAVAILABLE on the
     # runtime (Vercel serverless: weasyprint's OSError for missing pango
     # system libs, fpdf2 not installed). Answer a clean 503 with the same
@@ -155,7 +163,12 @@ async def reports_create_schedule(
     schedule: str = Form("monthly"), db=Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
-    """Create a report schedule."""
+    """Create a report schedule.
+
+    P21-W3-B: same has_reports plan gate as /generate (Basic+ in the seed) —
+    the schedule is the second creation surface of the sold feature.
+    """
+    await enforce_plan_feature(db, current_user._tenant_id, "has_reports")
     rs = ReportSchedule(report_type=report_type, email=email, schedule=schedule, enabled=True, tenant_id=current_user._tenant_id)
     db.add(rs)
     await db.commit()

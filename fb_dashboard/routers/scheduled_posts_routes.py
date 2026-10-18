@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from _plan_gates import enforce_plan_feature
 from _responses import ok
 from _services import _track_event, get_tenant_fb_client
 from _utils import iso_z, utcnow
@@ -71,6 +72,12 @@ async def create_scheduled_post(
             sched = sched.astimezone(UTC).replace(tzinfo=None)
         if sched <= utcnow():
             raise HTTPException(400, "لا يمكن جدولة منشور في الماضي — اختر وقتاً مستقبلياً")
+
+    # P21-W3-B: the has_scheduling plan gate (Premium+ in the canonical seed).
+    # Creation-time only — the dispatch sweep and manual publish of EXISTING
+    # posts stay open for every tenant (the "basic replies stay on" doctrine:
+    # a downgrade never kills content already queued).
+    await enforce_plan_feature(db, current_user._tenant_id, "has_scheduling")
 
     post = ScheduledPost(
         message=message, image_url=image_url, scheduled_at=sched,

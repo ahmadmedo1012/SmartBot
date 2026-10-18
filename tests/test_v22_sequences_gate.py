@@ -23,7 +23,13 @@ os.environ.setdefault("CRON_SECRET", "test-cron-secret")
 
 
 async def _seed_plans(sf):
-    """Free (has_sequences=False) + Pro (has_sequences=True) rows."""
+    """Free (has_sequences=False) + Pro (has_sequences=True) rows.
+
+    P21-W3-B: Pro also carries has_scheduling=True — the v22-D4 publish test
+    below creates a scheduled post as its setup step, and scheduling creation
+    is now gated on the plan (the four open gates wave; see
+    tests/test_p21_w3b_plan_gates.py for the gate's own contract pins).
+    """
     from models import SubscriptionPlan
 
     async with sf() as db:
@@ -46,9 +52,12 @@ async def _seed_plans(sf):
         if pro is None:
             pro = SubscriptionPlan(name="Pro", name_ar="احترافي", price=129,
                                    period_days=30, max_replies=50000,
-                                   has_sequences=True, is_active=True,
-                                   sort_order=4)
+                                   has_sequences=True, has_scheduling=True,
+                                   is_active=True, sort_order=4)
             db.add(pro)
+        else:
+            pro.has_sequences = True
+            pro.has_scheduling = True
         await db.commit()
         await db.refresh(free)
         await db.refresh(pro)
@@ -115,14 +124,26 @@ async def test_scheduled_post_publish_without_page_honest_400(v10_seed, monkeypa
     keeps the test independent of the SHARED app-DB BotState rows other
     tests leave behind (CI order made the tenant-id space collide with a
     connected fixture tenant → a real client → 200 — not a route bug).
+
+    P21-W3-B: the tenant is upgraded to Pro (has_scheduling=True) because
+    scheduling CREATION is now plan-gated — the assertion under test (the
+    publish-path 400) is orthogonal to entitlement and must keep running
+    for tenants entitled to schedule.
     """
     import routers.scheduled_posts_routes as spr
+    from models import Tenant
+
+    free_id, pro_id = await _seed_plans(v10_seed.world.sf)
 
     async def _no_client(tenant_id: int):
         return None
 
     monkeypatch.setattr(spr, "get_tenant_fb_client", _no_client)
     ua, tid, _uid = await v10_seed.tenant_user(role="admin", tenant_name="D4-NOFB")
+    async with v10_seed.world.sf() as db:
+        t = await db.get(Tenant, tid)
+        t.plan_id = pro_id
+        await db.commit()
     v10_seed.auth(ua, tid)
     c = v10_seed.world.client
 

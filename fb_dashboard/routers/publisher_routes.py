@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from _plan_gates import enforce_plan_feature
 from _responses import ok
 from _services import _track_event, get_publisher_engine, get_tenant_fb_client
 from _utils import utcnow
@@ -81,6 +82,13 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         # accepted them, silently queueing an instantly-overdue post.
         if sched <= utcnow():
             raise HTTPException(400, "لا يمكن جدولة منشور في الماضي — اختر وقتاً مستقبلياً")
+        # P21-W3-B: the has_scheduling plan gate — this route is the THIRD
+        # creation surface of the sold «جدولة المنشورات» (Premium+) feature:
+        # a scheduled_at write queues a ScheduledPost the dispatcher will
+        # publish later. Validation (400) precedes entitlement (403), same
+        # as scheduled_posts_routes/calendar_routes. The IMMEDIATE publish
+        # below is NOT scheduling and stays open for every entitled page.
+        await enforce_plan_feature(db, current_user._tenant_id, "has_scheduling")
         post = ScheduledPost(
             message=message, image_url=image_url, platform=platform,
             scheduled_at=sched, status="scheduled",

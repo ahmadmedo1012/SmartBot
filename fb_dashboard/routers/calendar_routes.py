@@ -2,6 +2,7 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 
+from _plan_gates import enforce_plan_feature
 from _responses import ok
 from _services import content_calendar_engine, utcnow
 from database import get_db
@@ -48,6 +49,12 @@ async def calendar_create(request: Request, db=Depends(get_db), current_user: Us
     # (broadcasts); the engine's ValueError stays the 400 contract.
     body = await _json_body(request)
     message = _required_key(body, "message")
+    # P21-W3-B: the has_scheduling plan gate — the calendar is the second
+    # creation surface of the SAME sold feature («جدولة المنشورات», Premium+).
+    # Same shape as the sequences gate: input validated (422) first, then
+    # entitlement (403). Editing/deleting/publishing EXISTING calendar rows
+    # stays open (creation-time gating doctrine).
+    await enforce_plan_feature(db, current_user._tenant_id, "has_scheduling")
     try:
         post_id = await content_calendar_engine.create_post(
             message=message,

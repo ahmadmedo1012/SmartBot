@@ -268,6 +268,51 @@ describe("thread error branch (D1 §5.1)", () => {
   })
 })
 
+/* W2-C2b (§4.5 states law): the thread's no-data verdicts must render the
+ * honest states — a vanished conversation (404) is a NOT-FOUND condition,
+ * an unconnected page (400) is the needs-setup condition. Neither may
+ * surface the server's raw detail as an error card with a retry that can
+ * never succeed (the defect class the 502 test above pins for TRANSIENT
+ * failures — these two pin its inverse). */
+describe("thread no-data verdicts (W2-C2b)", () => {
+  it("a 404 thread renders the honest not-found state — no error card, no fake retry", async () => {
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ detail: "المحادثة غير موجودة" }, 404),
+    })
+    renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+
+    // the honest presentation names the condition…
+    expect(await screen.findByText("هذه المحادثة لم تعد موجودة")).toBeInTheDocument()
+    // …NOT the raw server error as an error card, and NOT a retry button
+    expect(screen.queryByText("المحادثة غير موجودة")).toBeNull()
+    expect(screen.queryByRole("button", { name: "إعادة المحاولة" })).toBeNull()
+
+    // the way back to the list is a real affordance (clears the thread)
+    fireEvent.click(screen.getByRole("button", { name: "اختيار محادثة أخرى" }))
+    expect(await screen.findByText("اختر محادثة")).toBeInTheDocument()
+  })
+
+  it("a 400 thread (page not connected) renders the needs-setup state — the list column's twin", async () => {
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () =>
+        jsonRes({ detail: "لم يتم إعداد فيسبوك بعد — اربط صفحتك من صفحة /connect" }, 400),
+    })
+    renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+
+    // the honest setup state routes to /connect…
+    expect(await screen.findByText("اربط صفحتك بفيسبوك")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "ربط الصفحة الآن" })).toHaveAttribute("href", "/connect")
+    // …the server's raw 400 detail never leaks into the pane
+    expect(screen.queryByText(/لم يتم إعداد فيسبوك بعد/)).toBeNull()
+  })
+})
+
 describe("mark-read on open (D10-M3, E-B1 contract)", () => {
   it("opening an unread conversation POSTs /read once and zeroes the badge optimistically", async () => {
     const api = stubFetch({

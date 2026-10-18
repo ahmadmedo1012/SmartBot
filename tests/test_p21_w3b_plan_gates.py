@@ -53,11 +53,14 @@ async def _seed_plans(sf):
         ids = {}
         for name, name_ar, flags in (
             ("Free", "مجاني", {"has_scheduling": False, "has_reports": False,
-                               "has_offers": False, "has_analytics_advanced": False}),
+                               "has_offers": False, "has_analytics_advanced": False,
+                               "has_flows": False}),
             ("Basic", "أساسي", {"has_scheduling": False, "has_reports": True,
-                                "has_offers": False, "has_analytics_advanced": False}),
+                                "has_offers": False, "has_analytics_advanced": False,
+                                "has_flows": False}),
             ("Premium", "مميز", {"has_scheduling": True, "has_reports": True,
-                                 "has_offers": True, "has_analytics_advanced": True}),
+                                 "has_offers": True, "has_analytics_advanced": True,
+                                 "has_flows": True}),
         ):
             row = (await db.execute(
                 select(SubscriptionPlan).where(SubscriptionPlan.name == name)
@@ -365,3 +368,70 @@ async def test_gate_unknown_flag_fails_loudly(v10_seed):
     async with v10_seed.world.sf() as db:
         with pytest.raises(ValueError, match="has_typo"):
             await enforce_plan_feature(db, tid, "has_typo")
+
+# ══════════════════════════════════════════════════════════════════════════
+# Gate 5 — has_flows (التدفقات: Premium+ — the W4-B ruling)
+# The canonical seed (app/startup.py) carries real entitlement values
+# (Free/Basic False, Premium+ True): a seeded entitlement with no
+# enforcement point is the decorative-flag pattern. Creation-time only.
+# ══════════════════════════════════════════════════════════════════════════
+
+async def test_flows_gate_free_403_create(v10_seed):
+    ids = await _seed_plans(v10_seed.world.sf)
+    ua, tid = await _tenant_on_plan(v10_seed, "W4B-FLW-FREE", ids["Free"])
+    v10_seed.auth(ua, tid)
+    c = v10_seed.world.client
+
+    r = await c.post("/api/flows", json={"name": "تدفق ممنوع", "nodes": [], "edges": []})
+    _assert_upgrade_msg(r, "التدفقات")
+
+    # listing stays open
+    r = await c.get("/api/flows")
+    assert r.status_code == 200, r.text
+
+
+async def test_flows_gate_premium_200_create(v10_seed):
+    ids = await _seed_plans(v10_seed.world.sf)
+    ua, tid = await _tenant_on_plan(v10_seed, "W4B-FLW-PRO", ids["Premium"])
+    v10_seed.auth(ua, tid)
+    c = v10_seed.world.client
+
+    r = await c.post("/api/flows", json={"name": "تدفق مميز",
+                                         "nodes": [{"id": "n1", "type": "TRIGGER",
+                                                    "data": {"triggerType": "manual"}}],
+                                         "edges": []})
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["id"] > 0
+
+
+async def test_flows_gate_existing_rows_keep_running(v10_seed):
+    """Creation-time only: a flow created on Premium keeps running after the
+    tenant drops to Free (toggle + get stay open; only NEW creation is
+    gated)."""
+    ids = await _seed_plans(v10_seed.world.sf)
+    ua, tid = await _tenant_on_plan(v10_seed, "W4B-FLW-DOWNGRADE", ids["Premium"])
+    v10_seed.auth(ua, tid)
+    c = v10_seed.world.client
+
+    r = await c.post("/api/flows", json={"name": "تدفق قبل الترقية",
+                                         "nodes": [{"id": "n1", "type": "TRIGGER",
+                                                    "data": {"triggerType": "manual"}}],
+                                         "edges": []})
+    assert r.status_code == 200, r.text
+    flow_id = r.json()["data"]["id"]
+
+    # downgrade to Free
+    from models import Tenant
+    async with v10_seed.world.sf() as db:
+        t = await db.get(Tenant, tid)
+        t.plan_id = ids["Free"]
+        await db.commit()
+
+    # the existing flow keeps running
+    r = await c.post(f"/api/flows/{flow_id}/toggle")
+    assert r.status_code == 200, r.text
+    r = await c.get(f"/api/flows/{flow_id}")
+    assert r.status_code == 200, r.text
+    # but a NEW creation is now gated
+    r = await c.post("/api/flows", json={"name": "تدفق بعد الترقية", "nodes": [], "edges": []})
+    _assert_upgrade_msg(r, "التدفقات")

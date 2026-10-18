@@ -2,6 +2,7 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 
+from _plan_gates import enforce_plan_feature
 from _responses import ok
 from _utils import iso_z
 from database import get_db
@@ -33,6 +34,13 @@ async def list_flows(db=Depends(get_db), current_user: User = Depends(get_curren
 
 @router.post("/api/flows")
 async def create_flow(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    # P21-W4-B: the has_flows gate joins the family — the canonical seed
+    # (app/startup.py) carries real entitlement values (Free/Basic False,
+    # Premium+ True); a seeded entitlement with no enforcement point is
+    # exactly the decorative-flag pattern _plan_gates exists to end.
+    # Creation-time only: existing flows keep running after a downgrade
+    # (get/toggle/test/list stay open), same as the family doctrine.
+    await enforce_plan_feature(db, current_user._tenant_id, "has_flows")
     # v24-C4 (H3): body["name"] → KeyError → 500 + false CRITICAL alert on a
     # plain client typo — adopt the v15-E3 clean-422 convention (broadcasts).
     body = await _json_body(request)

@@ -15,11 +15,14 @@ time citing CLAUDE.md v15 Convention #5:
     «Plan limits are enforced at the point of use … a paid feature with no
      gate is a bug, not a TODO.»
 
-P21 Wave 3 closes the four gates that still have a LIVE, sold surface:
+P21 Wave 3 closed the four gates that still have a LIVE, sold surface:
 ``has_scheduling``, ``has_reports``, ``has_offers`` and
-``has_analytics_advanced``. (``has_flows`` stays ungated on purpose: it is
-not sold by name in any tier's feature list and has no frontend surface —
-documented honestly here so it cannot silently masquerade as enforced.)
+``has_analytics_advanced``. P21 Wave 4 (W4-B) closed the fifth: ``has_flows``
+— the canonical seed (app/startup.py) carries real entitlement values for
+it (Free/Basic False, Premium+ True), and per this module's own seed-truth
+doctrine («the plan a tenant is on IS the explicit config») a seeded
+entitlement with no enforcement point is exactly the decorative-flag
+pattern this module exists to end. Creation-time only, same as the family.
 
 Doctrine (identical to the v22-D4 ``_enforce_has_sequences`` precedent)
 -----------------------------------------------------------------------
@@ -67,6 +70,7 @@ GATED_FLAGS = frozenset({
     "has_reports",
     "has_offers",
     "has_analytics_advanced",
+    "has_flows",
 })
 
 #: Arabic 403 messages — same shape as the v22-D4 sequences gate message
@@ -78,6 +82,7 @@ GATE_MESSAGES: dict[str, str] = {
     "has_reports": "تقارير PDF متاحة في خطة أساسي أو أعلى — رقِّ خطتك",
     "has_offers": "العروض الترويجية متاحة في خطة مميز أو أعلى — رقِّ خطتك",
     "has_analytics_advanced": "التحليلات المتقدمة متاحة في خطة مميز أو أعلى — رقِّ خطتك",
+    "has_flows": "التدفقات متاحة في خطة مميز أو أعلى — رقِّ خطتك",
 }
 
 #: The advanced-analytics surface per the v17-D6 definition (§3 row 8 —

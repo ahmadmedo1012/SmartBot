@@ -1,5 +1,42 @@
 'use client';
 
+/* W5-C5 — MICRO-SURFACE + STUDIO LIGHTING (the bounded W4 residual:
+ * "high-poly sculpted micro-geometry + studio lighting a procedural
+ * build cannot express" — closed as far as a procedural build can):
+ *
+ * · MICRO-SURFACE: authored ORIGINAL canvas-generated bump/roughness
+ *   micro-maps (seeded PRNG → byte-identical every load, capture-safe):
+ *   fine speckle + soft meso blotches for the matte SHELL plastic,
+ *   anisotropic brushed streaks for the GRAPHITE joints — wired into
+ *   the materials as normalMap/roughnessMap (the base roughness now
+ *   lives IN the map, two-sided modulation). No external assets, no
+ *   copied models/textures — everything generated at init, disposed at
+ *   teardown, identical across theme repaints (maps ride the repaint).
+ * · STUDIO LIGHT (measured in two steps, w5c5 instrument): key
+ *   0.62→0.46, the white faceGlow 0.55→0.22 (a light in front of the
+ *   face was over-lighting the shell around the screen; the
+ *   reference's face surround sits in shade — its bezel + eyes carry
+ *   the brightness), rim 0.55→0.40 + kicker 0.62→0.42 (rim separation
+ *   controlled), fill 0.34→0.30, env 0.30→0.26; exposure holds — the
+ *   bezel stays the principal light (toneMapped:false, untouched).
+ * · GEOMETRY (modest only): skull fillets 5→6 segments (smoother crown
+ *   specular rolloff), bezel tube radial 12→14 (rounder spectrum ring)
+ *   — +2.2k vertices (~7%), the budget rises moderately, not unbounded.
+ *
+ * MEASURED (w5c5 instrument — p21-research/w5c5-analyze.py, deterministic
+ * ?sb-rest captures at 1440×900, shell mask 30<lum<245 & sat<0.55): mean /
+ * p50 / p75 / p90 / bright-mass — W4 baseline 115.2/124.2/148.2/169.8/1.04%
+ * → iter1 109.8/114.7/139.3/166.9/0.98% → SHIPPED (two-step temper) 105.7/
+ * 107.8/133.4/165.1/0.72% vs the reference's 83.1/82.6/103.2/116.4/0.39%.
+ * Monotone convergence on every axis; the residual median gap is the base
+ * grade axis (0x9d9b96, the W4-A measured calibration + parity pin — a
+ * re-grade is a different wave's decision, not a lighting temper).
+ *
+ * KEPT: everything the graded integration contracts pin (the tube
+ * bezel, the dot eyes, the framing solver + race fix, the frozen-loop
+ * liveness fix, the rest-probe, the disposal sweep, the fallback SVG).
+ */
+
 /* W3-A — THE REFERENCE CONVERGENCE PASS (P21 Wave 3, the binding loop).
  *
  * The Wave 2 machine held its structure but the fresh comparison
@@ -58,7 +95,9 @@ import {
   BufferGeometry,
   Color,
   MathUtils,
+  Vector2,
   CanvasTexture,
+  RepeatWrapping,
   ACESFilmicToneMapping,
   PMREMGenerator,
   Fog,
@@ -130,7 +169,10 @@ function roundedRectCurve(w: number, h: number, r: number, z: number): CatmullRo
 /* the bezel tube geometry with per-vertex spectrum colors */
 function makeBezelTubeGeometry(w: number, h: number, r: number, tubeR: number): TubeGeometry {
   const curve = roundedRectCurve(w, h, r, 0);
-  const geo = new TubeGeometry(curve, 220, tubeR, 12, true);
+  /* W5-C5: radial 12 → 14 — a rounder ring cross-section carries the
+   * spectrum highlight more evenly (the bezel is the principal light;
+   * +~440 vertices, within the modest-rise budget) */
+  const geo = new TubeGeometry(curve, 220, tubeR, 14, true);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
   const c = tmpBezelB;
@@ -371,6 +413,200 @@ function roundRectPath(
   ctx.closePath();
 }
 
+/* ── W5-C5 — THE MICRO-SURFACE MAPS (original, procedural, seeded) ──
+ * The W4-recorded residual was the missing micro-geometry: a flat
+ * roughness field reads as flat plastic at hero scale. These two
+ * authored map families fake the sculpted surface WITHOUT any external
+ * asset: a height FIELD is authored with a seeded PRNG (byte-identical
+ * every load — the ?sb-rest capture determinism holds), then converted
+ * ONCE at init into a tangent-space normal map (wrap-around Sobel, so
+ * the map tiles seamlessly) and a roughness map (the base roughness
+ * baked in, modulated two-sided by the same field). NoColorSpace is
+ * the three.js default — correct for normal/roughness data.
+ *
+ *   SHELL  — matte engineering plastic: ~6k sub-pixel speckles (grain
+ *            that breaks the specular into shimmer) + ~2.4k mid-scale
+ *            undulations (the visible sculpted micro-geometry) + ~150
+ *            soft meso blotches (the broad mottled sheen).
+ *   GRAPHITE — machined metal: ~560 anisotropic horizontal streaks
+ *            (brushed lathe lines) + sparse nicks, reading as
+ *            circumferential machining on the collars/joints. */
+type MicroMaps = { normal: CanvasTexture; rough: CanvasTexture };
+
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* height field → {normal, roughness} canvases. normalStrength is the
+ * Sobel gain baked into the map; the material's normalScale then rides
+ * on top. roughBase is the material's roughness mean (the value the
+ * scalar used to carry), roughSwing the two-sided modulation depth. */
+function buildMicroMaps(
+  height: Float32Array,
+  size: number,
+  normalStrength: number,
+  roughBase: number,
+  roughSwing: number,
+): MicroMaps {
+  const nCan = document.createElement('canvas');
+  nCan.width = nCan.height = size;
+  const nCtx = nCan.getContext('2d')!;
+  const nImg = nCtx.createImageData(size, size);
+  const rCan = document.createElement('canvas');
+  rCan.width = rCan.height = size;
+  const rCtx = rCan.getContext('2d')!;
+  const rImg = rCtx.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    const ym = ((y - 1) + size) % size;
+    const yp = (y + 1) % size;
+    for (let x = 0; x < size; x++) {
+      const xm = ((x - 1) + size) % size;
+      const xp = (x + 1) % size;
+      const gx = height[y * size + xp] - height[y * size + xm];
+      const gy = height[yp * size + x] - height[ym * size + x];
+      /* tangent-space normal from the slope; canvas Y runs down while
+       * three's flipY textures run V up, so the green channel inverts */
+      let nx = -gx * normalStrength;
+      let ny = gy * normalStrength;
+      const inv = 1 / Math.hypot(nx, ny, 1);
+      nx *= inv;
+      ny *= inv;
+      const nz = inv;
+      const i4 = (y * size + x) * 4;
+      nImg.data[i4] = (nx * 0.5 + 0.5) * 255;
+      nImg.data[i4 + 1] = (ny * 0.5 + 0.5) * 255;
+      nImg.data[i4 + 2] = (nz * 0.5 + 0.5) * 255;
+      nImg.data[i4 + 3] = 255;
+      const r = Math.max(0, Math.min(1, roughBase + (height[y * size + x] - 0.5) * roughSwing));
+      const rv = r * 255;
+      rImg.data[i4] = rv;
+      rImg.data[i4 + 1] = rv;
+      rImg.data[i4 + 2] = rv;
+      rImg.data[i4 + 3] = 255;
+    }
+  }
+  nCtx.putImageData(nImg, 0, 0);
+  rCtx.putImageData(rImg, 0, 0);
+  const normal = new CanvasTexture(nCan);
+  const rough = new CanvasTexture(rCan);
+  for (const t of [normal, rough]) {
+    t.wrapS = t.wrapT = RepeatWrapping;
+  }
+  return { normal, rough };
+}
+
+function makeShellMicroMaps(): MicroMaps {
+  const S = 512;
+  const h = new Float32Array(S * S);
+  const rnd = mulberry32(0x5b0c5);
+  /* three tiers, calibrated against the reference's measured surface
+   * structure (its shell carries broad soft variation — row
+   * autocorrelation still 0.89 at 11px — NOT pixel grain): */
+  /* 1. meso blotches — soft unevenness; near-zero normal slope (broad),
+   *   their work is done in the ROUGHNESS channel (mottled sheen) */
+  for (let i = 0; i < 150; i++) {
+    const cx = rnd() * S;
+    const cy = rnd() * S;
+    const r = 40 + rnd() * 130;
+    const amp = (rnd() - 0.5) * 0.1;
+    const r2 = r * r;
+    const y0 = Math.floor(cy - r);
+    const y1 = Math.ceil(cy + r);
+    for (let y = y0; y <= y1; y++) {
+      const yy = ((y % S) + S) % S;
+      for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) {
+        const xx = ((x % S) + S) % S;
+        const dx = x - cx;
+        const dy = y - cy;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < r2) h[yy * S + xx] += amp * (1 - Math.sqrt(d2 / r2));
+      }
+    }
+  }
+  /* 2. mid-scale undulations — r 3-13 map px ≈ 1-4 SCREEN px at hero
+   *   scale (repeat 1×1 on ~150px faces): the visible sculpted
+   *   micro-geometry, slopes that actually tilt normals */
+  for (let i = 0; i < 2400; i++) {
+    const cx = rnd() * S;
+    const cy = rnd() * S;
+    const r = 3 + rnd() * 10;
+    const amp = (rnd() < 0.5 ? -1 : 1) * (0.14 + rnd() * 0.2);
+    const y0 = Math.floor(cy - r);
+    const y1 = Math.ceil(cy + r);
+    for (let y = y0; y <= y1; y++) {
+      const yy = ((y % S) + S) % S;
+      for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) {
+        const xx = ((x % S) + S) % S;
+        const dx = x - cx;
+        const dy = y - cy;
+        const d = Math.hypot(dx, dy);
+        if (d < r) h[yy * S + xx] += amp * (1 - d / r);
+      }
+    }
+  }
+  /* 3. fine speckle — sub-pixel shimmer that keeps the specular from
+   *   reading as one flat field at any zoom */
+  for (let i = 0; i < 6000; i++) {
+    const cx = rnd() * S;
+    const cy = rnd() * S;
+    const r = 0.6 + rnd() * 1.4;
+    const amp = (rnd() < 0.5 ? -1 : 1) * (0.05 + rnd() * 0.14);
+    const y0 = Math.floor(cy - r);
+    const y1 = Math.ceil(cy + r);
+    for (let y = y0; y <= y1; y++) {
+      const yy = ((y % S) + S) % S;
+      for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) {
+        const xx = ((x % S) + S) % S;
+        const d = Math.hypot(x - cx, y - cy);
+        if (d < r) h[yy * S + xx] += amp * (1 - d / r);
+      }
+    }
+  }
+  return buildMicroMaps(h, S, 2.6, 0.62, 0.24);
+}
+
+function makeGraphiteMicroMaps(): MicroMaps {
+  const S = 512;
+  const h = new Float32Array(S * S);
+  const rnd = mulberry32(0x6d17a);
+  /* anisotropic brushed streaks — horizontal runs with a gentle wobble
+   * (soft 3-tap vertical footprint so the lines are streaks, not
+   * pixel scratches); wraps around X for tiling */
+  for (let i = 0; i < 560; i++) {
+    const y0 = rnd() * S;
+    const x0 = rnd() * S;
+    const len = 40 + rnd() * 300;
+    const amp = (rnd() - 0.5) * 0.28;
+    const wob = 0.4 + rnd() * 1.4;
+    const phase = rnd() * Math.PI * 2;
+    const freq = 0.03 + rnd() * 0.05;
+    for (let s = 0; s < len; s++) {
+      const x = Math.floor(x0 + s) % S;
+      const yc = y0 + Math.sin(phase + s * freq) * wob;
+      for (let t = -1; t <= 1; t++) {
+        const y = ((Math.floor(yc) + t) % S + S) % S;
+        h[y * S + x] += amp * (t === 0 ? 0.5 : 0.25);
+      }
+    }
+  }
+  /* sparse machining nicks — short dark ticks across the grain */
+  for (let i = 0; i < 90; i++) {
+    const x = Math.floor(rnd() * S);
+    const y = Math.floor(rnd() * S);
+    const amp = -(0.1 + rnd() * 0.15);
+    const len = 1 + Math.floor(rnd() * 3);
+    for (let s = 0; s < len; s++) h[y * S + ((x + s) % S)] += amp;
+  }
+  return buildMicroMaps(h, S, 3.2, 0.3, 0.42);
+}
+
 /* ── the art-directed static fallback frame (WebGL absent / failed) ──
  * A composed SVG portrait of the SAME boxy reference character (W3-A
  * grammar): the filleted head, the recessed black screen with TWO
@@ -520,29 +756,43 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     /* ── THE MATERIAL BASE — PMREM RoomEnvironment (kept: believable
      * material response at low intensity — reads as material, never as
      * a light source; the matte shell needs far less than porcelain
-     * clearcoat did). */
+     * clearcoat did). W5-C5: 0.3 → 0.26 — the studio's ambient floor
+     * drops with the rig temper (the measured gap: our shell mean was
+     * +38% over the reference's). */
     const pmrem = new PMREMGenerator(renderer);
     const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
     scene.environment = envRT.texture;
-    scene.environmentIntensity = 0.3;
+    scene.environmentIntensity = 0.26;
 
     /* ── light rig (the controlled-illumination law, reference-led):
      * W3-A: the bezel TUBE is the principal light now — the cool rim
      * drops from 2.3 to 1.15 so the shell reads as SHELL (the old
      * cyan wash fought the spectrum). Neutral warm key, quiet amber
-     * kicker low on inline-end, quiet fill, the white face glow. */
-    const key = new DirectionalLight(0xfff1e4, 0.62);
+     * kicker low on inline-end, quiet fill, the white face glow.
+     * W5-C5 (measured, w5c5 instrument): the rig TEMBERS toward the
+     * reference's studio read in two measured steps (iter1 numbers in
+     * parentheses): key 0.62→0.46 — a softer key: the broad bright
+     * zones were the shell's p90 driver (0.52); the white faceGlow
+     * 0.55→0.22 — a point light IN FRONT of the face was over-lighting
+     * the shell around the screen while the reference's face surround
+     * sits in shade, its bezel+eyes carry the brightness (0.5); rim
+     * 0.55→0.40 and kicker 0.62→0.42 — rim separation controlled, the
+     * shell's left edge was reading 0.85-saturated cyan at L197,
+     * fighting the bezel for the "principal light" role (0.45/0.5);
+     * fill 0.34→0.30 (0.3). The spectrum bezel stays the hero's
+     * brightest element (toneMapped:false — untouched by exposure). */
+    const key = new DirectionalLight(0xfff1e4, 0.46);
     key.position.set(2.4, 4.0, 3.0);
     scene.add(key);
-    const rim = new DirectionalLight(CYAN, 0.55);
+    const rim = new DirectionalLight(CYAN, 0.4);
     rim.position.set(-3.4, 3.2, -2.6);
     scene.add(rim);
-    const kicker = new DirectionalLight(AMBER, 0.62);
+    const kicker = new DirectionalLight(AMBER, 0.42);
     kicker.position.set(3.2, 1.5, -2.5);
     scene.add(kicker);
-    const fill = new AmbientLight(0x14161c, 0.34);
+    const fill = new AmbientLight(0x14161c, 0.3);
     scene.add(fill);
-    const faceGlow = new PointLight(0xffffff, 0.55, 3.4, 2);
+    const faceGlow = new PointLight(0xffffff, 0.22, 3.4, 2);
     faceGlow.position.set(0, CHAR_H * 0.9, 1.05);
     scene.add(faceGlow);
 
@@ -710,13 +960,41 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      * build. One authored geometry pass, no loader, no external asset
      * (the reference's silhouette reconstructed: filleted head + screen
      * + two bar eyes + spectrum bezel + boxy ball-jointed body +
-     * pedestal). Vertex budget < 6k. */
+     * pedestal). Vertex budget: 31.9k at W4 (the old "<6k" note had
+     * drifted), 34.1k after the W5-C5 modest rise (+7% — skull fillets
+     * + bezel ring segments). */
 
-    /* the materials of record — matte shell / graphite / screen glass */
+    /* the materials of record — matte shell / graphite / screen glass.
+     * W5-C5: shell + graphite carry the authored MICRO-SURFACE maps
+     * (speckle+blotch plastic / brushed streaks — see the map family
+     * above). The scalar roughness moves INTO the map (mean = the old
+     * scalar: 0.62 shell / 0.30 graphite) so the modulation is
+     * two-sided; normalScale is deliberately SUBTLE on the shell (this
+     * is satin plastic, not hammered metal) and stronger on the
+     * graphite's machining streaks. */
+    const shellMicro = makeShellMicroMaps();
+    const graphiteMicro = makeGraphiteMicroMaps();
+    {
+      const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      /* shell maps at repeat 1×1: the 512 map spans each ~150px face,
+      * so the mid-tier undulations (r 3-13 map px) land at 1-4 screen
+      * px — the measured reference scale (broad soft variation, not
+      * pixel grain). Graphite streaks wrap ×2 horizontally. */
+      shellMicro.normal.repeat.set(1, 1);
+      shellMicro.rough.repeat.set(1, 1);
+      graphiteMicro.normal.repeat.set(2, 1);
+      graphiteMicro.rough.repeat.set(2, 1);
+      for (const t of [shellMicro.normal, shellMicro.rough, graphiteMicro.normal, graphiteMicro.rough]) {
+        t.anisotropy = maxAniso;
+      }
+    }
     const shellMat = track(
       new MeshPhysicalMaterial({
         color: palette.shell,
-        roughness: 0.62,
+        roughness: 1.0, /* the base 0.62 lives in the map (two-sided) */
+        roughnessMap: shellMicro.rough,
+        normalMap: shellMicro.normal,
+        normalScale: new Vector2(0.6, 0.6),
         metalness: 0.03,
         clearcoat: 0.14,
         clearcoatRoughness: 0.55,
@@ -725,7 +1003,10 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     const graphiteMat = track(
       new MeshPhysicalMaterial({
         color: palette.graphite,
-        roughness: 0.3,
+        roughness: 1.0, /* the base 0.30 lives in the map (two-sided) */
+        roughnessMap: graphiteMicro.rough,
+        normalMap: graphiteMicro.normal,
+        normalScale: new Vector2(0.65, 0.65),
         metalness: 0.9,
         clearcoat: 0.4,
         clearcoatRoughness: 0.3,
@@ -934,8 +1215,11 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     headGroup.position.y = 0.9;
     character.add(headGroup);
     /* W3-A iter3: TALLER + narrower — the reference's rectangular boxy
-     * skull (the iter2 0.62×0.56 read as a wide "TV" shape) */
-    const skull = new Mesh(track(new RoundedBoxGeometry(0.6, 0.6, 0.56, 5, 0.09)), shellMat);
+     * skull (the iter2 0.62×0.56 read as a wide "TV" shape). W5-C5:
+     * fillet segments 5 → 6 — the crown/cheek specular rolloff
+     * smooths (the micro-surface axis's cheap geometry share; the
+     * whole build rises ~+7% vertices, moderately). */
+    const skull = new Mesh(track(new RoundedBoxGeometry(0.6, 0.6, 0.56, 6, 0.09)), shellMat);
     skull.position.y = 0.28;
     headGroup.add(skull);
     /* the top deck — the reference's dark vented crown: a wider
@@ -1202,6 +1486,10 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       shadowTexture.dispose();
       glowTexture.dispose();
       bezelTexture.dispose();
+      shellMicro.normal.dispose();
+      shellMicro.rough.dispose();
+      graphiteMicro.normal.dispose();
+      graphiteMicro.rough.dispose();
       envRT.dispose();
       pmrem.dispose();
       renderer.dispose();

@@ -218,12 +218,13 @@ export default function HomePage() {
                   aria-hidden="true"
                   focusable="false"
                 >
-                  {/* console → head (the upper terminal line) */}
-                  <path className="ln-tx" d="M 962 250 H 660 L 600 190 H 312" />
+                  {/* console → head (the upper terminal line — W3-A
+                      recalibrated to the new fig-0.6 framing: the head's
+                      left edge lands at SVG ≈(390, 165)) */}
+                  <path className="ln-tx" d="M 962 250 H 690 L 620 180 H 392" />
                   {/* console → chest (the lower terminal line — exits the
-                      console's bottom corner, verified against the live
-                      rects: console [968,116→312] hero-rel) */}
-                  <path className="ln-tx" d="M 962 312 H 700 L 627 385 H 322" />
+                      console's bottom corner; W3-A: the chest edge ≈(415, 455)) */}
+                  <path className="ln-tx" d="M 962 312 H 720 L 640 455 H 415" />
                   {/* machine → far rail → the scroll invitation (the drop
                       lands just above the invitation label — live rect
                       [65,721] hero-rel, the invitation line at x≈104) */}
@@ -232,8 +233,8 @@ export default function HomePage() {
                       at the machine, one terminal above the invitation */}
                   <rect className="ln-tx-node" x="959" y="247" width="5" height="5" />
                   <rect className="ln-tx-node" x="959" y="309" width="5" height="5" />
-                  <rect className="ln-tx-node ln-tx-live" x="308" y="187" width="6" height="6" />
-                  <rect className="ln-tx-node ln-tx-live" x="318" y="382" width="6" height="6" />
+                  <rect className="ln-tx-node ln-tx-live" x="389" y="177" width="6" height="6" />
+                  <rect className="ln-tx-node ln-tx-live" x="412" y="452" width="6" height="6" />
                   <rect className="ln-tx-node" x="101" y="709" width="6" height="6" />
                 </svg>
                 <RobotSceneMount className="ln-robot-canvas" />

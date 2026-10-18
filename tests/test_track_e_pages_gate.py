@@ -44,10 +44,19 @@ PAGE_API_MAP: dict[str, list[str]] = {
     "activity": ["/api/logs?limit=100"],
     "ads": ["/api/ads/accounts"],
     "analytics": ["/api/analytics/overview?days=30"],
-    "audience": ["/api/analytics/overview?days=30", "/api/analytics/top-commenters?limit=5"],
+    # P21-W6-B5: the audience page gains the tag-manager surface — GET
+    # /api/tags (list_tags — the tag chips in the manager dialog). The
+    # pre-existing /api/subscribers list dep (v4 §7.25, grep-verified) joins
+    # the map too: the gate now covers every GET the page consumes. The
+    # mutations (POST /api/tags, POST/DELETE /api/subscribers/{id}/tags)
+    # are contract-pinned in the page tests (AudienceTags.test.tsx).
+    "audience": ["/api/analytics/overview?days=30", "/api/analytics/top-commenters?limit=5", "/api/subscribers?page=1&per_page=10", "/api/tags"],
     "autoreply": ["/api/rules"],
     "billing": ["/api/payments/balance", "/api/payments/history"],
-    "broadcast": ["/api/broadcasts"],
+    # P21-W6-B5: the broadcast create form consumes GET /api/tags for the
+    # tag-filter multi-select (segment_filters.tag_contains rides the POST
+    # body — the mutation contract is pinned in BroadcastTagFilter.test.tsx).
+    "broadcast": ["/api/broadcasts", "/api/tags"],
     "calendar": ["/api/calendar"],
     # P21-W6-B1: the flows surface ships — GET /api/flows is the page's load
     # path (open to any authenticated tenant; the has_flows plan gate fires

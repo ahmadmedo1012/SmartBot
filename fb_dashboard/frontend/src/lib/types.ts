@@ -234,6 +234,15 @@ export interface ReplyTemplate {
 
 // ── Audience: subscribers & CRM customers ───────────────────────────────────
 
+/** Row of GET /api/tags + POST /api/tags (tag_engine list/create serializer):
+ *  {id, name, color, subscriber_count} — W6-B5 first consumer. */
+export interface TagRow {
+  id: number
+  name: string
+  color: string
+  subscriber_count?: number
+}
+
 /** Row of /api/subscribers → data.items (subscriber_engine.search). */
 export interface Subscriber {
   id: number

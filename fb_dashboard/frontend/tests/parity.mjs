@@ -2799,6 +2799,97 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('W6-B1 flows nav: «التدفقات» in defaultNavSections (Business section) + the route Arabic title in layout.tsx');
 }
 
+// ── §P21-W6-B5 — templates gallery + tagging/CRM surfaces (the two market-backed gaps) ──
+{
+  /* Self-contained block (own raw readers): pins the W6-B5 build-out —
+     (1) the Arabic rule-template gallery (W6-A5: ManyChat ships 60+ even on
+     Free; our autoreply surface started blank) and (2) the first consumers
+     of the tag + CRM-edit APIs (W6-A1 gap #3: tag create/apply and
+     PUT /api/crm/customers were API-only). The pins guard the SURFACE
+     CONTRACT (real endpoints, static content module, no hidden auto-save)
+     and the HONESTY contract (review-then-save, server-copy toasts,
+     tag_contains by NAME as the engine matches it). */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const rawAutoreply = nc(readRaw('../src/app/dashboard/autoreply/page.tsx'));
+  const rawTemplates = nc(readRaw('../src/lib/rule-templates.ts'));
+  const rawAudience = nc(readRaw('../src/app/dashboard/audience/page.tsx'));
+  const rawLeads = nc(readRaw('../src/app/dashboard/leads/page.tsx'));
+  const rawBroadcast = nc(readRaw('../src/app/dashboard/broadcast/page.tsx'));
+
+  // (1) the gallery renders from the STATIC Arabic content module — no
+  //     fetch, no "sync" promise — and every template fills the four fields
+  //     the REAL POST /api/rules declares (name/keywords/reply_template/
+  //     priority), gated to the empty/first-use state.
+  const tplModuleOk = rawTemplates.includes('export const RULE_TEMPLATES')
+    && (rawTemplates.match(/id: "/g) || []).length >= 6
+    && rawTemplates.includes('keywords: string')
+    && rawTemplates.includes('reply: string');
+  if (tplModuleOk) pass += 1;
+  else fails.push('W6-B5 templates: the static Arabic content module ships 6+ templates (id/title/description/keywords/reply — pure data)');
+
+  const tplGalleryOk = rawAutoreply.includes('from "@/lib/rule-templates"')
+    && rawAutoreply.includes('RULE_TEMPLATES.map')
+    && rawAutoreply.includes('rules.length === 0')
+    && rawAutoreply.includes('قوالب جاهزة — قاعدة بنقرة واحدة')
+    && rawAutoreply.includes('استخدام القالب');
+  if (tplGalleryOk) pass += 1;
+  else fails.push('W6-B5 templates: the gallery renders on the autoreply EMPTY state from the static module (one-click «استخدام القالب» cards)');
+
+  // (2) HONESTY — no hidden auto-save: the one-click handler ONLY fills the
+  //     form state + the review toast; the single save path stays the
+  //     existing POST /api/rules button. The review note rides the gallery.
+  const tplNoAutoSaveOk = rawAutoreply.includes('راجع النص وعدّله ثم احفظ')
+    && rawAutoreply.includes('راجع النص وعدّله ليناسب متجرك ثم احفظ')
+    && !/applyTemplate[\s\S]{0,400}mutate\(/.test(rawAutoreply);
+  if (tplNoAutoSaveOk) pass += 1;
+  else fails.push('W6-B5 templates honesty: the click prefills + states review-then-save (no mutate inside applyTemplate — the save button is the only POST path)');
+
+  // (3) the tag manager consumes the REAL unconsumed endpoints: GET/POST
+  //     /api/tags + the per-subscriber assign/remove pair (editor-gated
+  //     server-side); tag names render dir=auto and chips toggle with
+  //     aria-pressed (the 44px targets ride min-h-11).
+  const tagsApiOk = rawAudience.includes('apiFetch("/api/tags")')
+    && rawAudience.includes('`/api/subscribers/${sub.id}/tags`')
+    && rawAudience.includes('`/api/subscribers/${sub.id}/tags/${tagId}`')
+    && rawAudience.includes('aria-haspopup="dialog"');
+  if (tagsApiOk) pass += 1;
+  else fails.push('W6-B5 tags: the audience page consumes the real /api/tags family (list/create + per-subscriber assign/remove)');
+
+  const tagsUiOk = rawAudience.includes('min-h-11 px-3 rounded-full')
+    && rawAudience.includes('aria-pressed={on}')
+    && rawAudience.includes('<span dir="auto">{t.name}</span>');
+  if (tagsUiOk) pass += 1;
+  else fails.push('W6-B5 tags ui: 44px toggle chips (min-h-11) with aria-pressed + dir=auto tag names');
+
+  // (4) the leads edit dialog rides the REAL PUT contract: form-encoded
+  //     URLSearchParams, the closed stage set, and the r138 phone twin
+  //     (normalizeLibyanPhone from src/lib/phone.ts).
+  const leadsEditOk = rawLeads.includes('`/api/crm/customers/${customer.id}`')
+    && rawLeads.includes('new URLSearchParams({ stage })')
+    && rawLeads.includes('STAGE_OPTIONS')
+    && rawLeads.includes('normalizeLibyanPhone');
+  if (leadsEditOk) pass += 1;
+  else fails.push('W6-B5 leads: PUT /api/crm/customers/{id} form-encoded with the closed stage set + the r138 phone twin');
+
+  // (5) the broadcast tag filter rides the ENGINE's own match key:
+  //     segment_filters.tag_contains with tag NAMES, gated to the open form
+  //     (enabled: showForm — no idle fetch), and {} when nothing selected.
+  const broadcastFilterOk = rawBroadcast.includes('tag_contains: selectedTags')
+    && rawBroadcast.includes('enabled: showForm')
+    && rawBroadcast.includes('segment_filters: selectedTags.length ? { tag_contains: selectedTags } : {}');
+  if (broadcastFilterOk) pass += 1;
+  else fails.push('W6-B5 broadcast: the tag multi-select sends segment_filters.tag_contains by NAME (the engine match key) — {} when none');
+
+  // (6) the server-copy toast contract (ApiError detail verbatim, the house
+  //     brandedToast family) rides every new mutation surface.
+  const toastContractOk = (rawAudience.match(/brandedToast\.error\(e\.message/g) || []).length >= 3
+    && rawLeads.includes('brandedToast.error(e.message || "تعذّر حفظ بيانات العميل")')
+    && rawAutoreply.includes('brandedToast.info');
+  if (toastContractOk) pass += 1;
+  else fails.push('W6-B5 toasts: every new mutation surfaces the server copy (ApiError message) via brandedToast');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Machine Instrument parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css instrument layer == the phase17 contract + the character-led cinematic hero composition)`

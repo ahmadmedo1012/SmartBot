@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
 import { countPhrase } from "@/lib/format"
-import { AtSign, Bot, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Sparkles, ToggleLeft, ToggleRight, Trash2, AlertCircle } from "lucide-react"
+import { AtSign, Bot, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Sparkles, ToggleLeft, ToggleRight, Trash2, AlertCircle, LayoutTemplate, MessagesSquare, Banknote, Clock, MoonStar, Heart, Truck, MapPin } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,6 +18,8 @@ import { EmptyState } from "@/components/ui/EmptyState"
    الثلاثة مع دعم disabled أثناء الـPUT التفاؤلي. */
 import { Switch } from "@/components/ui/switch"
 import { unwrapApi } from "@/lib/api"
+import { RULE_TEMPLATES } from "@/lib/rule-templates"
+import type { RuleTemplate } from "@/lib/rule-templates"
 import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import type { BotBehavior, BotBehaviorPatch, ReplyRule } from "@/lib/types"
 
@@ -70,6 +72,20 @@ const RULES_KEY = ["rules"] as const
  * 1-999 فقط (rules.py Form priority)؛ إدخال خارج النطاق أو غير رقمي كان
  * يُرسل كما هو فيفشل 422 بصمت نموذج كامل. المصحّح يحوّل أي قيمة إلى عدد
  * صحيح داخل النطاق (غير الرقمي → الافتراضي 50) عند blur وعند الإرسال. */
+/* P21-W6-B5 (gap #1 — معرض القوالب): أيقونة كل بطاقة قالب — خريطة id→
+ * أيقونة هنا في الصفحة كي تبقى وحدة المحتوى (rule-templates.ts) بيانات
+ * خالصة بلا استيراد مكونات (عقد الوحدة نفسها). */
+const TEMPLATE_ICONS: Record<string, LucideIcon> = {
+  greeting: MessagesSquare,
+  price: Banknote,
+  hours: Clock,
+  "after-hours": MoonStar,
+  thanks: Heart,
+  "dm-handoff": MessageCircle,
+  delivery: Truck,
+  location: MapPin,
+}
+
 const PRIORITY_MIN = 1
 const PRIORITY_MAX = 999
 const PRIORITY_DEFAULT = 50
@@ -262,6 +278,21 @@ export default function AutoReplyPage() {
   }
 
   const toneSaving = behaviorMut.isPending && !!behaviorMut.variables && "ai_tone" in behaviorMut.variables
+
+  /* P21-W6-B5 (gap #1): قالب بنقرة واحدة — يملأ نموذج الإنشاء الموجود
+   * نفسه (name/keywords/reply/priority) ويفتحه للمراجعة. لا حفظ خفي:
+   * المسار الوحيد للإنشاء يبقى زر «حفظ القاعدة» (POST /api/rules) —
+   * دليل ManyChat (60+ قالباً حتى على المجاني) ينزل أخيراً عندنا بلا
+   * أي وعد تشغيلي جديد: القالب مجرد تعبئة نصية قابلة للتعديل. */
+  const applyTemplate = (t: RuleTemplate) => {
+    setEditingRuleId(null)
+    setShowForm(true)
+    setName(t.title)
+    setKeyword(t.keywords)
+    setReplyText(t.reply)
+    setPriority(String(PRIORITY_DEFAULT))
+    brandedToast.info("تمت تعبئة النموذج من القالب — راجع النص وعدّله ثم احفظ")
+  }
 
   return (
     <div className="flex-1 flex flex-col">
@@ -501,11 +532,63 @@ export default function AutoReplyPage() {
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : rules.length === 0 ? (
+          <>
           <EmptyState
             icon={Bot}
             title="لا توجد قواعد رد تلقائي"
-            description="أنشئ أول قاعدة من زر قاعدة جديدة أعلى الصفحة ليبدأ البوت بالرد تلقائياً على التعليقات المتطابقة."
+            description="أنشئ أول قاعدة من زر قاعدة جديدة أعلى الصفحة، أو ابدأ من قالب جاهز بالأسفل — نقرة واحدة تعبّئ النموذج لتراجعه وتحفظه."
           />
+          {/* P21-W6-B5 (gap #1 — معرض القوالب الجاهزة): حالة الفراغ/أول
+              استخدام فقط (بعد أول قاعدة يبدأ المستخدم من زر «قاعدة جديدة»).
+              بطاقات ثابتة من وحدة المحتوى — بيانات حقيقية لا وعود مزامنة:
+              كل بطاقة تملأ الحقول الأربعة التي يقبلها POST /api/rules
+              حرفياً، والمستخدم يراجع ثم يحفظ (لا حفظ تلقائي خفي). */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <LayoutTemplate className="size-4 text-accent-foreground" aria-hidden="true" />
+                <h3 className="sb-section-title">قوالب جاهزة — قاعدة بنقرة واحدة</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                ابدأ من قالب شائع: النقرة تفتح نموذج الإنشاء معبّأ بالكلمات والرد — راجع النص وعدّله ليناسب متجرك ثم احفظ.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {RULE_TEMPLATES.map((t) => {
+                  const Icon = TEMPLATE_ICONS[t.id] ?? Sparkles
+                  return (
+                    <div key={t.id} className="rounded-lg border border-border/60 p-3 flex flex-col gap-2 bg-background/30">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div className="size-9 rounded-xl bg-accent-foreground/10 text-accent-foreground border border-accent-foreground/20 flex items-center justify-center shrink-0" aria-hidden="true">
+                          <Icon className="size-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold mb-0.5">{t.title}</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{t.description}</p>
+                        </div>
+                      </div>
+                      {/* نفس عائلة رقائق الكلمات في صفوف القواعد — كلمات
+                          القالب كما ستُرسل حرفياً بعد التقسيم على الفاصلة. */}
+                      <div className="flex flex-wrap gap-1">
+                        {t.keywords.split(", ").map((k) => (
+                          <code key={k} className="text-xs font-bold bg-accent-foreground/10 text-accent-foreground px-2 py-0.5 rounded border border-accent-foreground/20">{k}</code>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed" dir="auto">{t.reply}</p>
+                      <Button
+                        size="sm"
+                        className="self-start"
+                        onClick={() => applyTemplate(t)}
+                        aria-label={`استخدام قالب ${t.title}`}
+                      >
+                        <Plus className="size-3.5" /> استخدام القالب
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+          </>
         ) : (
           <div className="space-y-2">
             {rules.map((r) => (

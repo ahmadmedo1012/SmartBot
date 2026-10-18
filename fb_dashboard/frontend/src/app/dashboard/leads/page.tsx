@@ -1,12 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { UserPlus, AlertCircle, RefreshCw } from "lucide-react"
+import { brandedToast } from "@/lib/premium-toast"
+import { UserPlus, AlertCircle, RefreshCw, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 /* r132 (A8 F-SB-1): the retired «السابق/التالي» hand-rolled pager → the
@@ -16,6 +21,7 @@ import { TablePagination } from "@/components/shared/TablePagination"
 import { unwrapApi } from "@/lib/api"
 import type { CrmCustomer } from "@/lib/types"
 import { formatDateOnly, formatNumber } from "@/lib/format"
+import { normalizeLibyanPhone } from "@/lib/phone"
 
 /* v26-F4 (P4-A4 §2 P2): مرشّح مرحلة العميل — الخادم يدعم ?stage= منذ v25
  * (routers/crm_routes.py:27) والصفحة لم تكن تمرّره قط؛ المراحل من
@@ -37,7 +43,17 @@ const STAGE_BADGE: Record<string, { label: string; variant: "info" | "gold" | "s
   churned: { label: "متوقف", variant: "danger" },
 }
 
+/* P21-W6-B5 (gap #3b): المراحل القابلة للتحرير — نفس مجموعة العقد
+ * (models.py:940 + مرشّح الصفحة أعلاه) لكن بترتيب مسار البيع. */
+const STAGE_OPTIONS = ["lead", "prospect", "trial", "active", "churned"] as const
+
+/** عقد الهاتف (r138): التطبيع من عائلة lib/phone الثلاثية. */
+const PHONE_MAX_LEN = 16
+
 export default function LeadsPage() {
+  /* P21-W6-B5 (gap #3b): تحرير العميل — الحوار يفتح من زر القلم بصف
+   * العميل (PUT /api/crm/customers/{id} — كان بلا مستهلك إطلاقاً). */
+  const [editing, setEditing] = useState<CrmCustomer | null>(null)
   /* v25 (W-07): صفحة العملاء الحالية — /api/crm/customers (routers/
    * crm_routes.py:26) يقبل page ge=1 وper_page (افتراضي 25) ويُرجع
    * {items,total,page,per_page}؛ الصفحة كانت تعرض أول نافذة فقط بلا أي
@@ -146,11 +162,25 @@ export default function LeadsPage() {
                     {/* v14-E5 (D3-ج): name + notes are live CRM values —
                         dir="auto" isolates Latin/mixed names and free text. */}
                     <p className="text-sm font-bold" dir="auto">{c.name || "بدون اسم"}</p>
-                    {/* v26-F4: شارة المرحلة — المرشّح أعلاه بلا عرضها كان
-                        يرشّح حقلًا لا يراه المستخدم. */}
-                    {c.stage && STAGE_BADGE[c.stage] && (
-                      <Badge variant={STAGE_BADGE[c.stage].variant}>{STAGE_BADGE[c.stage].label}</Badge>
-                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* v26-F4: شارة المرحلة — المرشّح أعلاه بلا عرضها كان
+                          يرشّح حقلًا لا يراه المستخدم. */}
+                      {c.stage && STAGE_BADGE[c.stage] && (
+                        <Badge variant={STAGE_BADGE[c.stage].variant}>{STAGE_BADGE[c.stage].label}</Badge>
+                      )}
+                      {/* P21-W6-B5 (gap #3b): زر التحرير — 44px (v25 W-09)،
+                          نفس نمط تعديل القاعدة في الردود التلقائية. */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="size-11 p-0"
+                        onClick={() => setEditing(c)}
+                        aria-haspopup="dialog"
+                        aria-label={`تحديث بيانات العميل ${c.name || "بدون اسم"}`}
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     {/* v4 §2.3 — backend crm_routes returns notes/first_seen_at/
@@ -194,7 +224,143 @@ export default function LeadsPage() {
             />
           </>
         )}
+
+        {/* P21-W6-B5 (gap #3b): حوار تحرير العميل — المرحلة/الملاحظات/الهاتف
+            عبر PUT الحقيقي. */}
+        {editing && (
+          <EditCustomerDialog customer={editing} onClosed={() => setEditing(null)} />
+        )}
       </div>
     </div>
+  )
+}
+
+/* ── P21-W6-B5 (gap #3b): حوار تحرير بيانات العميل ──────────────────────────
+ * العقد الحقيقي (routers/crm_routes.py:100-123 — لا افتراضات):
+ *   PUT /api/crm/customers/{id} عقد Form-encoded (name/phone/stage/notes/
+ *   interested_in)؛ الخادم يطبّق القيم الصادقة فقط (السلاسل الفارغة
+ *   تتجاهَل — لذا لا يُرسل حقل فارغ أصلاً ويُذكر القيد بصراحة في الحوار)،
+ *   ويطلب صلاحية editor؛ 404 عربي إن غاب العميل.
+ * المرحلة: مجموعة مغلقة (models.py:940). الهاتف: تطبيع r138 الثلاثي
+ * (lib/phone) — نسخة صحيحة أو خطأ inline محايد للعقد. */
+function EditCustomerDialog({ customer, onClosed }: { customer: CrmCustomer; onClosed: () => void }) {
+  const queryClient = useQueryClient()
+  const [stage, setStage] = useState<string>(
+    (STAGE_OPTIONS as readonly string[]).includes(customer.stage ?? "") ? customer.stage! : "lead",
+  )
+  const [notes, setNotes] = useState(customer.notes ?? "")
+  const [phone, setPhone] = useState(customer.phone ?? "")
+  const [phoneError, setPhoneError] = useState("")
+
+  /* التحقق من الهاتف عند المغادرة — عقد r138: النماذج القصيرة/الكاملة/
+   * الدولية كلها تمر عبر التطبيع؛ الرفض برسالة محايدة للعقد (لا تصف
+   * شكلاً بعينه — نفس نص التوأمين). */
+  const validatePhone = (value: string) => {
+    const v = value.trim()
+    if (!v || normalizeLibyanPhone(v)) {
+      setPhoneError("")
+      return true
+    }
+    setPhoneError("رقم ليبي صحيح — مثال: 0912345678")
+    return false
+  }
+
+  const saveMut = useMutation({
+    mutationFn: () => {
+      /* نرسل الحقول المعبّأة فقط — عقد الخادم يتجاهل الفارغة (القيد
+       * مذكور في الحوار نفسه؛ لا إرسال سلاسل فارغة بلا أثر). */
+      const params = new URLSearchParams({ stage })
+      const notesV = notes.trim()
+      const phoneV = phone.trim()
+      if (notesV) params.set("notes", notesV)
+      if (phoneV) params.set("phone", normalizeLibyanPhone(phoneV) || phoneV)
+      return apiFetch(`/api/crm/customers/${customer.id}`, {
+        method: "PUT",
+        body: params,
+      }).then(unwrapApi<{ ok: boolean }>)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crm-customers"] })
+      brandedToast.success("تم حفظ بيانات العميل")
+      onClosed()
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر حفظ بيانات العميل"),
+  })
+
+  /* لا حفظ بلا تغيير فعلي (تحقق إدخال صادق — ليس زراً ميتاً). */
+  const changed =
+    stage !== (customer.stage ?? "lead") ||
+    notes.trim() !== (customer.notes ?? "") ||
+    phone.trim() !== (customer.phone ?? "")
+  const canSave = changed && !phoneError && !saveMut.isPending
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClosed() }}>
+      <DialogContent>
+        <DialogTitle>تحديث بيانات العميل</DialogTitle>
+        <DialogDescription>
+          {customer.name || "بدون اسم"} — حدّث المرحلة أو الملاحظات أو الهاتف ثم احفظ.
+        </DialogDescription>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="edit-customer-stage" className="text-xs font-medium text-muted-foreground">المرحلة</label>
+            <Select
+              id="edit-customer-stage"
+              value={stage}
+              onChange={(e) => setStage(e.target.value)}
+              aria-label="مرحلة العميل"
+            >
+              {STAGE_OPTIONS.map((s) => (
+                <option key={s} value={s}>{STAGE_BADGE[s].label}</option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="edit-customer-notes" className="text-xs font-medium text-muted-foreground">الملاحظات</label>
+            <Textarea
+              id="edit-customer-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="ملاحظات المتابعة (مثال: مهتم بعرض التوصيل)…"
+              rows={3}
+            />
+            {/* قيد عقد الخادم المذكور بصراحة: PUT يتجاهل السلاسل الفارغة —
+                تفريغ الحقل هنا لن يحذف الملاحظة المخزّنة. */}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              الحقول الفارغة يتجاهلها الخادم — لتغيير الملاحظة اكتب نصاً بديلاً (التفريغ لا يحذف المخزّن).
+            </p>
+          </div>
+
+          <Input
+            id="edit-customer-phone"
+            label="الهاتف (اختياري)"
+            placeholder="0912345678"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            onBlur={() => validatePhone(phone)}
+            maxLength={PHONE_MAX_LEN}
+            inputMode="tel"
+            error={phoneError || undefined}
+          />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={onClosed}>إلغاء</Button>
+          <Button
+            size="sm"
+            loading={saveMut.isPending}
+            disabled={!canSave || saveMut.isPending}
+            onClick={() => {
+              if (!validatePhone(phone)) return
+              saveMut.mutate()
+            }}
+          >
+            {saveMut.isPending ? "جارٍ الحفظ…" : "حفظ البيانات"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

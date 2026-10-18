@@ -16,7 +16,7 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import { countPhrase, formatDate, formatDateOnly } from "@/lib/format"
-import type { BroadcastRow } from "@/lib/types"
+import type { BroadcastRow, TagRow } from "@/lib/types"
 
 /* r134 (فشل→تعذّر policy): «فاشل» خارج عائلة تعذّر السارية على الأسطول —
  * البث مذكر فأخذ تعذّر (التسويق حملة مؤنثة فتأخذ تعذّرت في صفحتها). */
@@ -74,6 +74,11 @@ export default function BroadcastPage() {
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState("")
   const [message, setMessage] = useState("")
+  /* P21-W6-B5 (gap #3c): تصفية البث بالوسوم — أسماء الوسوم المحددة
+   * تُرسل كما هي في segment_filters.tag_contains (عقد المحرك:
+   * broadcast_engine.py:250-257 يطابق Tag.name.in_(tag_contains)) —
+   * الوسوم تُدار من صفحة الجمهور. */
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   /* v24-C2 (task 2 / A3-B1): «إرسال» no longer mass-sends on a single tap —
      the id of the draft being confirmed drives the dialog below; the send
      mutation fires ONLY from its explicit destructive confirm button. */
@@ -88,11 +93,29 @@ export default function BroadcastPage() {
     refetchInterval,
   })
 
+  /* P21-W6-B5 (gap #3c): قائمة الوسوم لتصفية البث — تُجلب فقط والنموذج
+   * مفتوح (enabled: showForm)، مفتاح ["tags"] نفسه يشاركه مدير الوسوم
+   * في صفحة الجمهور (مصدر واحد عبر react-query). */
+  const tagsQuery = useQuery({
+    queryKey: ["tags"],
+    queryFn: () => apiFetch("/api/tags").then(unwrapApi<TagRow[]>),
+    enabled: showForm,
+    staleTime: 30000,
+    retry: 1,
+  })
+
   const createMut = useMutation({
+    /* P21-W6-B5 (gap #3c): الحمولة تحمل تصفية الوسوم حين تُحدد وسوم —
+     * عقد الخادم (routers/broadcasts.py:97-98): platform_filter و
+     * segment_filters يُمرّران كما هما إلى المحرك، وtag_contains
+     * قائمة أسماء (broadcast_engine.py:250-257). */
     mutationFn: async (payload: { name: string; message_template: string }) => {
       const res = await apiFetch("/api/broadcasts", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          segment_filters: selectedTags.length ? { tag_contains: selectedTags } : {},
+        }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -104,6 +127,7 @@ export default function BroadcastPage() {
       brandedToast.success("تم إنشاء البث — يمكنك إرساله الآن")
       setName("")
       setMessage("")
+      setSelectedTags([])
       setShowForm(false)
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
     },
@@ -240,6 +264,70 @@ export default function BroadcastPage() {
                 <p className="text-xs text-muted-foreground">
                   ستُرسل الرسالة للمشتركين عبر الماسنجر — تأكد من ربط صفحتك أولاً
                 </p>
+              </div>
+              {/* P21-W6-B5 (gap #3c): تصفية بالوسوم — اختيار متعدد من وسوم
+                  المساحة (راجعها في صفحة الجمهور)؛ تُرسل الأسماء في
+                  segment_filters.tag_contains كما يطبّقها المحرك حرفياً.
+                  بلا وسوم = بث لكل المشتركين (لا تصفية) — النص يقول ذلك. */}
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">تصفية بالوسوم (اختياري)</p>
+                {tagsQuery.isLoading ? (
+                  <div className="flex gap-2">
+                    {[1, 2, 3].map((i) => <div key={i} className="skeleton h-9 w-20 rounded-full" />)}
+                  </div>
+                ) : tagsQuery.isError ? (
+                  <p className="text-xs text-muted-foreground">
+                    تعذّر تحميل الوسوم — سيُرسَل البث لكل المشتركين —{" "}
+                    <button
+                      type="button"
+                      className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded"
+                      onClick={() => tagsQuery.refetch()}
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </p>
+                ) : (tagsQuery.data?.length ?? 0) === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    لا توجد وسوم بعد — أنشئها من صفحة «الجمهور» (إدارة الوسوم) لتصفية البث لاحقاً. بدون وسوم يُرسَل لكل المشتركين.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="وسوم تصفية البث">
+                    {(tagsQuery.data ?? []).map((t) => {
+                      const on = selectedTags.includes(t.name)
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedTags((prev) =>
+                              on ? prev.filter((n) => n !== t.name) : [...prev, t.name],
+                            )
+                          }
+                          aria-pressed={on}
+                          aria-label={`${on ? "إزالة تصفية" : "تصفية"} بالوسم ${t.name}`}
+                          className={
+                            "min-h-11 px-3 rounded-full border flex items-center gap-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 " +
+                            (on
+                              ? "bg-accent-foreground/10 border-accent-foreground/30 text-accent-foreground"
+                              : "bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70")
+                          }
+                        >
+                          <span
+                            className="size-2.5 rounded-full shrink-0 border border-border/60"
+                            style={{ backgroundColor: t.color || "var(--muted)" }}
+                            aria-hidden="true"
+                          />
+                          <span dir="auto">{t.name}</span>
+                        </button>
+                      )
+                    })}
+                    <p className="text-xs text-muted-foreground w-full">
+                      {selectedTags.length === 0
+                        ? "بدون وسوم: يُرسَل لكل المشتركين."
+                        : `يُرسَل للمشتركين حامل أي وسم محدد (${selectedTags.length}).`}
+                    </p>
+                  </div>
+                )}
               </div>
               <Button
                 onClick={() => createMut.mutate({ name: name.trim() || "بث جديد", message_template: message })}

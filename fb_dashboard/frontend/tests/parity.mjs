@@ -1660,18 +1660,22 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
 
   // (8) the hero canvas paints the reference world (phase5 lockstep,
   //     P15 re-anchor, P16-A re-anchor to CharacterScene, P21-C re-anchor
-  //     to the ChainGPT reference character): the three.js engine cannot
-  //     read CSS vars, so the literals MUST be pinned — the P21 matte
-  //     shell/spectrum bezel present + the instrument hue law (cyan/
-  //     violet), the retired Orbit-Ink triplets absent, and the retired
-  //     P19 porcelain literal (0xe7e5e0 — the owner-rejected Vessel)
-  //     absent. The retired OrbitScene/HeroDepthLayer (P15) AND the
-  //     primitives RobotScene (P16-A) canvases are DELETED; the
-  //     retirement itself is pinned in §P15.
+  //     to the ChainGPT reference character, W3-A re-anchor to the tube
+  //     bezel): the three.js engine cannot read CSS vars, so the literals
+  //     MUST be pinned — the W3-A matte shell (0xe2e0da — warmed +
+  //     de-glazed per the reference's cream-plastic read) + the spectrum
+  //     ring (the SPECTRUM_STOPS sweep feeding the vertex-colored bezel
+  //     TUBE) + the instrument hue law (cyan/violet), the retired
+  //     Orbit-Ink triplets absent, and the retired P19 porcelain literal
+  //     (0xe7e5e0 — the owner-rejected Vessel) AND the retired P21-C/W2
+  //     shell grades (0xe8e6e1) absent. The retired OrbitScene/
+  //     HeroDepthLayer (P15) AND the primitives RobotScene (P16-A)
+  //     canvases are DELETED; the retirement itself is pinned in §P15.
   const rawRobotScene2 = readRaw('../src/components/landing/CharacterScene.tsx');
-  const canvasOk = rawRobotScene2.includes('0xe8e6e1') && rawRobotScene2.includes('0x56e2f2')
+  const canvasOk = rawRobotScene2.includes('0xe2e0da') && rawRobotScene2.includes('0x56e2f2')
     && rawRobotScene2.includes('0x9380ff') && rawRobotScene2.includes('SPECTRUM_STOPS')
-    && !rawRobotScene2.includes('0xe7e5e0')
+    && rawRobotScene2.includes('makeBezelTubeGeometry')
+    && !rawRobotScene2.includes('0xe7e5e0') && !rawRobotScene2.includes('0xe8e6e1')
     && !rawRobotScene2.includes('245,243,231') && !rawRobotScene2.includes('223,237,178') && !rawRobotScene2.includes('122,107,242');
   if (canvasOk) pass += 1;
   else fails.push('P21 canvas lockstep: CharacterScene literals = shell/spectrum + cyan/violet, zero retired Orbit-Ink triplets, zero retired P19 porcelain');
@@ -2366,10 +2370,10 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   //     stack re-poses (fig 1.3 / floor 1.35 — the P17 bust close-up in a 41svh box).
   {
     const heroRobot = parseDecls(landingBlocks.find((x) => x.prelude === '.landing .ln-hero-robot')?.body ?? '');
-    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.76') pass += 1;
-    else fails.push(`P16-A-tokens --sb-fig: expected 0.76 (the figure's host share), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
-    if (norm(resolve(landingCascade, heroRobot['--sb-floor'] ?? '')) === '0.84') pass += 1;
-    else fails.push(`P16-A-tokens --sb-floor: expected 0.84 (the floor line fraction), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
+    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.6') pass += 1;
+    else fails.push(`P16-A-tokens --sb-fig: expected 0.6 (the figure's host share), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
+    if (norm(resolve(landingCascade, heroRobot['--sb-floor'] ?? '')) === '0.8') pass += 1;
+    else fails.push(`P16-A-tokens --sb-floor: expected 0.8 (the floor line fraction), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
   }
   {
     /* P19-W2-C re-anchor: the VESSEL is 1.34 world units (feet 0 →

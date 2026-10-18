@@ -724,12 +724,15 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     }
   })
 
-  /* P19-W2-C re-anchor: the VESSEL bust window (the vessel is 1.34
-     world units — the bust crop needs fig 1.63 / floor 1.6; same pose
+  /* P19-W2-C re-anchor + W3-A re-anchor: the reference hero holds the
+     FULL figure with real negative space (the 0.76 close-up crop read
+     as filling the frame — re-measured off chaingpt.org: head-top
+     ≈20%, floor ≈80%, figure ≈60% of the host). The vessel is 1.34
+     world units — the bust crop keeps fig 1.63 / floor 1.6; same pose
      law, re-pinned values). */
-  it("the composition tokens (P19): --sb-fig 0.76 / --sb-floor 0.84 desktop + the mobile bust re-pose 1.63/1.6", () => {
-    expect(rawLanding).toMatch(/--sb-fig:\s*0\.76;/)
-    expect(rawLanding).toMatch(/--sb-floor:\s*0\.84;/)
+  it("the composition tokens (W3-A): --sb-fig 0.6 / --sb-floor 0.8 desktop + the mobile bust re-pose 1.63/1.6", () => {
+    expect(rawLanding).toMatch(/--sb-fig:\s*0\.6;/)
+    expect(rawLanding).toMatch(/--sb-floor:\s*0\.8;/)
     expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.63;[^@]*?--sb-floor:\s*1\.6;/)
   })
 

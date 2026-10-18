@@ -35,7 +35,7 @@ const UNLIMITED_REPLIES = 999999
  * raw toString() rendered «حتى 2000 رد» and clashed (QA r144).
  */
 export function repliesPhrase(plan: ComparisonPlan): string {
-  if (plan.maxReplies >= UNLIMITED_REPLIES) return "ردود غير محدودة"
+  if (plan.maxReplies >= UNLIMITED_REPLIES) return "ردود بلا حد عملي"
   return `حتى ${formatCount(plan.maxReplies)} ${getArabicPlural(plan.maxReplies, "رد", undefined, "ردود")}`
 }
 

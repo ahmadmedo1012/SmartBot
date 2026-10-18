@@ -69,7 +69,7 @@ describe("toComparisonPlan", () => {
 describe("repliesPhrase", () => {
   it("returns the unlimited phrase for sentinel caps (999999 replies)", () => {
     expect(repliesPhrase({ ...toComparisonPlan(baseInput()), maxReplies: 999999 })).toBe(
-      "ردود غير محدودة",
+      "ردود بلا حد عملي",
     )
   })
 

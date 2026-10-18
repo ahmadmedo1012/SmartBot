@@ -78,7 +78,7 @@ describe("PlanSelector plan cards", () => {
     expect(screen.getByText("د.ل/شهر")).toBeInTheDocument()
   })
 
-  it('phrases the unlimited sentinel as "ردود غير محدودة"', () => {
+  it('phrases the unlimited sentinel as "ردود بلا حد عملي"', () => {
     render(
       <PlanSelector
         plans={[makePlan({ id: 3, name: "Premium", nameAr: "المتقدمة", maxReplies: 999999, price: 49 })]}
@@ -88,7 +88,7 @@ describe("PlanSelector plan cards", () => {
       />,
     )
 
-    expect(screen.getByText("ردود غير محدودة")).toBeInTheDocument()
+    expect(screen.getByText("ردود بلا حد عملي")).toBeInTheDocument()
   })
 
   it('reserves the "الأكثر شعبية" badge for the Basic card only', () => {

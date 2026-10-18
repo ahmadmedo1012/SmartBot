@@ -139,7 +139,7 @@ export default function PricingPage() {
           {[
             { icon: Shield, text: "بدون بطاقة ائتمان" },
             { icon: Zap, text: "إعداد في 5 دقائق" },
-            { icon: MessageCircle, text: "دعم 24/7" },
+            { icon: MessageCircle, text: "دعم واتساب سريع" },
             { icon: Users, text: "مجاني للأبد" },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-1.5">

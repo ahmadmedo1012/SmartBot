@@ -568,8 +568,17 @@ async def test_pdf_render_runs_off_event_loop(real_db, monkeypatch):
             beats.append(time.monotonic())
             await asyncio.sleep(0.03)
 
-    hb = asyncio.create_task(heartbeat())
+    # W2-CI (جذر الفليك): في الترتيب المعكوس تُدفع الكلفة الأولية للعملية
+    # (استيراد database + فتح اتصال aiosqlite + تصريف قالب Jinja) كلها
+    # على الحلقة داخل أول استدعاء — فتظهر كفجوة أولى زائفة ~0.35s بينما
+    # كل العينات التالية 0.03s (الحد 0.2). نية الاختبار — الحلقة تظل حية
+    # أثناء الرسم الثقيل في الخيط العامل — تُحفظ كاملة: التسخين يستهلك
+    # الكلفة الأولية مرة واحدة قبل بدء النبض، والاستدعاء المرصود نفسه
+    # (بما فيه write_pdf المسخر 0.25s) يبقى داخل القياس.
     engine = pre.PdfReportsEngine()
+    await engine.monthly_report(days=7, tenant_id=999999)  # warm-up: one-time process costs
+
+    hb = asyncio.create_task(heartbeat())
     pdf = await engine.monthly_report(days=7, tenant_id=999999)
     await hb
 

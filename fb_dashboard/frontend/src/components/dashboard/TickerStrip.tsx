@@ -11,7 +11,7 @@
  * percentages as the muted deltas.
  */
 
-import { countPhrase } from "@/lib/format"
+import { countPhrase, formatNumber } from "@/lib/format"
 import type { DashboardBundle } from "@/lib/types"
 import "./dashboard-shell.css"
 
@@ -53,7 +53,7 @@ export function TickerStrip({ bundle, loading }: { bundle?: DashboardBundle; loa
   const rules = bundle?.rules ?? []
   const activeRules = rules.filter((r) => r.enabled !== false).length
   const connected = connection?.connected !== false
-  const fmt = (n?: number) => (n ?? 0).toLocaleString("en-US")
+  const fmt = (n?: number) => formatNumber(n ?? 0)
 
   if (loading && !bundle) {
     return (

@@ -49,6 +49,12 @@ PAGE_API_MAP: dict[str, list[str]] = {
     "billing": ["/api/payments/balance", "/api/payments/history"],
     "broadcast": ["/api/broadcasts"],
     "calendar": ["/api/calendar"],
+    # P21-W6-B1: the flows surface ships — GET /api/flows is the page's load
+    # path (open to any authenticated tenant; the has_flows plan gate fires
+    # at creation only, per the W4-B family doctrine). The mutation family
+    # (POST/PUT/DELETE/toggle/test) is contract-pinned in
+    # test_p21_w3b_plan_gates.py (379-437) — this map covers the GETs.
+    "flows": ["/api/flows"],
     "comments": ["/api/comments?limit=30"],
     "leads": ["/api/crm/customers"],
     "marketing": ["/api/marketing/campaigns", "/api/marketing/audience-size"],

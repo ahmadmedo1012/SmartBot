@@ -4,7 +4,7 @@
  * MobileBottomNav (latest_plan.md Track F.1/F.2).
  *
  * Bottom bar with the 5 highest-traffic sections + a "المزيد" sheet holding
- * ALL 23 sections — same nav data source as AdminSidebar (no duplication).
+ * ALL 24 sections — same nav data source as AdminSidebar (no duplication).
  * Visible only below md (sidebar is `hidden md:block`).
  * Every section is reachable within 2 taps (bar item = 1, sheet item = 2).
  *
@@ -16,7 +16,7 @@
  * v24-C3 (A2 #2): every nav item is a real <Link> (not a button +
  * router.push) so App Router prefetches the route's RSC payload while the
  * link is visible — the always-visible 4 bar items make the hottest
- * sections effectively instant after the first visit, and the sheet's 23
+ * sections effectively instant after the first visit, and the sheet's 24
  * items prefetch only while the sheet is open (the closed panel is
  * translate3d'd fully below the viewport, so IntersectionObserver never
  * marks it visible). Styling/ARIA/focus-trap contracts are unchanged.
@@ -112,7 +112,7 @@ export function MobileBottomNav({
 
   return (
     <>
-      {/* ── More sheet (all 23 sections) ── */}
+      {/* ── More sheet (all 24 sections) ── */}
       <div
         className={cn("sheet-backdrop fixed inset-0 z-(--z-sheet) bg-(--overlay) md:hidden", sheetOpen && "sheet-open")}
         onClick={() => setSheetOpen(false)}

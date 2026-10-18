@@ -2730,6 +2730,75 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('P18-W4-b settings honesty: no session/token management calls (no backend endpoints — documented gap only)');
 }
 
+// ── §P21-W6-B1 — the flows surface ships honest (first has_flows consumer) ──
+{
+  /* Self-contained block (own raw readers): pins the W6-A1 Gap #1 build-out —
+     the Premium has_flows entitlement finally has a UI consumer. The pins
+     guard the SURFACE CONTRACT (real endpoints, PremiumLock on the 403 gate
+     family) and the HONESTY contract (the flow engine is dormant: /test is
+     the only execution path — flows.py:3-10 ruling is retired by a real
+     consumer, and the UI must never imply live automation it does not have). */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const rawFlows = nc(readRaw('../src/app/dashboard/flows/page.tsx'));
+  const rawFlowsLayout = readRaw('../src/app/dashboard/flows/layout.tsx');
+  const rawSidebar = nc(readRaw('../src/components/layout/AdminSidebar.tsx'));
+
+  // (1) the page consumes the REAL routers/flows.py endpoints: the list, the
+  //     ST_CYCLE toggle, the /test execution path, and the PUT/DELETE writes.
+  const flowsApiOk = rawFlows.includes('apiFetch("/api/flows")')
+    && rawFlows.includes('`/api/flows/${id}/toggle`')
+    && rawFlows.includes('`/api/flows/${row.id}/test`')
+    && rawFlows.includes('`/api/flows/${flowId}`')
+    && rawFlows.includes('`/api/flows/${id}`');
+  if (flowsApiOk) pass += 1;
+  else fails.push('W6-B1 flows api: the page consumes the real /api/flows family (list, /toggle ST_CYCLE, /test, PUT, DELETE)');
+
+  // (2) HONESTY — the dormant engine: the flows PageHeader rides the STATIC
+  //     trace (never the live lime node: flows do not run autonomously) and
+  //     the «وضع الاختبار — التنفيذ اليدوي» note rides both the page and
+  //     the test dialog where results are shown.
+  const flowsHonestyOk = rawFlows.includes('trace="static"')
+    && !/^\s+trace$/m.test(rawFlows) // (the bare boolean live-trace form never rides this route)
+    && (rawFlows.match(/وضع الاختبار — التنفيذ اليدوي/g) || []).length >= 2;
+  if (flowsHonestyOk) pass += 1;
+  else fails.push('W6-B1 flows honesty: static PageHeader trace + the test-mode note on the page AND the test dialog (manual execution only)');
+
+  // (3) HONESTY — the status toggle is persisted configuration: no live lime
+  //     dot on flow rows (the sequences/broadcast live-dot idiom would claim
+  //     "running now" — status drives nothing today) and the counter counts
+  //     EXECUTIONS («تنفيذ»), not replies (total_replies bumps on every run
+  //     incl. /test — the engine's own truth).
+  const flowsNoLiveDotOk = !rawFlows.includes('bg-lime')
+    && rawFlows.includes('countPhrase(f.total_replies ?? 0, "تنفيذ"');
+  if (flowsNoLiveDotOk) pass += 1;
+  else fails.push('W6-B1 flows status truth: no bg-lime live dot on rows (status is stored config) + the honest «تنفيذ» counter');
+
+  // (4) the Premium 403 gate surfaces the lock: isPlanLocked discrimination
+  //     (the W5-C1 family contract) + the /subscribe CTA.
+  const flowsPlanLockOk = rawFlows.includes('isPlanLocked')
+    && rawFlows.includes('router.push("/subscribe")')
+    && rawFlows.includes('التدفقات — متاحة في Premium');
+  if (flowsPlanLockOk) pass += 1;
+  else fails.push('W6-B1 flows plan gate: the create-only 403 renders PremiumLockBody (isPlanLocked + /subscribe CTA), never a bare toast');
+
+  // (5) the /test trace renders VERBATIM on the machine-stamp register
+  //     (mono + dir=ltr: the engine's action/node_id words are the result).
+  const flowsTraceOk = rawFlows.includes('font-mono tabular-nums text-muted-foreground" dir="ltr"')
+    && rawFlows.includes('font-mono text-xs font-semibold" dir="ltr"');
+  if (flowsTraceOk) pass += 1;
+  else fails.push('W6-B1 flows trace: the execution trace renders verbatim (mono dir=ltr rows: node_id + action + message)');
+
+  // (6) the nav route exists in the ONE source (defaultNavSections — both
+  //     MobileBottomNav and ShellNavRail inherit) + the per-route Arabic
+  //     title (r131-F7 WCAG 2.4.2).
+  const flowsNavOk = rawSidebar.includes('label: "التدفقات"')
+    && rawSidebar.includes('href: "/dashboard/flows"')
+    && rawFlowsLayout.includes('title: "التدفقات"');
+  if (flowsNavOk) pass += 1;
+  else fails.push('W6-B1 flows nav: «التدفقات» in defaultNavSections (Business section) + the route Arabic title in layout.tsx');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Machine Instrument parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css instrument layer == the phase17 contract + the character-led cinematic hero composition)`

@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import {
   LayoutDashboard, MessageCircle, MessageSquare, Newspaper, Clock,
   BarChart3, Users, UserPlus, Target, Radio, Megaphone, FileBarChart,
-  Workflow, FileText, Users2, Calendar, Bot, Activity, Bell, Wrench, CreditCard,
+  Workflow, GitBranch, FileText, Users2, Calendar, Bot, Activity, Bell, Wrench, CreditCard,
   HelpCircle, Settings, LogOut, Sparkles,
 } from "lucide-react"
 
@@ -91,6 +91,11 @@ export const defaultNavSections: NavSection[] = [
       /* v17-E-F9: Pro 129 «حملات تسلسلية» — الواجهة كانت غائبة رغم محرك
          حيّ منذ v16؛ MobileBottomNav يرثها تلقائيًا (defaultNavSections). */
       { icon: Workflow, label: "الحملات التسلسلية", href: "/dashboard/sequences" },
+      /* P21-W6-B1: Premium «التدفقات» — الاستحقاق has_flows مُنفّذ خادميًا
+         منذ W4-B بلا أي مستهلك؛ صفحة /dashboard/flows تغلق الفجوة. نفس
+         ميراث MobileBottomNav/ShellNavRail (defaultNavSections = المصدر
+         الواحد). محطة Expo خارج الدفعة — سطح الويب أولًا. */
+      { icon: GitBranch, label: "التدفقات", href: "/dashboard/flows" },
       { icon: Megaphone, label: "التسويق", href: "/dashboard/marketing" },
       { icon: FileBarChart, label: "التقارير", href: "/dashboard/reports" },
     ],
@@ -175,7 +180,7 @@ export function AdminSidebar({
       {/* Nav — v6+ framer-free: section stagger is CSS animation-delay.
        * v24-C3 (A2 #2 + B4): items are native <Link>s — App Router
        * prefetches each section's RSC payload while the link is visible
-       * (the whole 23-section list sits in the desktop viewport), Enter/Space
+       * (the whole 24-section list sits in the desktop viewport), Enter/Space
        * are native anchor semantics, and the div[role=link] ARIA patch (B4)
        * is now a real link.
        * Madarek anatomy (§5.5): 22px-icon grid items, 8px radius, 13px/500

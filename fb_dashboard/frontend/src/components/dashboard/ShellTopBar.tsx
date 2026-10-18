@@ -8,7 +8,7 @@
  * only while the tenant has no live paid/trial entitlement) — the CTA is
  * the shell's one spectrum-gradient BORDER moment (spec §2 accent law).
  * Row 2 (title): the current page's REAL title derived from the route
- * inventory (defaultNavSections) — the shell stays in sync with the 23
+ * inventory (defaultNavSections) — the shell stays in sync with the 24
  * real routes for free.
  */
 

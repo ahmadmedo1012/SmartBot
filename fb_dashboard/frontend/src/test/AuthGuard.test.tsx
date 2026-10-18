@@ -30,6 +30,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import AuthGuard from "@/app/dashboard/AuthGuard"
+import { __resetSession401ForTests } from "@/lib/csrf-client"
 
 type GuardProps = Parameters<typeof AuthGuard>[0]
 
@@ -132,6 +133,13 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+  /* P21-W5-C1: the guard-level-401 case drives /api/me through the shared
+   * useMe hook → apiFetch trips the global session-expiry handler, whose
+   * pending redirect timer would otherwise outlive jsdom and fire as an
+   * unhandled "window is not defined" after teardown (1-in-2 full-suite
+   * reds on an unchanged tree). Same cleanup api.test.ts and
+   * ApiGlobal401.test.ts already do. */
+  __resetSession401ForTests()
 })
 
 describe("AuthGuard happy path (authenticated /api/me)", () => {

@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
-import { apiFetch, ApiError } from "@/lib/csrf-client"
+import { apiFetch } from "@/lib/csrf-client"
+import { isPlanLocked } from "./plan-lock"
 import { countPhrase, toArabicNumber } from "@/lib/format"
 import {
   BarChart3, MessageSquare, Activity, Clock, Users, AlertCircle, RefreshCw, Smile,
@@ -54,9 +55,10 @@ const SENTIMENT_LABELS: Record<string, string> = {
  *
  * عقد كل قسم: ChartCard (سكلتون/فراغ/خطأ بإعادة محاولة) + عربية +
  * countPhrase للعدادات + 403 خطة → حالة «متاحة في Premium» صادقة.
- * ملاحظة عقد: هذه المسارات بلا بوابة خطة اليوم (has_analytics_advanced
- * زخرفي بلا إنفاذ — D6 §3)؛ فرع الـ403 موجود للأمانة المستقبلية إن
- * أُضيف التقييد لاحقًا.
+ * تحديث P21-W3-B (وثّقه P21-W5-C1): has_analytics_advanced لم يعد
+ * زخرفيًا — المسارات الخمسة أعلاه مقيدة خادميًا عبر _plan_gates
+ * (Premium+)؛ فرع الـ403 صار العقد الحي، والملاحظة القديمة
+ * (D6 §3 «زخرفي بلا إنفاذ») كانت انجرافًا وثائقيًا جرى تصحيحه.
  * ══════════════════════════════════════════════════════════════════════════ */
 
 const WINDOW_DAYS = 30
@@ -91,10 +93,9 @@ interface PeriodComparison {
   change_pct?: number
 }
 
-/** 403 خطة؟ (ApiError يرفع detail العربية — csrf-client) */
-function isPlanLocked(e: unknown): boolean {
-  return e instanceof ApiError && e.status === 403
-}
+/** 403 خطة؟ (ApiError يرفع detail العربية — csrf-client) — تنفيذ
+ * isPlanLocked مستخرج إلى ./plan-lock (P21-W5-C1) ليُختبر مباشرة
+ * ويميّز بوابة الخطة («رقِّ خطتك») عن إيقاف المنظمة وسائر عائلة 403. */
 
 /** حالة «متاحة في Premium» الصادقة — بديل بطاقة الخطأ عند 403 الخطة. */
 function PremiumLockBody({ feature }: { feature: string }) {

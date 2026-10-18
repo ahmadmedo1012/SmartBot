@@ -99,6 +99,7 @@ export function ShellAssistantBar() {
           <Bot className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <input
             type="text"
+            dir="auto"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="اكتب رسالة العميل هنا — سيقترح المساعد ردودًا جاهزة…"

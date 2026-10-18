@@ -1,4 +1,13 @@
-"""Flow CRUD + toggle + test routes."""
+"""Flow CRUD + toggle + test routes.
+
+Product surface ruling (P21-W5-C1, from the W5-A1 audit): has_flows is an
+API-only capability today — the web dashboard and mobile app ship NO flows
+UI consumer (no nav entry, no /api/flows caller), so the gate's Arabic
+upgrade copy is reachable only via direct API use. Documented deliberately
+instead of building UI for an unsold surface; the gate itself (Premium+,
+creation-time only, 403 «التدفقات متاحة في خطة مميز أو أعلى — رقِّ خطتك»)
+is enforced and contract-pinned — a future flows UI inherits it for free.
+"""
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 

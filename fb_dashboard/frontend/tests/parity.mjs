@@ -1661,21 +1661,23 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   // (8) the hero canvas paints the reference world (phase5 lockstep,
   //     P15 re-anchor, P16-A re-anchor to CharacterScene, P21-C re-anchor
   //     to the ChainGPT reference character, W3-A re-anchor to the tube
-  //     bezel): the three.js engine cannot read CSS vars, so the literals
-  //     MUST be pinned — the W3-A matte shell (0xe2e0da — warmed +
-  //     de-glazed per the reference's cream-plastic read) + the spectrum
+  //     bezel, W4-A re-anchor to the low-key shell): the three.js engine
+  //     cannot read CSS vars, so the literals MUST be pinned — the W4-A
+  //     low-key matte shell (0x9d9b96 — the measured reference render:
+  //     shell 90-150 luminance, bezel/eyes carry the brightness; the
+  //     W3 grade 0xe2e0da joined the retired set) + the spectrum
   //     ring (the SPECTRUM_STOPS sweep feeding the vertex-colored bezel
   //     TUBE) + the instrument hue law (cyan/violet), the retired
   //     Orbit-Ink triplets absent, and the retired P19 porcelain literal
-  //     (0xe7e5e0 — the owner-rejected Vessel) AND the retired P21-C/W2
-  //     shell grades (0xe8e6e1) absent. The retired OrbitScene/
+  //     (0xe7e5e0 — the owner-rejected Vessel) AND the retired shell
+  //     grades (0xe8e6e1, 0xe2e0da) absent. The retired OrbitScene/
   //     HeroDepthLayer (P15) AND the primitives RobotScene (P16-A)
   //     canvases are DELETED; the retirement itself is pinned in §P15.
   const rawRobotScene2 = readRaw('../src/components/landing/CharacterScene.tsx');
-  const canvasOk = rawRobotScene2.includes('0xe2e0da') && rawRobotScene2.includes('0x56e2f2')
+  const canvasOk = rawRobotScene2.includes('0x9d9b96') && rawRobotScene2.includes('0x56e2f2')
     && rawRobotScene2.includes('0x9380ff') && rawRobotScene2.includes('SPECTRUM_STOPS')
     && rawRobotScene2.includes('makeBezelTubeGeometry')
-    && !rawRobotScene2.includes('0xe7e5e0') && !rawRobotScene2.includes('0xe8e6e1')
+    && !rawRobotScene2.includes('0xe7e5e0') && !rawRobotScene2.includes('0xe8e6e1') && !rawRobotScene2.includes('0xe2e0da')
     && !rawRobotScene2.includes('245,243,231') && !rawRobotScene2.includes('223,237,178') && !rawRobotScene2.includes('122,107,242');
   if (canvasOk) pass += 1;
   else fails.push('P21 canvas lockstep: CharacterScene literals = shell/spectrum + cyan/violet, zero retired Orbit-Ink triplets, zero retired P19 porcelain');
@@ -2370,8 +2372,8 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   //     stack re-poses (fig 1.3 / floor 1.35 — the P17 bust close-up in a 41svh box).
   {
     const heroRobot = parseDecls(landingBlocks.find((x) => x.prelude === '.landing .ln-hero-robot')?.body ?? '');
-    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.6') pass += 1;
-    else fails.push(`P16-A-tokens --sb-fig: expected 0.6 (the figure's host share), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
+    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.65') pass += 1;
+    else fails.push(`P16-A-tokens --sb-fig: expected 0.65 (W4-A occupancy — the figure's host share), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
     if (norm(resolve(landingCascade, heroRobot['--sb-floor'] ?? '')) === '0.8') pass += 1;
     else fails.push(`P16-A-tokens --sb-floor: expected 0.8 (the floor line fraction), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
   }
@@ -2536,10 +2538,20 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
       && rawRobot.includes("for (const m of materials) m.dispose()");
     if (pauseOk) pass += 1;
     else fails.push('P16-A scene lifecycle: IO pause + visibilitychange pause + full geometry/material/renderer disposal (GLB geometries included)');
+    /* W4-A re-anchor: the living-loop arm site now PROVES liveness first
+     * (lastFrameAt = performance.now() before the arm — the frozen-chain
+     * fix; a tab backgrounded between rAF and its callback left the old
+     * `!raf` restart guards refusing to re-arm, freezing the robot for
+     * the session). The contract is unchanged: reduced-motion renders
+     * ONE static posed frame and never arms the loop. */
     const rmOk = rawRobot.includes('one static posed frame')
-      && /\} else \{\s*raf = requestAnimationFrame\(frameLoop\);/.test(rawRobot);
+      && /\} else \{\s*lastFrameAt = performance\.now\(\);\s*raf = requestAnimationFrame\(frameLoop\);/.test(rawRobot)
+      /* the W4-A maybeArm restart path must itself refuse to arm under
+       * reduced-motion (the liveness re-arm never revives the loop for
+       * an RM user who tabs back in) */
+      && rawRobot.includes('if (reduced || document.hidden || !visible) return;');
     if (rmOk) pass += 1;
-    else fails.push('P16-A scene RM: reduced-motion = one static posed frame, no rAF');
+    else fails.push('P16-A scene RM: reduced-motion = one static posed frame, no rAF (W4-A liveness-prove re-anchor)');
     const trackOk = rawRobot.includes("matchMedia('(pointer: fine)')")
       && rawRobot.includes('degToRad(22)') && rawRobot.includes('degToRad(10)');
     if (trackOk) pass += 1;

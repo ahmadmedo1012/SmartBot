@@ -2176,7 +2176,7 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
    * ASYMMETRIC — the character owns the INLINE-END band (RTL:
    * screen-left), the display lockup owns inline-start. No glyph
    * ever crosses the figure (the §2.5 law — scrims retired). */
-  --sb-fig: 0.6;    /* the figure's share of the host height */
+  --sb-fig: 0.65;   /* W4-A: 0.6 -> 0.65 — the measured occupancy gap (robot 50% vs reference 54% of host height) */
   --sb-floor: 0.8;  /* where the floor line lands (from top) */
   --sb-x: 0;        /* lateral camera bias (world units) — 0 = centered */
   --sb-glow-x: 50%; /* the atmospherics' horizontal anchor (figure zone) */

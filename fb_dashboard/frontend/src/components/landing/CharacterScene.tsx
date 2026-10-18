@@ -151,6 +151,20 @@ export type CharacterSceneProps = {
   className?: string;
 };
 
+/* W4-A1 — the ?sb-rest audit probe shape (see the affordance block in
+ * the effect): live pose scalars + resolved framing, read via
+ * window.__sbRestPose by the capture harness only. */
+type SbRestProbe = {
+  frames: number;
+  yaw: number;
+  pitch: number;
+  lookBias: number;
+  beat: string;
+  fig: number;
+  floor: number;
+  x: number;
+};
+
 /* Emissive constants — the machine instrument law (unchanged):
  * CYAN = the machine's voice; VIOLET = the AI register (classify);
  * AMBER = the human/handoff warm register. */
@@ -286,8 +300,13 @@ function samplePalette(): Palette {
     /* dark stage — the reference's scene: matte off-white machine on
      * the near-black void, the spectrum bezel is the principal light.
      * The rim light rides the landing's OWN --ln-lime token (the
-     * machine's-voice ink — the phase-9 repaint lockstep contract). */
-    shell: 0xe2e0da,
+     * machine's-voice ink — the phase-9 repaint lockstep contract).
+     * W4-A: the W3 near-white grade is retired in favor of 0x9d9b96 —
+     * the measured low-key gap (the reference robot's shell reads
+     * 90-150 luminance with the bezel/eyes carrying the brightness;
+     * the near-white shell read as a bright toon sticker at p75 196
+     * vs the reference's 89). */
+    shell: 0x9d9b96,
     graphite: 0x14161a,
     screen: 0x04060a,
     lime: readVar(html, '--ln-lime', CYAN),
@@ -449,6 +468,26 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    /* W4-A1 — CAPTURE DETERMINISM (dev-only affordance, the honest-loop
+     * instrument): when the URL carries ?sb-rest the living loop pins its
+     * clock to the REST beat (t = 0 → gaze wander centered, eyes at full
+     * breath, body at REST_YAW, beats ignored) so visual audits capture
+     * the SAME pose every time instead of an arbitrary animation phase
+     * (the W3 ±6 capture-beat variance this wave is here to close). The
+     * param is never linked, redirected, or shipped anywhere — normal
+     * users get the full living loop untouched; reduced-motion users
+     * already get the static posed frame below. */
+    const restCapture =
+      !reduced && new URLSearchParams(window.location.search).has('sb-rest');
+
+    /* the audit probe (same param-gated affordance): a read-only window
+     * handle carrying the live pose scalars + the resolved framing, so
+     * the capture harness can VERIFY convergence (loop running, yaw
+     * settled, authored tokens parsed) before a screenshot is taken.
+     * Only exists under ?sb-rest — never on a normal load. */
+    const probe: SbRestProbe = { frames: 0, yaw: 0, pitch: 0, lookBias: 0, beat: 'reset', fig: 0, floor: 0, x: 0 };
+    if (restCapture) (window as unknown as { __sbRestPose: SbRestProbe }).__sbRestPose = probe;
+
     /* ── renderer / scene / camera ─────────────────────────────── */
     let renderer: WebGLRenderer;
     try {
@@ -468,7 +507,11 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     renderer.domElement.style.height = '100%';
     renderer.domElement.style.display = 'block';
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.06;
+    /* W4-A: 1.06 → 0.95 — the measured low-key convergence (robot-region
+     * luminance p75 was 196 vs the reference's 89: the shell read as a
+     * bright toon sticker, not the reference's premium low-key render
+     * where the bezel/eyes carry the brightness). */
+    renderer.toneMappingExposure = 0.95;
     host.appendChild(renderer.domElement);
 
     const scene = new Scene();
@@ -488,16 +531,16 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      * drops from 2.3 to 1.15 so the shell reads as SHELL (the old
      * cyan wash fought the spectrum). Neutral warm key, quiet amber
      * kicker low on inline-end, quiet fill, the white face glow. */
-    const key = new DirectionalLight(0xfff1e4, 1.35);
+    const key = new DirectionalLight(0xfff1e4, 0.62);
     key.position.set(2.4, 4.0, 3.0);
     scene.add(key);
-    const rim = new DirectionalLight(CYAN, 0.7);
+    const rim = new DirectionalLight(CYAN, 0.55);
     rim.position.set(-3.4, 3.2, -2.6);
     scene.add(rim);
-    const kicker = new DirectionalLight(AMBER, 0.8);
+    const kicker = new DirectionalLight(AMBER, 0.62);
     kicker.position.set(3.2, 1.5, -2.5);
     scene.add(kicker);
-    const fill = new AmbientLight(0x14161c, 0.4);
+    const fill = new AmbientLight(0x14161c, 0.34);
     scene.add(fill);
     const faceGlow = new PointLight(0xffffff, 0.55, 3.4, 2);
     faceGlow.position.set(0, CHAR_H * 0.9, 1.05);
@@ -552,6 +595,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      * The host's --sb-fig (figure fraction of host height) and
      * --sb-floor (floor line fraction) place the figure inside the
      * box; fig/floor may EXCEED 1 (the mobile bust close-up). */
+    let framingRetries = 0;
     const frame = () => {
       const w = host.clientWidth || 600;
       const h = host.clientHeight || 600;
@@ -559,8 +603,11 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       renderer.setSize(w, h, false);
       camera.aspect = w / Math.max(h, 1);
       const style = getComputedStyle(host);
-      const figFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-fig')) || 0.62, 0.3), 1.9);
-      const floorFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-floor')) || 0.78, 0.5), 1.8);
+      const figRaw = parseFloat(style.getPropertyValue('--sb-fig'));
+      const floorRaw = parseFloat(style.getPropertyValue('--sb-floor'));
+      const xRaw = parseFloat(style.getPropertyValue('--sb-x'));
+      const figFrac = Math.min(Math.max(Number.isNaN(figRaw) ? 0.62 : figRaw, 0.3), 1.9);
+      const floorFrac = Math.min(Math.max(Number.isNaN(floorRaw) ? 0.78 : floorRaw, 0.5), 1.8);
       const span = TOP_Y - FLOOR_Y;
       const hUnits = span / figFrac;
       const dist = hUnits / (2 * Math.tan(MathUtils.degToRad(camera.fov / 2)));
@@ -568,7 +615,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       /* the LATERAL COMPOSITION BIAS: --sb-x shifts the camera rig
        * sideways so the figure renders at the host's inline-end band
        * while the canvas stays FULL-WIDTH. Default 0 = centered. */
-      const xBias = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-x')) || 0, -1.5), 1.5);
+      const xBias = Math.min(Math.max(Number.isNaN(xRaw) ? 0 : xRaw, -1.5), 1.5);
       /* level camera (y == lookY) — the y→screen mapping is exact, so
        * the CSS floor glow at --sb-floor lands on the contact shadow */
       camera.position.set(xBias, lookY, dist);
@@ -576,6 +623,25 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       camera.updateProjectionMatrix();
       fog.near = dist * 1.06;
       fog.far = dist * 2.6;
+      if (restCapture) {
+        probe.fig = figFrac;
+        probe.floor = floorFrac;
+        probe.x = xBias;
+      }
+      /* W4-A1 — THE FRAMING RACE FIX (a real load-order defect, not a
+       * capture-only nicety): --sb-fig/--sb-floor/--sb-x live in
+       * landing.css, and on some loads this effect's first frame()
+       * runs BEFORE the stylesheet applies — parseFloat then yields
+       * NaN and the solver locks the FALLBACK framing (0.62/0.78 —
+       * figure ~3% oversize, floor line ~2.5% high, so the CSS floor
+       * glow and the canvas contact shadow visibly part) for the whole
+       * session. While the authored tokens fail to parse, re-frame on
+       * a bounded 50ms poll (≤2s) — same resolved values are
+       * idempotent, correctly-ordered loads render exactly as before. */
+      if ((Number.isNaN(figRaw) || Number.isNaN(floorRaw) || Number.isNaN(xRaw)) && framingRetries < 40) {
+        framingRetries++;
+        setTimeout(frame, 50);
+      }
       if (reduced) renderer.render(scene, camera);
     };
     frame();
@@ -591,6 +657,27 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     let visible = true;
     let unsubBeat: (() => void) | null = null;
     let frameLoop: (now: number) => void = () => {};
+    /* W4-A1 — THE FROZEN-LOOP FIX (a real production bug, found while
+     * chasing capture non-determinism): a tab backgrounded at the
+     * wrong moment suspends the page BETWEEN requestAnimationFrame and
+     * its callback — the pending raf id stays truthy forever, so every
+     * restart path's `!raf` guard then refuses to re-arm, and the robot
+     * freezes for the rest of the session (gaze, beats, breath all
+     * dead after ONE unlucky hidden-tab moment; measured live: the
+     * headless page's loop dead at frames=1 while the canvas kept
+     * showing the mount pose). The fix: restart paths no longer trust
+     * the raf id — lastFrameAt PROVES liveness (a >750ms gap with an
+     * id pending = the chain died: cancel + re-arm, exactly one
+     * chain). */
+    let lastFrameAt = 0;
+    const maybeArm = () => {
+      if (reduced || document.hidden || !visible) return;
+      const stale = performance.now() - lastFrameAt > 750;
+      if (raf && !stale) return; /* the chain is alive */
+      if (raf) cancelAnimationFrame(raf);
+      lastFrameAt = performance.now();
+      raf = requestAnimationFrame(frameLoop);
+    };
 
     /* ── the beat channel state ──────────────────────────────────── */
     let beat: HeroBeat | null = null;
@@ -613,9 +700,9 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
     const onVis = () => {
       if (reduced) return;
-      if (!document.hidden && visible && !raf) {
+      if (!document.hidden && visible) {
         last = performance.now();
-        raf = requestAnimationFrame(frameLoop);
+        maybeArm();
       }
     };
 
@@ -631,8 +718,8 @@ export function CharacterScene({ className }: CharacterSceneProps) {
         color: palette.shell,
         roughness: 0.62,
         metalness: 0.03,
-        clearcoat: 0.06,
-        clearcoatRoughness: 0.6,
+        clearcoat: 0.14,
+        clearcoatRoughness: 0.55,
       }),
     );
     const graphiteMat = track(
@@ -744,6 +831,11 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     const chestSeam = new Mesh(track(new RoundedBoxGeometry(0.32, 0.012, 0.01, 1, 0.004)), graphiteMat);
     chestSeam.position.set(0, 0.63, 0.155);
     character.add(chestSeam);
+    /* W4-A iter3 post-audit: a chest RECESS panel was tried and RETIRED
+     * the same iteration — at hero scale a wide dark rectangle on the
+     * chest center reads as a MOUTH (anthropomorphic noise), and the
+     * measured reference spec carries only the seam + the two vertical
+     * slots. The reference's chest stays quiet. */
 
     /* the chest's two vertical dark slots (the reference's quiet
      * chest detail — indentations, not a panel) */
@@ -794,9 +886,21 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       const forearm = new Mesh(track(new CylinderGeometry(0.047, 0.043, 0.2, 20)), shellMat);
       forearm.position.y = -0.11;
       fore.add(forearm);
-      const hand = new Mesh(track(new RoundedBoxGeometry(0.095, 0.105, 0.085, 2, 0.03)), shellMat);
-      hand.position.y = -0.235;
+      const hand = new Mesh(track(new RoundedBoxGeometry(0.095, 0.065, 0.085, 2, 0.02)), shellMat);
+      hand.position.y = -0.215;
       fore.add(hand);
+      /* W4-A — the reference's articulated fingers (the W3-recorded
+       * remaining gap: the mitt read as a minifigure blob): three
+       * segmented finger blocks below the palm, the center one
+       * straight and the outer two gently splayed — reads as a hand
+       * at hero scale without inventing a new design language. */
+      const fingerGeo = track(new RoundedBoxGeometry(0.026, 0.06, 0.03, 1, 0.01));
+      for (let fi = -1; fi <= 1; fi++) {
+        const finger = new Mesh(fingerGeo, shellMat);
+        finger.position.set(fi * 0.032, -0.276, 0.004);
+        finger.rotation.z = fi * 0.14;
+        fore.add(finger);
+      }
       arm.add(fore);
       /* the pose — the reference's 3/4 read: */
       if (presenting) {
@@ -884,7 +988,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      * dark face. The old additive plane survives at low opacity and
      * LARGER scale purely as the soft bloom halo (cheek spill). */
     const bezelTube = new Mesh(
-      track(makeBezelTubeGeometry(0.55, 0.49, 0.08, 0.03)),
+      track(makeBezelTubeGeometry(0.55, 0.49, 0.08, 0.05)),
       bezelTubeMat,
     );
     bezelTube.position.set(0, 0.31, 0.295);
@@ -968,16 +1072,22 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
     frameLoop = (now: number) => {
       raf = 0;
+      lastFrameAt = now;
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
-      const t = (now - t0) / 1000;
+      /* restCapture pins the clock to the rest beat (t = 0) — see the
+       * affordance block above; the loop keeps running so the lerped
+       * channels (yaw/pitch/body yaw) still settle to their rest values. */
+      const t = restCapture ? 0 : (now - t0) / 1000;
 
       /* lerp toward the pointer targets */
       yaw = MathUtils.lerp(yaw, targetX * MathUtils.degToRad(22), 1 - Math.pow(0.0015, dt));
       pitch = MathUtils.lerp(pitch, targetY * MathUtils.degToRad(10), 1 - Math.pow(0.0015, dt));
 
-      /* scenario reaction targets (the beat drives the character) */
-      const b = beat ?? 'reset';
+      /* scenario reaction targets (the beat drives the character; the
+       * rest-capture affordance freezes the beat channel at reset so the
+       * audit pose never rides a scenario phase) */
+      const b = restCapture ? 'reset' : (beat ?? 'reset');
       lookBias = MathUtils.lerp(lookBias, b === 'inbound' ? 0.34 : 0, 1 - Math.pow(0.02, dt));
       eyeWide = MathUtils.lerp(eyeWide, b === 'inbound' ? 1.5 : 1, 1 - Math.pow(0.04, dt));
       scanPhase = MathUtils.lerp(scanPhase, b === 'reply' ? 1 : 0, 1 - Math.pow(0.05, dt));
@@ -1027,6 +1137,15 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       glowMat.opacity = palette.glowOpacity * (0.8 + 0.2 * breath);
 
       renderer.render(scene, camera);
+      if (restCapture) {
+        /* the probe snapshot — written after every channel settles this
+         * frame, so the harness reads the pose that IS on screen */
+        probe.frames++;
+        probe.yaw = yaw;
+        probe.pitch = pitch;
+        probe.lookBias = lookBias;
+        probe.beat = b;
+      }
       if (visible && !document.hidden) raf = requestAnimationFrame(frameLoop);
     };
 
@@ -1038,7 +1157,17 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       headGroup.rotation.x = 0.02;
       character.rotation.y = 0.2;
       renderer.render(scene, camera);
+    } else if (restCapture) {
+      /* the rest pose, applied DIRECTLY (not lerped): the audit canvas
+       * must never depend on how many frames the host page happened to
+       * schedule — the body starts AT its rest stance and one
+       * synchronous loop frame paints the exact rest state (eyes at
+       * breath 1, tint neutral, body yaw REST) AND schedules the living
+       * chain itself — frame 1 == frame 1000 */
+      character.rotation.y = 0.2;
+      frameLoop(performance.now());
     } else {
+      lastFrameAt = performance.now();
       raf = requestAnimationFrame(frameLoop);
     }
 
@@ -1048,9 +1177,9 @@ export function CharacterScene({ className }: CharacterSceneProps) {
           const was = visible;
           visible = entries[entries.length - 1].isIntersecting;
           if (reduced) return;
-          if (visible && !was && !raf && !document.hidden) {
+          if (visible && !was) {
             last = performance.now();
-            raf = requestAnimationFrame(frameLoop);
+            maybeArm();
           }
         },
         { rootMargin: '80px 0px' },

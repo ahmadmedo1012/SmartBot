@@ -730,8 +730,8 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
      ≈20%, floor ≈80%, figure ≈60% of the host). The vessel is 1.34
      world units — the bust crop keeps fig 1.63 / floor 1.6; same pose
      law, re-pinned values). */
-  it("the composition tokens (W3-A): --sb-fig 0.6 / --sb-floor 0.8 desktop + the mobile bust re-pose 1.63/1.6", () => {
-    expect(rawLanding).toMatch(/--sb-fig:\s*0\.6;/)
+  it("the composition tokens (W4-A re-anchor): --sb-fig 0.65 / --sb-floor 0.8 desktop + the mobile bust re-pose 1.63/1.6", () => {
+    expect(rawLanding).toMatch(/--sb-fig:\s*0\.65;/)
     expect(rawLanding).toMatch(/--sb-floor:\s*0\.8;/)
     expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.63;[^@]*?--sb-floor:\s*1\.6;/)
   })

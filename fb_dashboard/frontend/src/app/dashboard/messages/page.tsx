@@ -394,8 +394,16 @@ function MessagesView() {
     queryFn: () => apiFetch(`/api/inbox/conversations/${selectedId}`).then(unwrapApi<Message[]>),
     enabled: !!selectedId,
     /* v23: 10s→5s poll — a reply landing on the customer's phone should show
-       up here while the conversation is still "hot" (5s ≈ reading rhythm). */
-    refetchInterval: 5000,
+       up here while the conversation is still "hot" (5s ≈ reading rhythm).
+     * W2-C2b: the poll STOPS once the thread 404'd (gone) or 400'd (page
+     * not connected) — hammering a verdict that cannot change on its own
+     * is noise, not freshness; the honest state's own «تحديث» recovers. */
+    refetchInterval: (query) => {
+      const err = query.state.error as unknown
+      return err instanceof ApiError && (err.status === 404 || err.status === 400)
+        ? false
+        : 5000
+    },
     /* v23: 20s staleTime + 5min gcTime — switching back to a thread you just
        read serves its cached messages INSTANTLY (fresh ⇒ no refetch, no
        skeleton flash) and background-revalidates once stale; 5min gcTime
@@ -408,6 +416,16 @@ function MessagesView() {
        path above is what covers the actual "returning" case. */
     placeholderData: (prev) => prev,
   })
+
+  /* W2-C2b (§4.5 states): the thread's no-data verdicts split by status —
+   * 404 = the conversation itself is gone (deleted / unlinked / another
+   * tenant's id) → a NO-DATA condition, never an error; 400 = the page
+   * isn't connected yet → the same honest setup state the list column
+   * renders. Derived once, consumed by the render branches below. */
+  const threadMissing =
+    msgIsError && msgError instanceof ApiError && msgError.status === 404
+  const threadNeedsSetup =
+    msgIsError && msgError instanceof ApiError && msgError.status === 400
 
   const queryClient = useQueryClient()
 
@@ -1013,11 +1031,56 @@ function MessagesView() {
                       </div>
                     ))}
                   </div>
+                ) : threadMissing ? (
+                  /* W2-C2b (§4.5 empty-state law): a vanished conversation is a
+                   * NO-DATA condition, never an error overlay. The old branch
+                   * surfaced the server's raw 404 detail («المحادثة غير
+                   * موجودة») with a retry that could never succeed — an error
+                   * where the honest presentation belongs. The fix names the
+                   * condition and returns the operator to the list (closeThread
+   * unwinds the deep-link's ?c= entry so back stays honest). */
+                  <EmptyState
+                    icon={Inbox}
+                    size="sm"
+                    title="هذه المحادثة لم تعد موجودة"
+                    description="ربما حُذفت من صندوق الوارد أو أُزيل ربطها من مساحتك — اختر محادثة أخرى من القائمة."
+                    action={{ label: "اختيار محادثة أخرى", onClick: closeThread }}
+                  />
+                ) : threadNeedsSetup ? (
+                  /* W2-C2b: the pane's own needs-setup presentation — the list
+                   * column's exact .state twin. The server's 400 detail («لم
+                   * يتم إعداد فيسبوك بعد…») used to render raw here with a
+   * retry that could never succeed while the page stays
+   * unconnected; the honest state explains and routes to /connect. */
+                  <div className="state p-8">
+                    <div className="flex size-14 items-center justify-center rounded-xl bg-(--c-copper-bg) text-(--c-copper-ink)">
+                      <Link2 className="size-6" />
+                    </div>
+                    <div>
+                      <p className="state-title">اربط صفحتك بفيسبوك</p>
+                      <p className="state-desc">
+                        لعرض رسائل هذه المحادثة، اربط صفحتك أولاً برمز وصول صالح
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 items-center">
+                      {/* v16-E3 (D1 C2): single tab stop — Button inside Link. */}
+                      <Link href="/connect" className="inline-flex">
+                        <Button size="sm">
+                          <Link2 className="size-3.5" /> ربط الصفحة الآن
+                        </Button>
+                      </Link>
+                      <Button size="sm" variant="ghost" onClick={() => refetchMessages()}>
+                        <RefreshCw className="size-3" /> تحديث
+                      </Button>
+                    </div>
+                  </div>
                 ) : msgIsError ? (
                   /* v17-E-F1 (D1 §5.1 — P1): a failed thread fetch rendered the
                       "no messages" empty state — an error disguised as an empty
                       thread. Mirror of support's ticketDetailQuery branch
-                      (support:449-455). */
+                      (support:449-455). W2-C2b: only TRANSIENT failures reach
+                      this branch (the 404/400 no-data verdicts split above) —
+                      so the retry affordance here is always a real one. */
                   <div className="text-center py-6 space-y-2">
                     <p className="text-sm text-muted-foreground">
                       {(msgError as Error)?.message || "تعذّر تحميل الرسائل"}

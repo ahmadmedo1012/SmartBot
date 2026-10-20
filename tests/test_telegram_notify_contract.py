@@ -132,12 +132,20 @@ async def test_telegram_notify_support_ticket_skipped_contract(tg, caplog):
 
 async def test_telegram_notify_counts_sent_and_preserves_buttons(tg):
     """توكن + مستلمان ناجحان: sent=2 failed=0، والأزرار تصل في الحِمل كما هي
-    (موافقة/رفض بcallback_data — منطق النداءات غير مكسور)."""
+    (موافقة/رفض بcallback_data — منطق النداءات غير مكسور).
+
+    W7-I-A (مسمار مُعاد تثبيته أقوى): العقد الملخص يحمل الآن مراجع النسخ
+    الإدارية — result["tg_msgs"] = [{chat_id, message_id}] لكل إرسال مُقرّ
+    حمل أزرار حسم (المعرف الذي كان يُهدر؛ بدونه لا يستطيع قرار اللوحة
+    تحرير نسخ الأدمن). المُحاكاة تُعيد message_id=len(calls) فيثبت المسمار
+    القيم الدقيقة حرفيًا."""
     await tg.set_state(token=VALID_TOKEN, admin_ids=[ADMIN_A, ADMIN_B])
     result = await tg.mod.notify_admins_new_payment(
         33, "tester", 45, "madar", "0922222222")
     assert result == {"sent": 2, "failed": 0, "recipients": 2,
-                      "skipped_no_config": False, "payment_id": 33}
+                      "skipped_no_config": False, "payment_id": 33,
+                      "tg_msgs": [{"chat_id": ADMIN_A, "message_id": 1},
+                                  {"chat_id": ADMIN_B, "message_id": 2}]}
     assert len(tg.calls) == 2
     for call in tg.calls:
         assert call["url"].startswith(f"https://api.telegram.org/bot{VALID_TOKEN}/sendMessage")

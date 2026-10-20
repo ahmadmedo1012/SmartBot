@@ -248,6 +248,101 @@ async def edit_message(chat_id: int, message_id: int, text: str):
     }, token)
 
 
+# ── W7-I-A: نصوص الحسم — المصدر الواحد لمساري تليجرام واللوحة ─────────────
+# b172fa1 (W7-H1) جعل مسار أزرار تليجرام صادقًا؛ هذه البُناة ترفع نصوصه إلى
+# عقد واحد يستهلكه المساران: الويبهوك (app/telegram.py) وقرار اللوحة
+# (routers/payments/approvals.py) — المرآة «بنفس النص» تصير بالبناء لا
+# بالنسخ، فلا انحراف مستقبلي ممكن. المخرجات مطابقة بايت-بايت لنصوص b172fa1
+# (مسامير test_v11_telegram.py تبقى خضراء).
+
+
+def sub_resolution_edit_text(payment_id: int, plan_name: str, username: str,
+                             *, verified: bool) -> str:
+    """نص تحرير رسالة الاشتراك بعد الحسم (sub_app/sub_rej + قرارات اللوحة).
+
+    verified=True  → «✅ تم تأكيد الاشتراك» (نص sub_app في الويبهوك حرفيًا).
+    verified=False → «❌ تم رفض طلب الاشتراك» (نص sub_rej — W7-H1 أصلح
+    تهنئة الرفض؛ هذا هو نفس النص الصادق).
+    """
+    if verified:
+        return (
+            f"✅ <b>تم تأكيد الاشتراك</b> #{payment_id}\n"
+            f"الباقة: {escape_user_text(plan_name)}\n"
+            f"المستخدم: {escape_user_text(username)}"
+        )
+    return (
+        f"❌ <b>تم رفض طلب الاشتراك</b> #{payment_id}\n"
+        f"الباقة: {escape_user_text(plan_name)}\n"
+        f"المستخدم: {escape_user_text(username)}"
+    )
+
+
+def pay_resolution_edit_text(payment_id: int, amount, username: str,
+                            *, confirmed: bool) -> str:
+    """نص تحرير رسالة شحن المحفظة بعد الحسم (pay_app/pay_rej حرفيًا).
+
+    W7-I-A: لا يوجد اليوم مسار لوحة يحسم PaymentRequest (الشحنات تُحسم من
+    تليجرام وحده) — الباني موجود ليكمل العائلة ويجهّز أي سطح حسم مستقبلي
+    (قائمة شحنات إدارية مثلًا) بنفس الحقيقة، ويُستخدم في اختبارات العائلة.
+    """
+    if confirmed:
+        return (
+            f"✅ <b>تم تأكيد الدفع</b> #{payment_id}\n"
+            f"المبلغ: {fmt_lyd(amount)} د.ل\n"
+            f"المستخدم: {escape_user_text(username)}"
+        )
+    return (
+        f"❌ <b>تم رفض الدفع</b> #{payment_id}\n"
+        f"المبلغ: {fmt_lyd(amount)} د.ل\n"
+        f"المستخدم: {escape_user_text(username)}"
+    )
+
+
+def sub_cancelled_by_user_edit_text(payment_id: int, plan_name: str,
+                                    username: str) -> str:
+    """W7-I-A: المستخدم سحب طلبه المعلق بنفسه — نص صادق يميّز الإلغاء
+    الذاتي عن قرار الإدارة (ألا يظن الأدمن أن زميلًا رفض الطلب، ولا أن
+    يكافئ «✅» طلبًا لن يُدفع)."""
+    return (
+        f"🚫 <b>أُلغي طلب الاشتراك</b> #{payment_id}\n"
+        f"الباقة: {escape_user_text(plan_name)}\n"
+        f"المستخدم: {escape_user_text(username)}\n"
+        f"ألغى المستخدم هذا الطلب بنفسه"
+    )
+
+
+async def sync_resolution_to_admins(refs, text: str, *, payment_id=None) -> int:
+    """W7-I-A (لوحة→تليجرام): مرآة الحسم على كل نسخة إدارية مثبتة.
+
+    للمراجع المثبتة في extra_data["tg_msgs"] (كما أعادها sendMessage لحظة
+    الإرسال): editMessageText بنص الحسم الصادق نفسه (parse_mode HTML) ثم
+    editMessageReplyMarkup لتجريد أزرار الموافقة/الرفض — نفس ترتيب مسار
+    الويبهوك بعد b172fa1، فلا تبقى أزرار حية على طلب محسوم أيًا كانت قناة
+    الحسم (لوحة/تليجرام/إلغاء ذاتي).
+
+    Never raises: الحسم الحقيقي خالد في القاعدة قبل أي نداء تليجرام؛ فشل
+    تليجرام (توكن ميت/بوت محجوب/رسالة محذوفة) يُسجَّل بصوت عالٍ لكل نسخة
+    ويُتخطى — لا يفشل إجراء اللوحة أبدًا. يعيد عدد النسخ المُحرَّرة.
+    """
+    synced = 0
+    for ref in refs or []:
+        try:
+            if not isinstance(ref, dict):
+                continue
+            chat_id = ref.get("chat_id")
+            message_id = ref.get("message_id")
+            if chat_id is None or message_id is None:
+                continue
+            await edit_message(chat_id, message_id, text)
+            await edit_keyboard(chat_id, message_id)
+            synced += 1
+        except Exception:
+            log.warning("telegram panel-sync failed for ref %r (payment=%s) "
+                        "— the DB verdict stands", ref, payment_id,
+                        exc_info=True)
+    return synced
+
+
 async def answer_callback(callback_id: str, text: str, alert: bool = True):
     token = await get_bot_token()
     await asyncio.to_thread(_call, "answerCallbackQuery", {
@@ -260,7 +355,11 @@ async def _notify_admins(text: str, buttons: list[list[dict]] | None, *,
     """Shared admin broadcast with a REAL observability contract (v18-1-d).
 
     Returns ``{"sent": n, "failed": m, "recipients": k,
-    "skipped_no_config": bool}`` (+ ``payment_id`` when known):
+    "skipped_no_config": bool}`` (+ ``payment_id`` when known, and — W7-I-A —
+    ``tg_msgs`` when at least one BUTTONED copy was acknowledged, as
+    ``[{"chat_id": X, "message_id": Y}, ...]`` so a later resolution from
+    ANY channel can edit those admin copies; buttonless broadcasts like the
+    support ticket have no resolution lifecycle and keep the lean dict):
       - sent    = messages Telegram actually acknowledged ("ok": true);
       - failed  = per-recipient send failures (after the one retry);
       - skipped_no_config = no bot token OR zero recipients — the exact
@@ -285,6 +384,10 @@ async def _notify_admins(text: str, buttons: list[list[dict]] | None, *,
         result["skipped_no_config"] = True
         return result
     result["recipients"] = len(admin_ids)
+    # W7-I-A: مراجع النسخ الإدارية — معرف الرسالة الذي كان يُهدر (الجذر)
+    # يُجمع الآن لكل إرسال مُقرّ يحمل أزرار حسم، حتى تثبّته مواقع الاستدعاء
+    # في extra_data["tg_msgs"] ويصبح مسار اللوحة قادرًا على تحرير النسخ.
+    refs: list[dict] = []
     for aid in admin_ids:
         # NOTE: the loop deliberately goes through the module-level send_message
         # (NOT _send_to directly) — the existing monkeypatch contract
@@ -300,9 +403,16 @@ async def _notify_admins(text: str, buttons: list[list[dict]] | None, *,
             continue
         if isinstance(resp, dict) and resp.get("ok") is True:
             result["sent"] += 1
+            if buttons:
+                payload = resp.get("result")
+                mid = payload.get("message_id") if isinstance(payload, dict) else None
+                if mid is not None:
+                    refs.append({"chat_id": aid, "message_id": mid})
         else:
             result["failed"] += 1
             log.warning("telegram notify send failed chat_id=%s (kind=%s)", aid, kind)
+    if refs:
+        result["tg_msgs"] = refs
     return result
 
 

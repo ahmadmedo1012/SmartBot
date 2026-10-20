@@ -21,9 +21,14 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 from models import SubscriptionPayment, SubscriptionPlan, Tenant, User
 from sqlalchemy import desc, select, update
+from telegram_bot import sub_resolution_edit_text, sync_resolution_to_admins
 
 from routers.auth import get_current_user, is_platform_admin, require_platform_admin, require_role
-from routers.payments.wallet import _as_int
+from routers.payments.wallet import (
+    _as_int,
+    tg_refs_from_row,
+    tg_username_from_row,
+)
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["payments"])
@@ -186,6 +191,34 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
         # v25 (B-20): كان يُبتلع بلا أثر — الإشعار جزء من عقد الموافقة.
         log.warning("payment %s: user notification failed", sp.id, exc_info=True)
     await db.commit()
+    # W7-I-A (لوحة→تليجرام): مرآة الحسم الصادق على نسخ الأدمن الإدارية —
+    # الجذر: معرف الرسالة الذي أعاده sendMessage كان يُهدر لحظة إشعار
+    # الإنشاء، فقرار اللوحة لم يكن يملك مرجعًا يحرّره، ورسالة الأدمن كانت
+    # تبقى بأزرار موافقة/رفض حية على طلب محسوم (انحراف القناة الثانية بعد
+    # b172fa1 الذي أصلح مسار أزرار تليجرام وحده). نفس نصوص الحسم حرفيًا
+    # (sub_app/sub_rej — الباني المشترك) + تجريد الأزرار؛ فشل تليجرام لا
+    # يفشل قرار اللوحة أبدًا (الحسم خالد في القاعدة قبل أي نداء) لكنه
+    # يُسجّل بصوت عالٍ — والقارئ الدفاعي يحيّد الصفوف القديمة بلا مراجع.
+    try:
+        refs = tg_refs_from_row(sp)
+        if refs:
+            synced = await sync_resolution_to_admins(
+                refs,
+                sub_resolution_edit_text(
+                    sp.id, sp.plan_name, tg_username_from_row(sp),
+                    verified=decision == "verified",
+                ),
+                payment_id=sp.id,
+            )
+            if synced < len(refs):
+                log.warning("payment %s: panel→telegram sync incomplete "
+                            "(%s/%s admin copies edited — stale buttons may "
+                            "survive on the failed copies)",
+                            sp.id, synced, len(refs))
+    except Exception:
+        log.warning("payment %s: panel→telegram sync failed — the panel "
+                    "verdict is already durable in DB", payment_id,
+                    exc_info=True)
     return ok({"ok": True, "status": decision, "activated": decision == "verified" and not _activation_failed})
 
 

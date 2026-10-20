@@ -33,7 +33,10 @@ from models import (
     User,
 )
 from sqlalchemy import select, update
-from telegram_bot import escape_user_text
+from telegram_bot import (
+    pay_resolution_edit_text,
+    sub_resolution_edit_text,
+)
 
 log = logging.getLogger("fb-api")
 
@@ -202,17 +205,19 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                 # v22-D7 (FIX-B #1): editMessageText is now parse_mode=HTML —
                 # plan_name/username are user data («مميز_السعر», ``fixb_x``)
                 # and must be escaped, bold via <b>…</b> (was *…* Markdown).
-                msg_text = (
-                    f"✅ <b>تم تأكيد الاشتراك</b> #{payment_id}\n"
-                    f"الباقة: {escape_user_text(sp.plan_name)}\n"
-                    f"المستخدم: {escape_user_text((sp.extra_data or {}).get('username', '') or '')}"
+                # W7-I-A: النص يعيش الآن في الباني المشترك — الويبهوك وقرار
+                # اللوحة يستهلكان نفس العقد (مرآة بالبناء لا بالنسخ).
+                msg_text = sub_resolution_edit_text(
+                    payment_id, sp.plan_name,
+                    (sp.extra_data or {}).get("username", "") or "",
+                    verified=True,
                 )
                 await runner.answer_callback(cq["id"], "✅ تم تأكيد الاشتراك")
             else:
-                msg_text = (
-                    f"❌ <b>تم رفض طلب الاشتراك</b> #{payment_id}\n"
-                    f"الباقة: {escape_user_text(sp.plan_name)}\n"
-                    f"المستخدم: {escape_user_text((sp.extra_data or {}).get('username', '') or '')}"
+                msg_text = sub_resolution_edit_text(
+                    payment_id, sp.plan_name,
+                    (sp.extra_data or {}).get("username", "") or "",
+                    verified=False,
                 )
                 await runner.answer_callback(cq["id"], "❌ تم رفض طلب الاشتراك")
             if msg.get("chat") and msg.get("message_id"):
@@ -252,8 +257,10 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
             await runner.answer_callback(cq["id"], "✅ تم تأكيد الدفع وإضافة الرصيد")
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
-                await runner.edit_message(msg["chat"]["id"], msg["message_id"],
-                                   f"✅ <b>تم تأكيد الدفع</b> #{payment_id}\nالمبلغ: {fmt_lyd(pr.amount)} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
+                await runner.edit_message(
+                    msg["chat"]["id"], msg["message_id"],
+                    pay_resolution_edit_text(payment_id, pr.amount, pr.username,
+                                             confirmed=True))
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
         else:
             await db.commit()
@@ -261,8 +268,10 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
             await runner.answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
-                await runner.edit_message(msg["chat"]["id"], msg["message_id"],
-                                   f"❌ <b>تم رفض الدفع</b> #{payment_id}\nالمبلغ: {fmt_lyd(pr.amount)} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
+                await runner.edit_message(
+                    msg["chat"]["id"], msg["message_id"],
+                    pay_resolution_edit_text(payment_id, pr.amount, pr.username,
+                                             confirmed=False))
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
     return {"ok": True}
 

@@ -238,7 +238,10 @@ export default function PricingPage() {
                           unification with /subscribe (SM PricingClient twin);
                           the gradient + shadow-lg are gone. */}
                       <div className="bg-primary text-primary-foreground text-3xs font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1">
-                        <Crown className="size-3 fill-white" />
+                        {/* W7-G (A4 P1-2): the crown rides the pill's own
+                            ground pair — raw fill-white silently broke on
+                            any theme where --primary-foreground ≠ #fff. */}
+                        <Crown className="size-3 fill-primary-foreground" />
                         الأكثر شعبية
                       </div>
                     </div>

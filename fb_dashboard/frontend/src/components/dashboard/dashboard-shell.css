@@ -29,6 +29,23 @@
   color: var(--foreground);
 }
 
+/* W7-G (A4 P1-1): light-stage twins for the delta family. The raw
+ * dark-stage values above read 2.95/3.41/3.13:1 on the light card
+ * (sub-AA at the ticker's 11px/600 deltas), so the light cascade
+ * re-voices them on the fleet's AA status-TEXT tier — the SAME -ink
+ * colors KpiCard trends ride (r131-F7), zero new literals:
+ *   up   → --success-ink      (light: mint-deep   #0F4A33 — 10.26:1 card / 9.15:1 ground)
+ *   down → --destructive-ink   (light: rose-deep  #6B2128 — 11.21:1 card / 10.00:1 ground)
+ *   warn → --warning-ink       (light: yellow-deep #6B4C0B —  7.88:1 card /  7.03:1 ground)
+ * The muted-delta grammar survives as the deep companions (NOT neon);
+ * the dark stage keeps the spec-§2 measured trio (6.68/5.77/6.28:1 on
+ * the night card — untouched). */
+html.light .sb-shell {
+  --sb-delta-up: var(--success-ink);
+  --sb-delta-down: var(--destructive-ink);
+  --sb-delta-warn: var(--warning-ink);
+}
+
 /* ── 1 · NAV RAIL (fixed, inline-START edge = RIGHT in RTL, ≈80px) ───── */
 .sb-rail {
   inline-size: 80px;

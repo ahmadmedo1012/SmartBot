@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ArrowLeft } from "lucide-react";
+import { DirectionalIcon } from "@/components/ui/directional-icon";
 import { useMagnetic } from "@/hooks/useMagnetic";
 
 /* r128 Stage B (F3b) — the gold conversion pill with the canonical
@@ -36,7 +36,9 @@ export function MagneticGoldLink({
       aria-label={ariaLabel}
     >
       {children}
-      {withArrow && <ArrowLeft size={xl ? 16 : 14} aria-hidden="true" />}
+      {/* W7-G (A4 P2): v7 §2.1 — the arrow rides the semantic single-source
+          (DirectionalIcon) instead of a raw glyph with a private flip. */}
+      {withArrow && <DirectionalIcon semanticDirection="forward" size={xl ? 16 : 14} />}
     </a>
   );
 }

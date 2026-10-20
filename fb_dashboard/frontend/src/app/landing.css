@@ -1062,7 +1062,12 @@ html.light .landing .ln-marquee {
 }
 .landing .ln-cta-title em { font-style: normal; color: var(--ln-cream); }
 .landing .ln-cta-lede { margin: 0; color: var(--ln-cream-dim); font-size: clamp(15px, 1.5vw, 16.5px); line-height: 1.6; max-inline-size: 54ch; }
-.landing .ln-cta-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--sp-4); margin-block-start: var(--sp-2); }
+/* W7-G (A4 P2-3): the robot's speech bubble (.ln-cta-bot-say, −14px
+   offset + −100% translate ≈ 36-37px of rise over the 74px plate) used
+   to clear the lede by only 28px (grid gap sp-5 20px + this sp-2 8px)
+   and grazed the Arabic descenders of the lede's last line — one rung
+   up (sp-2 → sp-5) buys 40px of clearance and keeps the ladder. */
+.landing .ln-cta-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--sp-4); margin-block-start: var(--sp-5); }
 /* r149 (C2): the row carried the default stretch — the 74px robot
    companion dragged BOTH pills up to 74px, three rungs off the 52px xl
    floor. Centering pins the pair to its own rung; the robot keeps its
@@ -1132,7 +1137,11 @@ html.light .landing .ln-marquee {
 .landing .landing-footer {
   border-block-start: 1px solid var(--ln-line);
   background: var(--ln-ink-2);
-  padding-block: clamp(44px, 6vh, 64px) var(--sp-6);
+  /* W7-G (VLM 9a): the sp-6 block-end pad cleared the viewport edge but
+     NOT the iOS home indicator — the © line rode the very bottom on
+     notched phones (the mobile drawer got the same r130 (W1-E L2)
+     env() fix). The canon rung stays; the inset rides ON TOP of it. */
+  padding-block: clamp(44px, 6vh, 64px) calc(var(--sp-6) + env(safe-area-inset-bottom, 0px));
   position: relative;
 }
 .landing .landing-footer::before {

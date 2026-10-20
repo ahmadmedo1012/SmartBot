@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Menu, X, ChevronDown, ArrowLeft, Route, Bot, LayoutDashboard, BarChart3 } from "lucide-react";
+import { Menu, X, ChevronDown, Route, Bot, LayoutDashboard, BarChart3 } from "lucide-react";
+import { DirectionalIcon } from "@/components/ui/directional-icon";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 /* v16-r142 «رفيق» — the landing header, now navigating the companion's
@@ -201,7 +202,9 @@ export function LandingHeader() {
             <Link href="/demo" className="ln-btn-ghost">جرّب البوت</Link>
             <Link href="/subscribe" className="ln-btn-gold">
               ابدأ مجاناً
-              <ArrowLeft size={14} aria-hidden="true" />
+              {/* W7-G (A4 P2): v7 §2.1 — the raw ArrowLeft glyph rode a
+                  private flip assumption; the semantic component owns it. */}
+              <DirectionalIcon semanticDirection="forward" size={14} />
             </Link>
           </div>
 
@@ -234,7 +237,7 @@ export function LandingHeader() {
             <Link href="/demo" className="ln-btn-ghost">جرّب البوت</Link>
             <Link href="/subscribe" className="ln-btn-gold">
               ابدأ مجاناً
-              <ArrowLeft size={16} aria-hidden="true" />
+              <DirectionalIcon semanticDirection="forward" size={16} />
             </Link>
           </nav>
         )}

@@ -62,9 +62,27 @@ v15-E2 (D3-H1/H2/M2 + D12-H2/H4): the same healing extended to the
   (users.token_ver / users.is_platform_admin — the live /api/login 500:
   int(None) in routers/auth.py:36).
 
+v21 (P21-W7-F, D-05) — the last HIGH finding: migration 015 rebuilt
+  telegram_approvers.added_by_id as ``ON DELETE SET NULL NOT VALID``
+  (no legacy-row scan at ADD time, no failure on historical orphans),
+  and NO VALIDATE step existed anywhere in chain 001–018 — so the
+  constraint lives NOT VALID on legacy Neon production forever.
+  VALIDATE is not an ADD (this module's surgical contract is "add
+  missing things"), so it ships as its own family below
+  (``_FK_VALIDATE`` + ``_validate_not_valid_fks``) executed from BOTH
+  paths that own schema truth: the boot net here AND alembic revision
+  019 — the 007/014 delegation lineage, one spec for both paths, never
+  a copy. PostgreSQL only: "NOT VALID" is a PostgreSQL concept; SQLite
+  enforces FKs natively on every write (and the test engine has run
+  ``PRAGMA foreign_keys=ON`` since v16-E5), so the family is a
+  dialect-guarded no-op there. Creating a MISSING FK stays out of
+  scope — migration 015 owns FK creation exclusively.
+
 NOT covered (documented limits): other unique/index/FK drift beyond the
-  list below — v16-E5 (D6) أغلق الثغرات التي وجدها D6 في القائمة
-  (انظر _INDEX_HEAL_V16) فالباقي هو مجددًا «ما ليس مذكورًا أسفل». App-level checks already guard these paths; see docs/design-system.md
+  lists below — v16-E5 (D6) أغلق الثغرات التي وجدها D6 في القائمة
+  (انظر _INDEX_HEAL_V16) وv21 (W7-F) أغلقت خطوة VALIDATE لعائلة
+  _FK_VALIDATE، فالباقي هو مجددًا «ما ليس مذكورًا أسفل» (إنشاء FKs
+  مفقودة يبقى ملك السلسلة — 015). App-level checks already guard these paths; see docs/design-system.md
   and CLAUDE.md rules. Reconcile also never DROPS anything — the two dead
   migration columns (users.onboarding_completed from 004,
   payment_requests.amount_numeric from 001) and the duplicate
@@ -358,6 +376,30 @@ _INDEX_HEAL_V16: list[tuple[str, tuple[str, ...], str]] = [
      "ON subscribers (tenant_id, platform, status)"),
 ]
 
+# v21 (P21-W7-F, D-05) — عائلة VALIDATE لقيود FK أنشأتها السلسلة بصيغة
+# NOT VALID (ترحيلة 015 هي المالك الوحيد لإنشاء/إعادة بناء هذه القيود؛
+# هذه العائلة تملك الخطوة الناقصة الوحيدة: تحويل القيد الموجود إلى
+# VALID — الحارس في كتالوج pg_constraint مباشرة). كل مدخل:
+# (الجدول، اسم القيد، عبارات شفاء ما قبل الفحص) — الشفاء يعكس دلالة
+# القيد نفسه (ON DELETE SET NULL): اليتم الذي خلفته حذوفات ما قبل
+# القيد يُصفَّر مرجعه، وإلا فشل VALIDATE وعطّل السلسلة عند 019 إلى
+# الأبد (lifespan يبتلع فشل alembic بتحذير فلا أحد يرى الخطأ).
+# Idempotent ببنية: القيد المفقود يُتخطى (إنشاؤه ملك 015)، والقيد
+# VALID أصلًا يُتخطى (convalidated=true)، ولا يوجد INVALIDATE معاكس.
+_FK_VALIDATE: list[tuple[str, str, tuple[str, ...]]] = [
+    (
+        # FK حذف المستخدم (D6-H2): added_by_id → users.id، SET NULL،
+        # أنشأته 015 باسم telegram_approvers_added_by_id_fkey
+        "telegram_approvers",
+        "telegram_approvers_added_by_id_fkey",
+        (
+            "UPDATE telegram_approvers SET added_by_id = NULL "
+            "WHERE added_by_id IS NOT NULL AND NOT EXISTS ("
+            "SELECT 1 FROM users WHERE users.id = telegram_approvers.added_by_id)",
+        ),
+    ),
+]
+
 # ثوابت server_default فقط — دوال مثل now() يرفضها SQLite في ADD COLUMN
 # وليست "قيمًا افتراضية آمنة" للشفاء.
 _CONSTANT_DEFAULT_RE = re.compile(r"^[0-9A-Za-z_.'\-]+$")
@@ -437,6 +479,60 @@ def _exists_in_catalog(bind, table: str, name: str) -> bool:
     except Exception:
         return False
     return False
+
+
+def _validate_not_valid_fks(bind) -> list[str]:
+    """v21 (P21-W7-F, D-05): VALIDATE لكل FK معلّق (NOT VALID) في العائلة.
+
+    تُشغَّل من reconcile_schema (شبكة الإقلاع — حتى لو تُركت السلسلة أو
+    فشلت: lifespan يبتلع فشل alembic بتحذير فقط) ومن ترحيلة 019 (السلطة
+    المسجَّلة في alembic_version) — مواصفة واحدة للمسارين (نمط تفويض
+    007/014، لا نسخة ثانية تنحرف). PostgreSQL فقط: «NOT VALID» مفهوم
+    PG حصرًا؛ SQLite يطبّق الـFK على كل كتابة أصلاً (ومحرك الاختبار
+    يفعّل PRAGMA foreign_keys منذ v16-E5) فالفرع هناك no-op بالبنية.
+
+    نطاق القفل (مؤشَّر للإنتاج): VALIDATE CONSTRAINT يأخذ SHARE UPDATE
+    EXCLUSIVE على جدول القيد — لا يحجب القراءة ولا الكتابة، فقط
+    VALIDATE/VACUUM/CREATE INDEX المتزامنة على الجدول نفسه — وROW SHARE
+    على الجدول المرجعي (users) كي لا يختفي صف أب أثناء المسح. جدول
+    الموافقين صغير والخطوة تُشغَّل مرة واحدة (convalidated=true بعدها
+    يحرس الحارس كلا المسارين).
+
+    Returns:
+        قائمة «<table>.<constraint>~validated» لما تحقق فعلاً (الفرع
+               غير المتوافق أو المحروس = قائمة فارغة).
+    """
+    if bind.dialect.name != "postgresql":
+        return []
+    validated: list[str] = []
+    for table, name, heals in _FK_VALIDATE:
+        try:
+            row = bind.execute(sa.text(
+                "SELECT NOT con.convalidated FROM pg_constraint con "
+                "JOIN pg_class rel ON rel.oid = con.conrelid "
+                "WHERE con.contype = 'f' AND con.conname = :n "
+                "AND rel.relname = :t"
+            ).bindparams(sa.bindparam("t", table), sa.bindparam("n", name))).first()
+            # لا صف → الجدول أو القيد غير موجود (إنشاء القيد ملك 015)؛
+            # صف بـ convalidated=true → القيد VALID أصلًا. كلاهما تخطٍ.
+            if row is None or not row[0]:
+                continue
+            for stmt in heals:
+                bind.execute(sa.text(stmt))
+            bind.execute(sa.text(
+                f'ALTER TABLE {table} VALIDATE CONSTRAINT "{name}"'
+            ))
+            validated.append(f"{table}.{name}~validated")
+            log.info("reconcile: validated FK %s.%s", table, name)
+        except Exception:
+            # عقيدة الشبكة: لا تُسقط الإقلاع أبدًا — السلسلة (019) هي
+            # السلطة وستعيد المحاولة عند كل upgrade head لاحق.
+            log.warning(
+                "reconcile: could not validate FK %s.%s — "
+                "leaving it to the alembic chain (019)",
+                table, name, exc_info=True,
+            )
+    return validated
 
 
 def reconcile_schema(bind) -> list[str]:
@@ -531,5 +627,11 @@ def reconcile_schema(bind) -> list[str]:
                 "reconcile: could not ensure %s — leaving it to the alembic chain",
                 label, exc_info=True,
             )
+
+    # v21 (P21-W7-F, D-05): عائلة VALIDATE — نفس المواصفة التي تشغّلها
+    # ترحيلة 019 (المساران يشتركان في مواصفة واحدة؛ حارس convalidated
+    # يجعل كلًّا منهما no-op بعد نجاح الآخر — الشبكة تشغّلها أولاً عند
+    # الإقلاع، والسلسلة تسجلها رسميًا في alembic_version).
+    added.extend(_validate_not_valid_fks(bind))
 
     return added

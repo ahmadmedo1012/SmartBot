@@ -245,7 +245,7 @@ def test_chain_head_is_014_on_fresh_db(fresh_db):
     create_all السليمة فلا تغيّر شيئًا هنا."""
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "018"  # v19: جداول fb_posts/ad_* انضمت؛ v24-C5: فهارس المسار العام + قيد العروض → 017؛ r134: شفاء رابط brand_config → 018
+    assert _version(fresh_db) == "019"  # r134: 018؛ P21-W7-F: 019 (VALIDATE لقيد 015 المعلَّق) أصبحت الرأس
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -459,7 +459,8 @@ def test_chain_drops_manual_dup_index_from_013_state(fresh_db):
     # v16-E5: الرأس الآن 015 — خطوة 014 نفسها لم تتغير
     # v19: الرأس أصبح 016
     # r134: الرأس أصبح 018 (شفاء بيانات رابط العلامة)
-    assert _version(fresh_db) == "018"
+    # P21-W7-F: الرأس أصبح 019 (VALIDATE لقيد 015 المعلَّق)
+    assert _version(fresh_db) == "019"  # P21-W7-F: 019 (VALIDATE لقيد 015) أصبحت الرأس
     sched_idx = _index_sql(fresh_db, "scheduled_posts")
     assert "ix_schedpost_status_sched" not in sched_idx
     assert "ix_schedpost_tenant_status_sched" in sched_idx
@@ -498,8 +499,9 @@ def test_production_boot_path_create_all_reconcile_then_chain(fresh_db):
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")  # الخطوة 3: السلسلة فوق القاعدة نفسها
 
-    # v16-E5: الرأس الآن 015؛ v19: أصبح 016؛ r134: أصبح 018
-    assert _version(fresh_db) == "018"
+    # v16-E5: الرأس الآن 015؛ v19: أصبح 016؛ r134: أصبح 018؛
+    # P21-W7-F: أصبح 019 (VALIDATE لقيد 015 المعلَّق)
+    assert _version(fresh_db) == "019"  # P21-W7-F: 019 (VALIDATE لقيد 015) أصبحت الرأس
     assert "onboarding_completed" not in _columns(fresh_db, "users")
     assert "amount_numeric" not in _columns(fresh_db, "payment_requests")
     sched_idx = _index_sql(fresh_db, "scheduled_posts")
@@ -777,4 +779,4 @@ def test_018_brand_website_data_heal(fresh_db):
     # إعادة التشغيل no-op (بند WHERE لا يطابق شيئاً)
     command.downgrade(cfg, "017")
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "018"
+    assert _version(fresh_db) == "019"  # P21-W7-F: 019 (VALIDATE لقيد 015) أصبحت الرأس

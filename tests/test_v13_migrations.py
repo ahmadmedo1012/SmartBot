@@ -156,7 +156,8 @@ def test_chain_reaches_012_and_enforces_unique(fresh_db):
     # v16-E5: الرأس أصبح 015 (فهرس offers الساخن + FK SET NULL) —
     # كلاهما محروس بالـInspector/اللهجة فلا يتأثر شكل العيّنة
     # v19: الرأس أصبح 016 (جداول fb_posts/ad_* — إنشاءات محروسة)
-    assert _version(fresh_db) == "018"  # r134: ترحيلة 018 (نطاق العلامة الافتراضي) أصبحت الرأس
+    # P21-W7-F: الرأس أصبح 019 (VALIDATE لقيد 015 المعلَّق — no-op على SQLite)
+    assert _version(fresh_db) == "019"  # r134: 018؛ P21-W7-F: 019 (VALIDATE لقيد 015) أصبحت الرأس
 
     # dedup: الأقدم (id=1) حُذف، الأحدث (id=2) بقي، الفرادة (id=3) بقت،
     # وأزواج balance/fb_fan_count متطابقة القيمة نجت كليهما (6 صفوف)

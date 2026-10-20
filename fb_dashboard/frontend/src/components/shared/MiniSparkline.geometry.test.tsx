@@ -44,7 +44,8 @@ describe("MiniSparkline geometry", () => {
     // padding 2 → chartW 96, chartH 36: first bottom-left, last top-right
     expect(lineD(container)).toBe("M 2 38 L 98 2")
     const area = container.querySelector('path[fill^="url(#"]')
-    expect(area).toHaveAttribute("fill", "url(#spark-100-up)")
+    // the id carries a useId instance suffix (W7-G A4 P2-8) — prefix-pin it
+    expect(area?.getAttribute("fill")).toMatch(/^url\(#spark-100-up-/)
   })
 
   it("renders a flat [7,7] series as a horizontal, ascending line", () => {

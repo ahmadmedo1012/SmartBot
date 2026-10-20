@@ -301,8 +301,10 @@ export default function ConnectPage() {
 
       {/* Header — r127-F5b: interactive corner chrome = the --z-dropdown
           rung (100), the Smart-Order login/register corner-link recipe
-          (the decorative z-10 progress bar below stays local-level). */}
-      <div className="fixed left-4 right-4 top-4 z-(--z-dropdown) flex items-center justify-between">
+          (the decorative z-10 progress bar below stays local-level).
+          W7-G (A4 P2): inset-x-4 replaces the physical left-4 right-4
+          pair (r131/r134 — no physical insets in RTL pages). */}
+      <div className="fixed inset-x-4 top-4 z-(--z-dropdown) flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <DirectionalIcon semanticDirection="back" className="h-4 w-4" />
           العودة للوحة التحكم

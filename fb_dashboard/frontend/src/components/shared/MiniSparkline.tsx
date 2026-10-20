@@ -1,5 +1,7 @@
 "use client"
 
+import { useId } from "react"
+
 import { cn } from "@/lib/utils"
 /* v11-A7 — framer-free rewrite. `import { motion } from "framer-motion"`
  * here kept the ~116KB motion engine in /dashboard's first-load JS for two
@@ -29,6 +31,12 @@ export function MiniSparkline({
   height = 28,
   className,
 }: MiniSparklineProps) {
+  /* W7-G (A4 P2-8): instance suffix — the id used to be
+   * `spark-${width}-${dir}`, so every same-size sparkline on a page
+   * shared ONE gradient <defs> entry (last paint wins; in Safari a
+   * moved/removed node can leave the fill resolving to nothing).
+   * useId rides BEFORE the data guard: hooks stay unconditional. */
+  const instanceId = useId()
   if (data.length < 2) return null
 
   const maxVal = Math.max(...data, 1)
@@ -46,6 +54,7 @@ export function MiniSparkline({
   const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ")
 
   const isUp = data[data.length - 1] >= data[0]
+  const gradientId = `spark-${width}-${isUp ? "up" : "dn"}-${instanceId}`
   const trendColor = isUp
     ? "var(--success, oklch(0.62 0.18 145))"
     : "var(--destructive, oklch(0.6 0.22 25))"
@@ -58,8 +67,10 @@ export function MiniSparkline({
             oklch literal (L 0.72, C 0.14, H 75) — a Madarek-gold value that
             survived the hex greps because oklch spells it differently; an
             amber wash under a petrol/teal card is off-canon. The gradient
-            id still flips with the trend direction (up: mint, down: rose). */}
-        <linearGradient id={`spark-${width}-${isUp ? "up" : "dn"}`} x1="0" x2="0" y1="0" y2="1">
+            id flips with the trend direction (up: mint, down: rose) and
+            carries the useId instance suffix (W7-G A4 P2-8 — no cross-
+            instance id collisions). */}
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={trendColor} stopOpacity={0.25} />
           <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
         </linearGradient>
@@ -67,7 +78,7 @@ export function MiniSparkline({
       {/* Area */}
       <path
         d={`${path} L ${points[points.length - 1].x} ${padding + chartH} L ${points[0].x} ${padding + chartH} Z`}
-        fill={`url(#spark-${width}-${isUp ? "up" : "dn"})`}
+        fill={`url(#${gradientId})`}
         className="sb-spark-area"
       />
       {/* Line — pathLength={1} normalizes dash units so the CSS twin draws it */}

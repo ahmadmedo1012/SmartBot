@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
+import { tagPillClasses } from "@/components/shared/pills"
 import { countPhrase, formatDate, formatDateOnly } from "@/lib/format"
 import type { BroadcastRow, TagRow } from "@/lib/types"
 
@@ -294,6 +295,9 @@ export default function BroadcastPage() {
                   <div className="flex flex-wrap gap-2" role="group" aria-label="وسوم تصفية البث">
                     {(tagsQuery.data ?? []).map((t) => {
                       const on = selectedTags.includes(t.name)
+                      /* W7-G (A4 P2-6): the canonical tag twin of the pill
+                         family — kills the private focus-visible:ring-2 +
+                         the hand-rolled on/off wash pair. */
                       return (
                         <button
                           key={t.id}
@@ -305,12 +309,7 @@ export default function BroadcastPage() {
                           }
                           aria-pressed={on}
                           aria-label={`${on ? "إزالة تصفية" : "تصفية"} بالوسم ${t.name}`}
-                          className={
-                            "min-h-11 px-3 rounded-full border flex items-center gap-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 " +
-                            (on
-                              ? "bg-accent-foreground/10 border-accent-foreground/30 text-accent-foreground"
-                              : "bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70")
-                          }
+                          className={tagPillClasses(on)}
                         >
                           <span
                             className="size-2.5 rounded-full shrink-0 border border-border/60"

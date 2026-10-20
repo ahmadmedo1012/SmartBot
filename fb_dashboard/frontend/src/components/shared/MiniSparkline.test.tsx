@@ -44,9 +44,25 @@ describe("MiniSparkline", () => {
     expect(svg).toHaveAttribute("aria-label", "اتجاه هابط")
     const line = svg?.querySelector('path[fill="none"]')
     expect(line).toHaveAttribute("stroke", "var(--destructive, oklch(0.6 0.22 25))")
-    // the area gradient id flips with the trend direction
+    // the area gradient id flips with the trend direction AND carries a
+    // useId instance suffix (W7-G A4 P2-8 — same-size sparklines must not
+    // collide on one page)
     const area = svg?.querySelector('path[fill^="url(#"]')
-    expect(area).toHaveAttribute("fill", "url(#spark-80-dn)")
+    expect(area?.getAttribute("fill")).toMatch(/^url\(#spark-80-dn-/)
+  })
+
+  it("gives every same-size sparkline its own gradient id — no collisions (W7-G)", () => {
+    const { container } = renderRtl(
+      <>
+        <MiniSparkline data={[1, 5]} />
+        <MiniSparkline data={[1, 5]} />
+      </>
+    )
+    const fills = [...container.querySelectorAll('path[fill^="url(#"]')].map((p) =>
+      p.getAttribute("fill"),
+    )
+    expect(fills).toHaveLength(2)
+    expect(fills[0]).not.toBe(fills[1])
   })
 
   it("scales points into the padded viewBox and keeps default 80×28 dimensions", () => {

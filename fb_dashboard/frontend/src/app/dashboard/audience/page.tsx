@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Input } from "@/components/ui/input"
 import { unwrapApi } from "@/lib/api"
 import { TAG_COLORS } from "@/lib/tag-colors"
+import { tagPillClasses } from "@/components/shared/pills"
 import type { AnalyticsOverview, Paginated, Subscriber, TagRow, TopCommenter } from "@/lib/types"
 import { countPhrase, formatDateOnly } from "@/lib/format"
 
@@ -520,6 +521,9 @@ function SubscriberTagsDialog({ sub, onClosed }: { sub: Subscriber; onClosed: ()
               const pending =
                 (assignMut.isPending && assignMut.variables === t.id) ||
                 (removeMut.isPending && removeMut.variables === t.id)
+              /* W7-G (A4 P2-6): the canonical tag twin of the pill family —
+                 kills the private focus-visible:ring-2 + the hand-rolled
+                 on/off wash pair this dialog carried. */
               return (
                 <button
                   key={t.id}
@@ -528,12 +532,7 @@ function SubscriberTagsDialog({ sub, onClosed }: { sub: Subscriber; onClosed: ()
                   disabled={pending || busy}
                   aria-pressed={on}
                   aria-label={`${on ? "إزالة وسم" : "تعيين وسم"} ${t.name}`}
-                  className={
-                    "min-h-11 px-3 rounded-full border flex items-center gap-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 disabled:opacity-60 " +
-                    (on
-                      ? "bg-accent-foreground/10 border-accent-foreground/30 text-accent-foreground"
-                      : "bg-muted/40 border-border/60 text-muted-foreground hover:bg-muted/70")
-                  }
+                  className={tagPillClasses(on, "disabled:opacity-60")}
                 >
                   {pending && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
                   <span

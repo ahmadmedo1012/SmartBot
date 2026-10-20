@@ -10,8 +10,10 @@
  *   · --sb-delta-up/down/warn — the MUTED delta family (spec §2 measured:
  *     green rgb(108,164,99), red rgb(200,120,24), salmon rgb(224,113,96)).
  *   · --sb-spectrum — the cyan→orange reference accent spelled in SmartBot
- *     identity: signal-teal → dark gold #E9B44C (the --state-focus-ring
- *     metal, globals.css r130). BORDERS ONLY — never a fill (spec §2).
+ *     identity: signal-teal → dark gold #E9B44C (DOCUMENTED as the
+ *     --state-focus-ring metal at W2-C2a time — that alias has since
+ *     DRIFTED, see the TODO at the token below). BORDERS ONLY — never a
+ *     fill (spec §2).
  * Layout constants follow the measured shell: rail ≈80px, top band ≈70px
  * (33px utility row + 37px title row), ticker card ≈57px, bottom AI
  * surface ≈88px, 1px hairline dividers everywhere, zero drop shadows.
@@ -22,7 +24,16 @@
   --sb-delta-up: rgb(108 164 99);
   --sb-delta-down: rgb(200 120 24);
   --sb-delta-warn: rgb(224 113 96);
-  /* spectrum accent, borders of high-attention elements ONLY (spec §2) */
+  /* spectrum accent, borders of high-attention elements ONLY (spec §2).
+   * W7-G (A4 P2) TODO(gold, coordinator ruling): the #E9B44C end-stop is
+   * a raw hex literal AND its documented alias is now FALSE —
+   * --state-focus-ring-color resolves to var(--accent-solid) = teal
+   * #56E2F2 (globals.css:641 r130-FLEET-1 + the phase5 Circuit Petrol
+   * re-brand), so pointing this gradient at the token would silently
+   * flatten the two-tone spectrum (teal→teal). NO gold token exists in
+   * the current sheets (--c-saffron is #56E2F2 too). Mint a gold rung
+   * for the spectrum's metal end or re-map it to a live identity token
+   * — until that ruling the literal ships verbatim (no guess-hacks). */
   --sb-spectrum: linear-gradient(90deg, var(--accent-solid) 0%, #E9B44C 100%);
 
   background: var(--background);

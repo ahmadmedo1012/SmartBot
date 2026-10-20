@@ -23,3 +23,23 @@ export function pillClasses(on: boolean, className?: string) {
     className
   )
 }
+
+/**
+ * tagPillClasses — the TAG twin of the pill family (W7-G, A4 P2-6): the
+ * toggle chips that assign/filter subscriber TAGS (audience dialog,
+ * broadcast filter, messages). Same ONE grammar as pillClasses —
+ * surface + hairline, −1px hover lift, `.on` ink slab + 4px halo — and
+ * the same ONE focus law: NO private ring (each of the three sites it
+ * replaced carried its own focus-visible:ring-2, the exact drift from
+ * the global outline contract this retires). What tag chips uniquely
+ * add on top: the 44px touch floor (min-h-11), px-3 + gap-1.5 for the
+ * color-dot child, text-sm/medium for free-length Arabic tag names,
+ * and WRAP (the base family's nowrap would break a 320px dialog row
+ * the moment a tag name runs long).
+ */
+export function tagPillClasses(on: boolean, className?: string) {
+  return pillClasses(
+    on,
+    cn("min-h-11 gap-1.5 px-3 text-sm font-medium whitespace-normal", className)
+  )
+}

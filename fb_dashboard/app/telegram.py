@@ -38,6 +38,45 @@ from telegram_bot import escape_user_text
 log = logging.getLogger("fb-api")
 
 
+async def _resolve_dedup_answer(db, model, payment_id: int, tapped: str) -> tuple[str, bool]:
+    """W7-H1 (r116 Smart-Menu parity) — three-state «already processed» truth.
+
+    The old one-size-fits-all «تمت معالجة هذا الطلب مسبقاً» left the tapping
+    admin blind: an idempotent re-tap (the SAME decision that already won —
+    double-tap / Telegram redelivery / a stale keyboard copy) looked identical
+    to a CONFLICT (the request was resolved the OPPOSITE way). The stored
+    status now decides the answer:
+
+      * same decision already stored  → friendly toast, no alert — the admin
+        learns their earlier press DID land, nothing is wrong;
+      * opposite decision stored      → explicit conflict alert — the admin
+        learns the request is resolved the other way and cannot flip;
+      * row gone / status unknown    → the legacy message as a safe default.
+
+    ``tapped`` is the decision THIS tap wanted ("confirmed"/"cancelled" for
+    pay_, "verified"/"cancelled" for sub_). Returns (answer_text, show_alert).
+    """
+    stored = await db.get(model, payment_id)
+    if stored is None:
+        return "الطلب غير موجود أو تمت معالجته مسبقاً", True
+    stored_status = stored.status
+    if stored_status == tapped:
+        # Idempotent replay — the admin's own earlier press already did this.
+        verb = (
+            "تم تأكيد هذا الدفع مسبقاً" if tapped == "confirmed"
+            else "تمت الموافقة على هذا الطلب مسبقاً" if tapped == "verified"
+            else "تم رفض هذا الطلب مسبقاً"
+        )
+        return f"✅ {verb}", False
+    # Opposite resolution — an explicit conflict, never silently "processed".
+    if stored_status in ("confirmed", "verified"):
+        noun = "هذا الدفع" if model.__name__ == "PaymentRequest" else "هذا الطلب"
+        return f"⚠️ {noun} تمت الموافقة عليه مسبقاً — لا يمكن رفضه", True
+    noun = "هذا الدفع" if model.__name__ == "PaymentRequest" else "هذا الطلب"
+    confirm_verb = "تأكيده" if model.__name__ == "PaymentRequest" else "الموافقة عليه"
+    return f"⚠️ {noun} تم رفضه مسبقاً — لا يمكن {confirm_verb}", True
+
+
 async def telegram_webhook(request: Request, body: dict = Body(...)):
     """Handle Telegram callback queries for payment approve/reject."""
     import runner  # deferred — canonical secret flag + telegram callables live on runner
@@ -95,7 +134,15 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
             )
             sp = sub_result.scalar_one_or_none()
             if not sp:
-                await runner.answer_callback(cq["id"], "تمت معالجة هذا الطلب مسبقاً", True)
+                # W7-H1: three-state truth + keyboard strip (pay_-path parity —
+                # this arm used to answer the generic message and return with
+                # the tapped copy's buttons still LIVE, inviting yet another
+                # confusing press on a resolved request).
+                answer_text, show_alert = await _resolve_dedup_answer(
+                    db, SubscriptionPayment, payment_id, new_status)
+                await runner.answer_callback(cq["id"], answer_text, show_alert)
+                if msg.get("chat") and msg.get("message_id"):
+                    await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
                 return {"ok": True}
             if new_status == "verified":
                 # Activate plan for tenant
@@ -142,18 +189,35 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                 log.warning("payment-rejection notification failed (payment=%s)",
                             sp.id, exc_info=True)
             await db.commit()
-            # v22-D7 (FIX-B #1): editMessageText is now parse_mode=HTML —
-            # plan_name/username are user data («مميز_السعر», ``fixb_x``) and
-            # must be escaped, bold via <b>…</b> (was *…* Markdown).
-            msg_text = (
-                f"✅ <b>تم تأكيد الاشتراك</b> #{payment_id}\n"
-                f"الباقة: {escape_user_text(sp.plan_name)}\n"
-                f"المستخدم: {escape_user_text((sp.extra_data or {}).get('username', '') or '')}"
-            )
+            # W7-H1 (r116 Smart-Menu parity) — TOAST FIRST: the outcome is
+            # durable in the DB; answer the admin IMMEDIATELY, before any slow
+            # editMessageText/editMessageReplyMarkup. The old order answered
+            # LAST: two Telegram HTTP calls (each timeout+retry ≈ up to ~20s)
+            # ate Telegram's ~15s answerCallbackQuery window — the tap spinner
+            # died with NO feedback, the admin pressed again, and the re-tap
+            # answered «تمت معالجة هذا الطلب مسبقاً» — the exact owner report.
+            # W7-H1 (truth bug): a REJECTION now says rejected — the old text
+            # congratulated «✅ تم تأكيد الاشتراك» on a sub_rej press too.
+            if new_status == "verified":
+                # v22-D7 (FIX-B #1): editMessageText is now parse_mode=HTML —
+                # plan_name/username are user data («مميز_السعر», ``fixb_x``)
+                # and must be escaped, bold via <b>…</b> (was *…* Markdown).
+                msg_text = (
+                    f"✅ <b>تم تأكيد الاشتراك</b> #{payment_id}\n"
+                    f"الباقة: {escape_user_text(sp.plan_name)}\n"
+                    f"المستخدم: {escape_user_text((sp.extra_data or {}).get('username', '') or '')}"
+                )
+                await runner.answer_callback(cq["id"], "✅ تم تأكيد الاشتراك")
+            else:
+                msg_text = (
+                    f"❌ <b>تم رفض طلب الاشتراك</b> #{payment_id}\n"
+                    f"الباقة: {escape_user_text(sp.plan_name)}\n"
+                    f"المستخدم: {escape_user_text((sp.extra_data or {}).get('username', '') or '')}"
+                )
+                await runner.answer_callback(cq["id"], "❌ تم رفض طلب الاشتراك")
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_message(msg["chat"]["id"], msg["message_id"], msg_text)
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
-            await runner.answer_callback(cq["id"], "✅ تم تأكيد الاشتراك")
             return {"ok": True}
 
         # Legacy payment handling (pay_ prefix)
@@ -166,7 +230,10 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
         )
         pr = result.scalar_one_or_none()
         if not pr:
-            await runner.answer_callback(cq["id"], "تمت معالجة هذا الطلب مسبقاً", True)
+            # W7-H1: three-state truth (same shared resolver as the sub_ path).
+            answer_text, show_alert = await _resolve_dedup_answer(
+                db, PaymentRequest, payment_id, new_status)
+            await runner.answer_callback(cq["id"], answer_text, show_alert)
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
@@ -181,20 +248,22 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
             amount = to_wallet_decimal(pr.amount)
             await credit_wallet(db, pr.tenant_id, amount)
             await db.commit()
+            # W7-H1 (r116 parity) — TOAST FIRST, then the slow message edits.
+            await runner.answer_callback(cq["id"], "✅ تم تأكيد الدفع وإضافة الرصيد")
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_message(msg["chat"]["id"], msg["message_id"],
                                    f"✅ <b>تم تأكيد الدفع</b> #{payment_id}\nالمبلغ: {fmt_lyd(pr.amount)} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
-            await runner.answer_callback(cq["id"], "✅ تم تأكيد الدفع وإضافة الرصيد")
         else:
             await db.commit()
+            # W7-H1 (r116 parity) — TOAST FIRST, then the slow message edits.
+            await runner.answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_message(msg["chat"]["id"], msg["message_id"],
                                    f"❌ <b>تم رفض الدفع</b> #{payment_id}\nالمبلغ: {fmt_lyd(pr.amount)} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
-            await runner.answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
     return {"ok": True}
 
 

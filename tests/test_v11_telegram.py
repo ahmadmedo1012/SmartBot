@@ -6,9 +6,11 @@
         - بوابة السر: بلا TELEGRAM_WEBHOOK_SECRET → 403، سر خاطئ/غائب → 403،
           صحيح → يعالج، و TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED=true يتجاوز الفحص.
         - الضغطة المزدوجة (double-tap): نفس التحديث مرتين → الثانية no-op
-          كامل: رصيد واحد فقط، رسالة «تمت معالجة هذا الطلب مسبقاً»، وحالة
-          الطلب لا تتغير (المطالبة الذرية UPDATE...WHERE status='pending'
-          RETURNING — v9-A8). نفس الشيء لمسار sub_ (تفعيل الباقة مرة واحدة).
+          كامل: رصيد واحد فقط، إجابة ودّية ثلاثية الحالة (W7-H1 — «✅ تم
+          تأكيد هذا الدفع مسبقاً» للإعادة، تنبيه تعارض صريح للقرار المعاكس)،
+          وحالة الطلب لا تتغير (المطالبة الذرية UPDATE...WHERE
+          status='pending' RETURNING — v9-A8). نفس الشيء لمسار sub_ (تفعيل
+          الباقة مرة واحدة).
         - الترتيب الحتمي: رفض ثم موافقة → يبقى ملغى، والرصيد لا يُضاف.
         - صلاحية المرسل: from.id خارج قائمة المدراء → «عذراً، لا تمتلك
           الصلاحية» ولا يتغير الطلب.
@@ -238,8 +240,9 @@ async def test_pay_approve_credits_balance_once(tg):
 
 async def test_pay_double_tap_is_idempotent(tg):
     """الضغطة المزدوجة (نفس التحديث مرتين): الثانية no-op — رصيد واحد فقط،
-    الحالة لا تعود pending، وإجابة «تمت معالجة هذا الطلب مسبقاً» (المطالبة
-    الذرية UPDATE...WHERE status='pending' RETURNING — v9-A8)."""
+    الحالة لا تعود pending، وإجابة ودية «✅ تم تأكيد هذا الدفع مسبقاً» بلا
+    تنبيه (W7-H1: الحقيقة ثلاثية الحالة — إعادة الضغط ليست خطأً مريبًا).
+    (المطالبة الذرية UPDATE...WHERE status='pending' RETURNING — v9-A8)."""
     pid, tid = await _seed_payment(amount=60)
     r1 = await tg.post(f"pay_app:{pid}")
     r2 = await tg.post(f"pay_app:{pid}")
@@ -247,7 +250,7 @@ async def test_pay_double_tap_is_idempotent(tg):
     # 200 لكلا الطلبين حتى لا تعيد تلغرام الإرسال، لكن بأثر واحد فقط:
     assert await _balance(tid) == 60, "double-tap credited the balance TWICE"
     assert await _payment_status(pid) == "confirmed"
-    assert any("تمت معالجة هذا الطلب مسبقاً" in t for t in tg.answers()), tg.calls
+    assert any("تم تأكيد هذا الدفع مسبقاً" in t for t in tg.answers()), tg.calls
 
 
 async def test_pay_reject_leaves_balance_untouched(tg):
@@ -262,14 +265,45 @@ async def test_pay_reject_leaves_balance_untouched(tg):
 
 async def test_pay_reject_then_approve_stays_cancelled(tg):
     """الترتيب حتمي: بعد الرفض لا يمكن للموافقة إحياء الطلب أو إضافة رصيد
-    (المطالبة تشترط status='pending' — لا رجعة بعد أول قرار)."""
+    (المطالبة تشترط status='pending' — لا رجعة بعد أول قرار) — والموافقة
+    المتأخرة تصطدم بتنبيه تعارض صريح يشرح ما حدث (W7-H1)."""
     pid, tid = await _seed_payment(amount=45)
     await tg.post(f"pay_rej:{pid}")
     r = await tg.post(f"pay_app:{pid}")
     assert r.status_code == 200, r.text
     assert await _payment_status(pid) == "cancelled"
     assert await _balance(tid) == 0
-    assert any("تمت معالجة هذا الطلب مسبقاً" in t for t in tg.answers()), tg.calls
+    assert any("تم رفضه مسبقاً" in t for t in tg.answers()), tg.calls
+
+
+async def test_pay_toast_answers_before_slow_message_edits(tg):
+    """W7-H1 (r116 parity): الإجابة تسبق تعديلات الرسالة البطيئة — أمر
+    الاستدعاءات المسجلة يجب أن يضع آخر answer لأي ضغطة ناجحة قبل أول
+    edit لها، وإلا أكلت نداءات التحرير نافذة تليجرام (~15ث) فمات
+    المشرف بلا رد وضغط ثانية واصطدم بـ«تمت المعالجة مسبقاً»."""
+    pid, _tid = await _seed_payment(amount=70)
+    calls_before = len(tg.calls)
+    await tg.post(f"pay_app:{pid}", cid="cq-order")
+    recent = tg.calls[calls_before:]
+    kinds = [k for k, _t in recent]
+    # answerCallbackQuery هو أول نداء بعد المطالبة والرصيد — قبل edit/editkb
+    first_slow = next((i for i, k in enumerate(kinds) if k in ("edit", "editkb")), None)
+    assert "answer" in kinds
+    if first_slow is not None:
+        assert kinds.index("answer") < first_slow, (
+            f"toast must precede the slow edits, got order: {kinds}")
+
+
+async def test_pay_dedup_strips_the_tapped_keyboard(tg):
+    """W7-H1: الضغطة على طلب محسوم يجب أن تجرّد أزرار النسخة المضغوطة —
+    لا تُترك أزرار حية على طلب مقفل تدعو لضغطة أخرى مربكة."""
+    pid, _tid = await _seed_payment(amount=25)
+    await tg.post(f"pay_app:{pid}")
+    calls_before = len(tg.calls)
+    await tg.post(f"pay_app:{pid}", cid="cq-dedup")
+    recent = tg.calls[calls_before:]
+    kinds = [k for k, _t in recent]
+    assert "editkb" in kinds, f"dedup tap must strip the keyboard, got: {kinds}"
 
 
 async def test_sub_approve_activates_tenant_and_user_once(tg):
@@ -309,7 +343,42 @@ async def test_sub_double_tap_activates_plan_exactly_once(tg):
         sp = await db.get(SubscriptionPayment, spid)
         assert t.plan_end == first_end, "double-tap re-activated the subscription"
         assert sp.status == "verified"
-    assert any("تمت معالجة هذا الطلب مسبقاً" in t for t in tg.answers()), tg.calls
+    assert any("تمت الموافقة على هذا الطلب مسبقاً" in t for t in tg.answers()), tg.calls
+
+
+async def test_sub_reject_message_tells_the_truth(tg):
+    """W7-H1 (bug حقيقي): رفض الاشتراك كان يهتف «✅ تم تأكيد الاشتراك» —
+    الرسالة المعدّلة والتوست يجب أن يقولا رفضًا، لا تهنئة."""
+    spid, _tid, _plan_id, _uid = await _seed_sub_payment()
+    calls_before = len(tg.calls)
+    await tg.post(f"sub_rej:{spid}")
+    recent = tg.calls[calls_before:]
+    assert any(k == "answer" and "رفض" in t for k, t in recent), recent
+    assert any(k == "edit" and "رفض طلب الاشتراك" in t for k, t in recent), recent
+    assert not any(k == "edit" and "تم تأكيد الاشتراك" in t for k, t in recent), recent
+
+
+async def test_sub_dedup_tap_strips_the_tapped_keyboard(tg):
+    """W7-H1: مسار sub_ كان يرد على الضغطة الثانية ويعيد دون تجريد أزرار
+    النسخة المضغوطة (بخلاف مسار pay_) — الأزرار الحية على طلب محسوم هي
+    مصدر ضغطات «تمت المعالجة مسبقاً» المتكررة."""
+    spid, _tid, _plan_id, _uid = await _seed_sub_payment()
+    await tg.post(f"sub_app:{spid}")
+    calls_before = len(tg.calls)
+    await tg.post(f"sub_app:{spid}", cid="cq-sub-dedup")
+    recent = tg.calls[calls_before:]
+    kinds = [k for k, _t in recent]
+    assert "editkb" in kinds, f"sub_ dedup tap must strip the keyboard, got: {kinds}"
+
+
+async def test_sub_reject_then_approve_conflict_is_explicit(tg):
+    """W7-H1: موافقة بعد رفض → تنبيه تعارض صريح «تم رفضه مسبقاً — لا
+    يمكن الموافقة عليه» — لا الرسالة العامة الغامضة."""
+    spid, _tid, _plan_id, _uid = await _seed_sub_payment()
+    await tg.post(f"sub_rej:{spid}")
+    r = await tg.post(f"sub_app:{spid}")
+    assert r.status_code == 200, r.text
+    assert any("تم رفضه مسبقاً" in t for t in tg.answers()), tg.calls
 
 
 async def test_sub_reject_keeps_tenant_trial(tg):

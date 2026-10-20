@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/ui/PageHeader"
  * canonical numbered TablePagination footer (fleet ruling "numbered pag" —
  * the audience/admin-support twin). */
 import { TablePagination } from "@/components/shared/TablePagination"
+import { pillClasses } from "@/components/shared/pills"
 import { unwrapApi } from "@/lib/api"
 import type { CrmCustomer } from "@/lib/types"
 import { formatDateOnly, formatNumber } from "@/lib/format"
@@ -101,22 +102,27 @@ export default function LeadsPage() {
         trace="static"
       />
 
-      {/* v26-F4: مرشّح المرحلة — نفس نمط أزرار admin/support (aria-pressed +
-          variant=gold للمفعّل)؛ يمرّر ?stage= للخادم فيُرشّح على كل الصفحات
-          لا الصفحة الحالية فقط، مع عدّاد الصفوف من الظرف. */}
+      {/* v26-F4: مرشّح المرحلة — يمرّر ?stage= للخادم فيُرشّح على كل الصفحات
+          لا الصفحة الحالية فقط، مع عدّاد الصفوف من الظرف.
+          W7-H (repetition audit — the last drifted sibling): هذا الصف كان
+          الوحيد الباقي على زرّي Button (gold/outline) بينما إخوته الثلاثة
+          (messages, admin payments, admin/support) ركبوا pillClasses منذ
+          A4 P2-5/r131 وتعليقه القديم كان يزعم «نفس نمط أزرار admin/support»
+          — يضمّ إلى العائلة بنفس عقد الرفيق: aria-pressed + h-8 px-3.5
+          وبلا حلقة تركيز خاصة (العقد العالمي وحده). */}
       {/* r131-F8 (task #12): 1024 → the canonical 1200 token. */}
       <div className="px-6 pt-2 max-w-(--marketing-max-w) mx-auto w-full">
         <div className="flex flex-wrap items-center gap-2">
           {STAGE_FILTERS.map((f) => (
-            <Button
+            <button
               key={f.key}
-              variant={stage === f.key ? "gold" : "outline"}
-              size="sm"
+              type="button"
               onClick={() => setStage(f.key)}
               aria-pressed={stage === f.key}
+              className={pillClasses(stage === f.key, "h-8 px-3.5")}
             >
               {f.label}
-            </Button>
+            </button>
           ))}
           <span className="text-xs text-muted-foreground" role="status">
             {formatNumber(data?.total ?? 0)} عميل

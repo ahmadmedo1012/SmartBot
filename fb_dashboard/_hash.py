@@ -51,3 +51,42 @@ async def hash_password_async(password: str) -> str:
 
 async def verify_password_async(password: str, stored: str) -> bool:
     return await asyncio.to_thread(verify_password, password, stored)
+
+
+# ── S-06 (P21-W7-F): سياسة عرض كلمة المرور ─────────────────────────────────
+# قبل W7-F كانت البوابة الوحيدة عند الضبط/التغيير/الإعادة هي الطول
+# (`len < 8` في auth.py وusers.py) — «password» و«12345678» وكلمات
+# المعاجم الشائعة كلها كانت تعبر. السياسة هنا عملية صريحة لا تُنكّر الواقع:
+# 8 محارف على الأقل **و**حرف واحد على الأقل **و**رقم واحد على الأقل،
+# عند إنشاء كلمة المرور/تغييرها/إعادتها **فقط** (auth.py: register /
+# change-password / admin reset-password، وusers.py: create_user /
+# update_user — المواقع الخمسة كلها). تسجيل الدخول لا يُقيَّم أبدًا:
+# كلمة مرور قائمة ضعيفة يجب أن تُغيَّر بقرار مالكها، لا أن يُحبس
+# صاحبها خارج حسابه (أثر البطارية: كل عيّنات الجنات الحية
+# «Str0ngPass!ly»/«pass123456»/«secret123»/«Test12345!»… تعبر؛ لم يُغيَّر
+# أي عيّنة — السياسة اختيرت لتغلق الثغرة دون تمثيل كاذب).
+# لا فحص قوائم الاختراق ولا تشديد قمعي: مطلب البند هو «اتساع» صادق
+# يغلق حالة «الطول فقط»، وحرف+رقم هو الحد الأدنى الذي يرفع الكلفة
+# الحقيقية للتخمين دون إزعاج الاستخدام العربي (الحروف العربية محسوبة
+# حروفًا — isalpha — والأرقام الهندية أرقامًا — isdigit).
+PASSWORD_MIN_LEN = 8
+PASSWORD_POLICY_MSG = (
+    "كلمة المرور يجب أن تكون 8 أحرف على الأقل وأن تحتوي على حرف ورقم على الأقل"
+)
+
+
+def password_policy_error(password) -> str | None:
+    """رسالة السياسة العربية إن خالفت كلمة المرور الجديدة، أو None إذا مقبولة.
+
+    Total على الأنواع: قيمة غير نصية (JSON قد يرسل رقمًا مثلًا) كانت
+    ترمي TypeError داخل len() ← 500 خام في register قبل W7-F — الآن
+    تُعامل كرافضة للسياسة مع 400 عربي صريح (نفس تحصين reset-password
+    الموجود `isinstance` من قبل).
+    """
+    pw = password if isinstance(password, str) else ""
+    ok = (
+        len(pw) >= PASSWORD_MIN_LEN
+        and any(ch.isalpha() for ch in pw)
+        and any(ch.isdigit() for ch in pw)
+    )
+    return None if ok else PASSWORD_POLICY_MSG

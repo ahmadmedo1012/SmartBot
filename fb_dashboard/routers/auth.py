@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 from _audit import log_audit
-from _hash import hash_password_async, verify_password_async
+from _hash import hash_password_async, password_policy_error, verify_password_async
 from _responses import ok
 from _subscription import subscription_snapshot
 from _utils import iso_z, utcnow
@@ -344,8 +344,10 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
     )
     if existing.scalars().first():
         raise HTTPException(400, "اسم المستخدم أو البريد موجود مسبقاً")
-    if len(password) < 8:
-        raise HTTPException(400, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+    # S-06 (P21-W7-F): سياسة العرض الموحدة — طول + حرف + رقم (كان الطول وحده)
+    err = password_policy_error(password)
+    if err:
+        raise HTTPException(400, err)
     tenant = Tenant(name=username)
     # Trial period (plan §2.5): register with a trial-enabled plan → TRIAL status
     # until plan_end; expiry flips it to EXPIRED_TRIAL in BotEngine (§2.6).
@@ -500,8 +502,11 @@ async def admin_reset_password(body: dict = Body(None), request: Request = None,
         raise HTTPException(400, "user_id و new_password مطلوبان")
     user_id = body["user_id"]
     new_password = body["new_password"]
-    if not isinstance(new_password, str) or len(new_password) < 8:
-        raise HTTPException(400, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+    # S-06 (P21-W7-F): سياسة العرض الموحدة — تحصين isinstance القديم صار
+    # داخل المدقق نفسه (قيمة غير نصية = 400 عربي، لا TypeError خام)
+    err = password_policy_error(new_password)
+    if err:
+        raise HTTPException(400, err)
     stmt = select(User).where(User.id == int(user_id)).limit(1)
     if not is_platform_admin(current_user):
         stmt = stmt.where(User.tenant_id == current_user._tenant_id)
@@ -552,8 +557,11 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
         raise HTTPException(429, "محاولات كثيرة لتغيير كلمة المرور — حاول بعد ساعة")
     if not current_password:
         raise HTTPException(400, "كلمة المرور الحالية مطلوبة")
-    if len(new_password) < 8:
-        raise HTTPException(400, "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل")
+    # S-06 (P21-W7-F): سياسة العرض الموحدة على الجديدة (الحالية لا تُقيَّم —
+    # هي إثبات هوية لا إنشاء)
+    err = password_policy_error(new_password)
+    if err:
+        raise HTTPException(400, err)
     if not (await verify_password_async(current_password, current_user.password_hash)):
         raise HTTPException(401, "كلمة المرور الحالية غير صحيحة")
     if await verify_password_async(new_password, current_user.password_hash):

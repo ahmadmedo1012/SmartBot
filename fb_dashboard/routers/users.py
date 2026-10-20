@@ -2,6 +2,7 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 
+from _hash import password_policy_error
 from _responses import ok
 from database import get_db
 from fastapi import APIRouter, Depends, Form, HTTPException
@@ -35,8 +36,10 @@ async def create_user(username: str = Form(...), password: str = Form(...), role
     # Validation (2026-09-05): role is whitelisted; password needs a minimum.
     if role not in _VALID_ROLES:
         raise HTTPException(400, "الدور يجب أن يكون admin أو editor أو viewer")
-    if len(password) < 8:
-        raise HTTPException(400, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+    # S-06 (P21-W7-F): سياسة العرض الموحدة — طول + حرف + رقم (كان الطول وحده)
+    err = password_policy_error(password)
+    if err:
+        raise HTTPException(400, err)
     if len(username) < 3 or len(username) > 32:
         raise HTTPException(400, "اسم المستخدم يجب أن يكون 3-32 حرفاً")
     existing = await db.execute(select(User).where(User.username == username, User.tenant_id == current_user._tenant_id))
@@ -102,8 +105,12 @@ async def update_user(user_id: int, role: str = Form(...), password: str = Form(
     if (role == "admin" and user.role != "admin"
             and not is_platform_admin(current_user)):
         raise HTTPException(403, _ADMIN_ROLE_MSG)
-    if password and len(password) < 8:
-        raise HTTPException(400, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+    # S-06 (P21-W7-F): نفس السياسة الموحدة — تُقيّم فقط حين يُضبط كلمة مرور
+    # (password فارغ = تحديث دور فقط، لا سياسة)
+    if password:
+        err = password_policy_error(password)
+        if err:
+            raise HTTPException(400, err)
     user.role = role
     if password:
         from _hash import hash_password_async

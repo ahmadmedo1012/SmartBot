@@ -2816,6 +2816,7 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   const rawAudience = nc(readRaw('../src/app/dashboard/audience/page.tsx'));
   const rawLeads = nc(readRaw('../src/app/dashboard/leads/page.tsx'));
   const rawBroadcast = nc(readRaw('../src/app/dashboard/broadcast/page.tsx'));
+  const rawPills = nc(readRaw('../src/components/shared/pills.tsx'));
 
   // (1) the gallery renders from the STATIC Arabic content module — no
   //     fetch, no "sync" promise — and every template fills the four fields
@@ -2856,11 +2857,13 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   if (tagsApiOk) pass += 1;
   else fails.push('W6-B5 tags: the audience page consumes the real /api/tags family (list/create + per-subscriber assign/remove)');
 
-  const tagsUiOk = rawAudience.includes('min-h-11 px-3 rounded-full')
+  const tagsUiOk = rawAudience.includes('tagPillClasses(on')
     && rawAudience.includes('aria-pressed={on}')
-    && rawAudience.includes('<span dir="auto">{t.name}</span>');
+    && rawAudience.includes('<span dir="auto">{t.name}</span>')
+    && rawPills.includes('min-h-11')
+    && rawPills.includes('px-3');
   if (tagsUiOk) pass += 1;
-  else fails.push('W6-B5 tags ui: 44px toggle chips (min-h-11) with aria-pressed + dir=auto tag names');
+  else fails.push('W6-B5 tags ui: 44px toggle chips (min-h-11) with aria-pressed + dir=auto tag names — W7-G re-anchor: floor+padding live in the shared tagPillClasses twin (pills.tsx), the page rides it (no private ring)');
 
   // (4) the leads edit dialog rides the REAL PUT contract: form-encoded
   //     URLSearchParams, the closed stage set, and the r138 phone twin

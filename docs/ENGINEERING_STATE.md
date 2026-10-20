@@ -4,6 +4,7 @@
 > **Protocol:** Inspect git + this file at session start. Update continuously. Commit with every verified batch.
 > **Created:** 2026-09-12 (v26 session) · **Frozen at v26/063d7eed** (state-doc commit `fa57bdb3`, 2026-09-11) after the v26 close — 155 commits landed without an update, violating this file's own protocol.
 > **Re-anchored:** 2026-10-20 (P21-W7-C session) — this file is now TRUE at HEAD: state re-verified, every open item re-checked against source, and the full P17→P21-W6 arc chronicled below (§4.2) with SHAs.
+> **Advanced:** 2026-10-20 (P21-W7-F session) — D-05 (the last HIGH) + S-06 closed in code, CHANGELOG arc back-filled, gates re-run: pytest 1231 forward green.
 
 ---
 
@@ -26,10 +27,10 @@
 
 ## 2. CURRENT STATE
 
-- **Branch:** `main` @ **this commit** — the P21-W7-C docs-only re-anchor (`docs(state,W7-C): …`), atop `525d1686` "feat(P21-W6-B5R): templates for the first rule, tags for the audience, a workable lead — segmentation finally reaches the UI". HEAD at session start was `525d16868ccbb9ae3b7642b1393d7631bd5e6bb8` (2026-10-18 20:41 UTC), tree clean.
-- **Working tree:** this re-anchor only: docs/ENGINEERING_STATE.md + docs/INDEX.md (the state doc joins the start-here table). No code touched.
-- **Production (verified 2026-10-20, pre-push):** `api.smart-link.ly/api/version` = `525d1686` exactly (v2.2.0, env=production, iad1) · `/healthz` 200 · `/api/health` ok:true · `/api/cron/heartbeat` without secret 403 (guarded) · `bot.smart-link.ly` HTTP 200. Post-push verification is part of the W7-C protocol (§4.3) — production must equal the new HEAD.
-- **CI at `525d1686`:** run **39166063567** — ALL 4 jobs success (quality-gates · secret-scan · osv-scanner · mobile), 2026-10-18 21:02–21:13 UTC.
+- **Branch:** `main` @ **this commit** — the P21-W7-F docs close-out (`docs(state,changelog,W7-F): …`), atop `835d188` "feat(auth,P21-W7-F): S-06 closes…" atop `cea91d6` "feat(db,P21-W7-F): D-05 closes…", atop `30625c8` (the P21-W7-C re-anchor). HEAD at session start was `30625c85d3c8077a8ceaaff7df013f5ecfad65ae` (2026-10-20 00:43 UTC), tree clean.
+- **Working tree (this commit):** CHANGELOG.md + this file only. The two code commits (`cea91d6` D-05, `835d188` S-06) landed first; no web/mobile file touched this session.
+- **Production (verified 2026-10-20, session start):** `api.smart-link.ly/api/version` = `30625c85` exactly (W7-C is live) · `/healthz` 200 · `bot.smart-link.ly` HTTP 200. This wave's push must be re-verified post-push (§6/§7).
+- **CI at `30625c8`:** quality-gates run success (2026-10-20 00:43 UTC).
 - **Verdict:** see §8.
 
 ## 3. KNOWN DEFECTS / OPEN ITEMS (each re-verified against HEAD source by P21-W7-C)
@@ -37,17 +38,17 @@
 | ID | Severity | Status | Notes (evidence at HEAD) |
 |---|---|---|---|
 | S-01 | CRITICAL→inert | hygiene-only | leaked key token → live-verified dead (401) at v26; blob `2e6a618a` still in history; `git filter-repo` cleanse still pending (guarded by pre-push hook; P21-W5-C1 documented the history-scan tooling in SECURITY.md) |
-| D-05 | HIGH | **OPEN** | FK CASCADE: migration 015 creates the FKs `NOT VALID`; NO `VALIDATE` step exists anywhere in chain 001–018 and `_schema_reconcile.py` has no cascade entry → still unapplied on legacy Neon prod; deletions still leave orphans. Owner action unchanged: VALIDATE on prod (SQLite tests DO enforce FKs since v16-E5, so the behavior itself is test-covered). |
+| D-05 | HIGH | **CLOSED** (P21-W7-F, `cea91d6`) | migration **019** `alembic/versions/019_p21w7_fk_validate.py` VALIDATEs every 015-era FK: delegates to `_schema_reconcile`'s new `_FK_VALIDATE` family (the 007/014 lineage — ONE spec for chain and net, never a copy), `convalidated` guard, SET NULL-mirroring orphan heal BEFORE the scan so the chain can never strand at 019; SQLite no-op by dialect (FKs native + PRAGMA-on in tests since v16-E5); ShareUpdateExclusive lock scope documented; downgrade no-op (018 precedent). 7 sync migration tests (`tests/test_p21w7_fk_validate.py`, fake-catalog PG branch — no PG server locally) + the 15 chain-head assertions across 6 migration test files re-anchored 018→019. Reaches Neon on the next deploy via the startup chain (create_all → reconcile → upgrade head). |
 | B-08 | MED | **OPEN** (bounded) | `_rate_limit.py::check_rate_limit` = DB-backed, 3 statements (delete-stale + insert-commit + count) per mutating request via middleware. Documented; latency acceptable. |
 | D-09 | P3 | **CLOSED** (v9-A3) | inbox tags: ONE batched `IN(...)` join query (ConversationLabel⋈ConversationTag, tenant-filtered) serves all conversations — no per-row tag queries. |
 | D-10 | P3 | **CLOSED** (v26-F4 + v15-E3) | broadcast fan-out counters: SQL-aggregated single atomic UPDATE (`_aggregate_fanout_counters`, commit `61321e3f`); per-recipient Graph DMs are irreducible external calls, bounded per beat. |
 | D-12 | P3 | **CLOSED** (bounded by design) | inbox search: one ≤200-row query then in-Python filter (inbox_list) — no query multiplication; acceptable bounded pattern. |
 | W-11 | P3 | **CLOSED** (v24-C4) | sequences list `step_count`: ONE grouped COUNT over `sequence_steps` (routers/sequences.py:46-66), following the subscriber_count pattern. |
 | B-18 | MED | **OPEN** (by design) | CSRF exempt for requests carrying `Authorization` (app/middleware.py:199) — mobile Bearer clients have no cookies; rate-limit still applies. Documented, unchanged. |
-| S-06 | MED | **OPEN** | password policy still length-only (`len < 8` — auth.py:347/503/555, users.py:38/105). No complexity/breach-list checks. |
+| S-06 | MED | **CLOSED** (P21-W7-F, `835d188`) | ONE validator `_hash.password_policy_error` (8 chars AND ≥1 letter AND ≥1 digit) replaces the length-only checks at all five sites (register / change-password / admin reset in `auth.py`; create_user / update_user in `users.py`); also kills the raw-500 on non-str JSON values. Applies ONLY at set/change/reset — login never judges a weak existing password. Zero fixture churn (choice documented in the validator); 15 new tests incl. the login-never-judges contract + the retroactive fixture belt. Breach-list checks deliberately not added (no external dependency wanted). |
 | W-27 | LOW | **OPEN** | still exactly **19** direct `AsyncSessionLocal()` usages in 8 router files (inbox×8, bot×3, payments×3 [plans/sse/wallet], plans_config×2, marketing×2, admin_routes×1) — functional (tenant-scoped) but bypass DI override. |
 | flake watch | — | **MONITORED, not reproducing** | v26's `test_webhook_message_replay_does_not_reply_twice` CPU-load flake: root-caused across r136/r136b/r137/r140 (spawn-drain before dispose `61e92ba`, settle-beat `5455e1f6`, importlib class-identity fix `237118ad`, fb_client loop-bound client reset `9fc15ed6`/r140) + bounded infra retry `ab916b2e` (r136c). The W5-C1 "flake dies at root" (`bca999dd`) was the FRONTEND vitest flake (AuthGuard jsdom 401-timer, cleaned in afterEach); W2-CI (`652d9ccf`) fixed the PDF event-loop test's reverse-order cold-start (warm-up). P21-W7-C evidence: full suite green FORWARD (4:46) AND reverse (3:40) on a busy 2-CPU sandbox, zero retries. |
-| **NEW** CHANGELOG gap | LOW | **OPEN** | CHANGELOG.md unreleased section stops at r138; the entire user-visible P17→P21-W6 arc (identity reset, dashboard shell, flows surface, segmentation UI) has no user-language entries. Doc-truth debt for the release-notes owner. |
+| CHANGELOG gap | LOW | **CLOSED** (P21-W7-F) | CHANGELOG.md unreleased section now carries the full P12→P21-W7 arc in user language (13 back-fill entries: identity reset, dashboard shell, flows surface, segmentation UI, honesty waves, gates, pricing truth, landing arc, robot hero) + the W7-F pair (D-05, S-06). Every claim traced to commit diffs. |
 | **ENV hazard** (not a repo defect) | verification | **KNOWN — affects tool OUTPUT only, not files** | The sandbox toolchain's output rendering strips ANSI-SGR-shaped byte runs (left-bracket + digits/semicolons/dashes + «m») from RETURNED text. Consequence caught this session: rg/sed/git-show DISPLAYS of `.github/workflows/ci.yml` appear to read `branches: ain, develop]`, but the file on disk is INTACT (`od -c` proves the true bytes `bracket m a i n, develop]`) — a near-miss false defect, kept out of this file's defect table by byte-level re-proof. Rule for every future session: any «corruption» finding whose evidence is a bracket-bearing string MUST be re-proven with `od -c`/base64 before it may enter this file. |
 
 ## 4. SESSION LOG
@@ -102,6 +103,14 @@
 4. §3 open items each re-verified against HEAD source (evidence cited in the table). One false-defect near-miss caught and kept out: ci.yml's trigger looked mangled through rg/sed displays — `od -c` proved the file intact; the artifact is the toolchain's output rendering (documented as an ENV hazard in §3, not a repo defect).
 5. Production re-verified: `/api/version` == `525d1686` pre-push; post-push the deployment must serve this commit (protocol below).
 
+### 4.4 P21-W7-F session (2026-10-20) — D-05 + S-06 close, CHANGELOG back-fill
+
+1. Fresh clone verified at `30625c8` (tree clean). W7-C post-push check done by the coordinator: `/api/version` == `30625c85` (production serves W7-C) + CI green at `30625c8`.
+2. `cea91d6` — D-05 closed (see §3 row): migration 019 + the reconcile `_FK_VALIDATE` family + 7 sync tests + chain-head re-anchors.
+3. `835d188` — S-06 closed (see §3 row): `_hash.password_policy_error` at 5 sites + 15 tests, login never judges.
+4. CHANGELOG back-fill: 13 arc entries (P21-W7 ledger · W6 segmentation + flows · W5 403-honesty + micro-geometry · W3/W4 gates · W2/W3 shell · W2 promises · P17 identity · P18 landing + auth-thread fix · P12→P16 robot hero · P13/P14 pricing + timeouts · phase9/10 touches) + the 2 W7-F entries — all claims traced to diffs.
+5. Gates (this session, backend scope — zero web/mobile files touched): ruff clean · secret-scan clean · targeted new files 22/22 (9.02s) · full `pytest -q` **1231 passed, 3 skipped** (4:23) · reverse-order suite green. Web/mobile batteries ride on W7-C §5 + CI-green at `30625c8` (unchanged code).
+
 ## 5. TESTS EXECUTED (P21-W7-C, fresh clone @ 525d1686)
 
 | Gate | Command | Result |
@@ -131,20 +140,18 @@ Not run this session (documented, not faked): EAS cloud build, emulator/real-dev
 
 ## 6. LAST VERIFIED COMMIT
 
-`525d1686` (P21-W6-B5R) — production-verified via `/api/version` at session start; this P21-W7-C docs-only commit re-anchors the state and must itself be production-verified post-push (§2).
+`30625c8` (P21-W7-C) — production-verified via `/api/version` == `30625c85` at this session's start + CI green. This session's trio (`cea91d6` D-05, `835d188` S-06, + this docs commit) must be production-verified post-push: `/api/version` == new HEAD; CI green for the pushed SHA; and the Neon deploy boot must run the startup chain through 019 cleanly — watch `/api/health` + deploy logs for reconcile/migration errors (a strand there means the 019 orphan-heal assumption met data the heal cannot fix — §7.1).
 
 ## 7. NEXT EXACT ACTIONS (next session)
 
-1. **Post-push check** (if not already recorded): `/api/version` == W7-C SHA; CI run for the pushed SHA green.
-2. **D-05**: apply FK VALIDATE on legacy Neon prod (NOT VALID → VALIDATE migration + `_schema_reconcile` entry + sync migration test) — the last HIGH open item.
-3. **CHANGELOG back-fill**: user-language entries for the P17→P21-W6 arc (unreleased section stops at r138).
-4. **Verification hygiene (ENV hazard, §3)**: bracket-bearing «corruption» evidence is a display artifact until proven by `od -c`/base64 — never cite it from rg/sed/cat output alone.
-5. Real-device pass (EAS build) — unchanged since v25, the only mobile gap.
-6. Optional P3s: S-06 password policy breadth, B-08 rate-limiter Redis/edge offload, W-27 DI migration (19 sites).
-7. Any web-code change → re-run the full local battery + sim specs (e2e contract in CLAUDE.md DO-6).
+1. **Post-push check** (if not already recorded): `/api/version` == W7-F HEAD; CI run for the pushed SHA green; the deploy boot ran create_all → reconcile → upgrade head through **019** on Neon (FK VALIDATEs + orphan heal — verify via `/api/health` + logs; if the migration strands, the fallback is the documented 018-precedent manual path, never a downgrade).
+2. **Verification hygiene (ENV hazard, §3)**: bracket-bearing «corruption» evidence is a display artifact until proven by `od -c`/base64 — never cite it from rg/sed/cat output alone.
+3. Real-device pass (EAS build) — unchanged since v25, the only mobile gap.
+4. Optional P3s: B-08 rate-limiter Redis/edge offload (bounded, documented), W-27 DI migration (19 sites), S-01 `git filter-repo` history cleanse (blob `2e6a618a`, guarded).
+5. Any web-code change → re-run the full local battery + sim specs (e2e contract, CLAUDE.md DO-6); any api change → full pytest + reverse + this file's §5 discipline.
 
-## 8. VERDICT (P21-W7-C)
+## 8. VERDICT (P21-W7-F)
 
-# ALL GATES GREEN — STATE RE-ANCHORED
+# ALL GATES GREEN — THE LAST HIGH DEBT IS PAID
 
-**Evidence:** production serving HEAD (`525d1686` verified via `/api/version`); CI green at HEAD (run 39166063567, 4/4 jobs); full local battery green on a fresh clone — pytest 1209 forward + 1209 reverse, vitest 590 web + 87 mobile, parity 582, tsc/eslint/lint clean, build 44/44, all static contracts PASS, secret-scan clean, zero retries anywhere. Open items honestly re-verified (§3): 6 remain (D-05, B-08, B-18, S-06, W-27, S-01-hygiene) + 1 new LOW finding (CHANGELOG gap) + 1 environment hazard documented for future sessions (display-path SGR strip). The protocol violation (155 commits of drift) is cured by this file; keeping it cured is every future session's first duty.
+**Evidence:** session opened with production verified at `30625c8` (`/api/version`) + CI green — then closed the two oldest open engineering items in code: **D-05** (HIGH — migration 019 VALIDATE + reconcile `_FK_VALIDATE` family + 7 tests + orphan heal) and **S-06** (MED — policy breadth at 5 sites + 15 tests, login never judges), plus the CHANGELOG arc back-fill (13 + 2 entries). Gates: ruff clean, secret-scan clean, full pytest **1231 passed, 3 skipped** (4:23) forward + reverse green, zero retries; web untouched (its green battery carried by W7-C §5 + CI at the base commit). Open items after this wave (§3): 3 engineering (B-08 bounded · B-18 by-design · W-27 LOW) + S-01 hygiene (dead leak blob, guarded) + the unchanged EAS/mobile-env gap. Keeping this file TRUE at every HEAD remains every future session's first duty.

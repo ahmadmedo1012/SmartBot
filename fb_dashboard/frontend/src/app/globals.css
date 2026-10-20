@@ -120,10 +120,13 @@
   --color-night: var(--c-night);
   --color-basil: var(--c-basil);
 
-  /* Gold/copper heat ramp (was saffron-heat) — Madarek's accent gradient:
-     dark = gold #C9962F → #E9B44C (the accent CTA metal, §5.1 .btn.gold),
-     light = copper #B57438 → gold #D6A330. espresso = text on the gradient
-     (Madarek --accent-fg values, AA-pinned on both ends in both modes). */
+  /* Signal-teal heat ramp (was the Madarek gold/copper saffron-heat): the
+     NAMES are the fleet legacy spelling, the VALUES are the phase5 Circuit
+     Petrol accent metal — the full measured note lives at the :root
+     definitions below (ember = --accent-strong, saffron = --accent-solid,
+     espresso = --accent-fg, AA-pinned on both gradient ends in both modes).
+     W7-H: the one live gold left in the identity is the DEDICATED border
+     metal --spectrum-gold, defined in :root. */
   --color-ember: var(--c-ember);
   --color-saffron: var(--c-saffron);
   --color-espresso: var(--c-espresso);
@@ -635,13 +638,33 @@
   /* Focus ring — Madarek v22 focus system: --state-focus-ring-color =
      --accent-strong (7.87:1 dark / 10.29:1 light) — r129: points at the
      named family member (ONE accent vocabulary). r130 (FLEET-1): the
-     DARK contract flips to the canonical cascade — var(--accent-solid)
-     #E9B44C, exactly what madarek's dark --state-focus-ring-color
-     resolves to (tokens.css:543). Light keeps accent-strong #5C3416. */
+     DARK contract flips to the canonical cascade — var(--accent-solid),
+     exactly what madarek's dark --state-focus-ring-color resolves to
+     (tokens.css:543). phase5 r152 note: --accent-solid is the Circuit
+     Petrol SIGNAL TEAL #56E2F2 now — the r130 note spelled the then-gold
+     #E9B44C; the metal moved, the chain did not. Light keeps
+     accent-strong #0B5A68. */
   --state-focus-ring-color: var(--accent-solid);
 
-  /* Sidebar active state (Madarek §5.5): gold wash 10% + breathing halo
-     (dark only — .light swaps to flat neutral-150). */
+  /* W7-H (coordinator ruling — the W7-G TODO resolved): --spectrum-gold —
+     the shell spectrum's metal end-stop, minted as a FIRST-CLASS token so
+     the two-tone gradient stops living on a raw hex literal. History: the
+     spectrum gradient's gold was documented as "the --state-focus-ring
+     metal" at W2-C2a time; that alias has since drifted to teal (the
+     cascade above resolves to --accent-solid #56E2F2 after r130-FLEET-1 +
+     the phase5 Circuit Petrol re-brand, and --c-saffron is teal too), so
+     pointing the gradient at any existing alias would silently flatten
+     it to teal→teal. This dedicated rung keeps the ChainGPT two-tone
+     (signal-teal → gold) intact. BORDERS ONLY (the spec §2 accent law —
+     never a fill; the CTA's ink slab + label carry its identity, so the
+     1px metal needs no AA text grade). SAME VALUE in both themes — the
+     dark-stage metal; .light inherits. */
+  --spectrum-gold: #E9B44C;
+
+  /* Sidebar active state (Madarek §5.5): accent wash 10% + breathing halo
+     (dark only — .light swaps to flat neutral-150). phase5 r152: the wash
+     metal is the signal teal (rgb 86 226 242), not the Madarek-era gold the
+     comment spelled. */
   --nav-active-bg: rgb(86 226 242 / 0.10);
   --nav-active-halo: 0 0 18px -4px rgb(86 226 242 / 0.14), inset 0 0 0 1px rgb(86 226 242 / 0.10);
 

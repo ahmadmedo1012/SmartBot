@@ -337,6 +337,25 @@ const FOCUS_LIGHT = {
 pinAll(dark, 'focus-dark', FOCUS_DARK);
 pinAll(light, 'focus-light', FOCUS_LIGHT);
 
+// ── W7-H — the spectrum gold rung (coordinator ruling; the W7-G TODO closed) ─
+// The shell's two-tone spectrum border (signal-teal → gold) rides a
+// DEDICATED token now: every legacy alias drifted teal (--accent-solid,
+// --c-saffron), so the raw hex had shipped under a TODO since W7-G.
+// Same metal in BOTH themes (dark-stage border metal, BORDERS ONLY per
+// spec §2 — the CTA's ink slab + label carry its identity).
+pin(dark, 'spectrum-gold-dark', '--spectrum-gold', '#E9B44C');
+pin(light, 'spectrum-gold-light', '--spectrum-gold', '#E9B44C');
+{
+  // The shell consumes the token (never a hex of its own) and the
+  // two-tone gradient itself is intact: accent-solid start + gold stop.
+  const rawShellCss = readFileSync(new URL('../src/components/dashboard/dashboard-shell.css', import.meta.url), 'utf8');
+  const shellSpectrumOk = rawShellCss.includes('var(--sb-spectrum) border-box')
+    && rawShellCss.includes('linear-gradient(90deg, var(--accent-solid) 0%, var(--spectrum-gold) 100%)')
+    && !rawShellCss.includes('#E9B44C'); // the gold literal lives in the token sheet ONLY
+  if (shellSpectrumOk) pass += 1;
+  else fails.push('W7-H spectrum: --sb-spectrum keeps the two-tone var(--accent-solid) → var(--spectrum-gold) and the hex literal lives in the token sheet only');
+}
+
 // ── r127-F5b (d): z-order ladder (Madarek tokens.css §3a), both scopes ──────
 // SmartBot shipped the legacy 10-70 band registry until this wave; the
 // canonical rungs are pinned in BOTH cascade scopes (theme-independent :root).

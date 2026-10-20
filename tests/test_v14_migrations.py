@@ -135,7 +135,7 @@ def test_chain_head_is_013_on_fresh_db(fresh_db):
     # v19: الرأس أصبح 016 (جداول fb_posts/ad_* — إنشاءات محروسة)
     # r134: الرأس أصبح 018 (017 فهارس v24 + شفاء بيانات رابط العلامة)
     # P21-W7-F: الرأس أصبح 019 (VALIDATE لقيد 015 المعلَّق)
-    assert _version(fresh_db) == "019"
+    assert _version(fresh_db) == "020"  # W7-I-A: 020 (extra_data لمراجع نسخ تليجرام في payment_requests)
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -272,7 +272,7 @@ def test_chain_heals_legacy_bot_state_end_to_end(fresh_db):
 
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "019"  # v15-E2: 014؛ v16-E5: 015؛ v19: 016؛ v24-C5: 017؛ r134: 018؛ P21-W7-F: 019
+    assert _version(fresh_db) == "020"  # v15-E2: 014؛ v16-E5: 015؛ v19: 016؛ v24-C5: 017؛ r134: 018؛ P21-W7-F: 019؛ W7-I-A: 020 (extra_data لمراجع نسخ تليجرام في payment_requests)
 
     # كلا dedup: id=1 (نطاق 012 — قيمة fb_page_id مكررة عبر مستأجرين)
     # وid=4 (نطاق 013 — زوج tenant/key مكرر) حُذفا؛ الباقي سليم

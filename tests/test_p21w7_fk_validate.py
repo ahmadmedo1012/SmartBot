@@ -115,7 +115,7 @@ def test_chain_reaches_019_and_sqlite_path_is_guarded_noop(fresh_db):
     SQLite شكل FK 015 إطلاقًا (لا إسقاط، لا إضافة، SET NULL كما هو)."""
     command.upgrade(_alembic_cfg(), "head")
     # P21-W7-F: ترحيلة 019 (VALIDATE لقيد 015) أصبحت الرأس
-    assert _version(fresh_db) == "019"
+    assert _version(fresh_db) == "020"  # W7-I-A: 020 (extra_data لمراجع نسخ تليجرام في payment_requests)
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -135,7 +135,7 @@ def test_migration_019_idempotent_on_sqlite(fresh_db):
     حارس اللهجة يجعل كلتاهما no-op — لا خطأ، ولا تغيير في الإصدار/الشكل
     (نمط اختبار 015 المزدوج)."""
     command.upgrade(_alembic_cfg(), "head")
-    assert _version(fresh_db) == "019"
+    assert _version(fresh_db) == "020"  # W7-I-A: 020 (extra_data لمراجع نسخ تليجرام في payment_requests)
 
     mod = _load_module("019_p21w7_fk_validate")
     engine = create_engine(f"sqlite:///{fresh_db}")
@@ -150,7 +150,7 @@ def test_migration_019_idempotent_on_sqlite(fresh_db):
             fk_count = len(sa.inspect(conn).get_foreign_keys("telegram_approvers"))
     finally:
         engine.dispose()
-    assert _version(fresh_db) == "019"
+    assert _version(fresh_db) == "020"  # W7-I-A: 020 (extra_data لمراجع نسخ تليجرام في payment_requests)
     assert fk_count == 1
 
 

@@ -975,6 +975,13 @@ class PaymentRequest(Base):
     reference = Column(String(100), default="")
     status = Column(String(20), default="pending")  # pending, confirmed, cancelled
     note = Column(String(500), default="")
+    # W7-I-A (لوحة→تليجرام): مراجع رسائل تليجرام الإدارية التي حملت أزرار
+    # الموافقة/الرفض — [{"chat_id": X, "message_id": Y}] كما أعادها sendMessage
+    # لحظة الإرسال. المسار القديم كان يهدر معرف الرسالة، فحسمُ الطلب من أي
+    # قناة أخرى لم يكن قادرًا على تحرير نسخ الأدمن (أزرار حية على طلب
+    # محسوم). نفس مخطط extra_data في SubscriptionPayment (tg_msgs) —
+    # الترحيلة 020 + شبكة الإقلاع reconcile تضيفان العمود للقواعد القائمة.
+    extra_data = Column(JSON, default=dict)  # tg_msgs refs + future metadata
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 

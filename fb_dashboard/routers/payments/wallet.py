@@ -109,7 +109,7 @@ def _coro_kind(coro) -> str:
     return name or "notify"
 
 
-async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_S) -> None:
+async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_S):
     """Await an admin money-notification inline, capped by a short timeout.
 
     Delivery semantics (v14-E1, replaces spawn() for money notifications):
@@ -119,6 +119,12 @@ async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_
         in the admin review queue (/api/admin/subscriptions + Telegram);
       - failure → logged (and reported to Sentry like the old spawn registry
         did via _async._log_task_exception) but never fails the request.
+
+    W7-I-A: the send's summary dict (telegram_bot._notify_admins — including
+    the new ``tg_msgs`` message refs) is now RETURNED to the caller so the
+    send path can persist the admin-copy refs into extra_data; on
+    timeout/exception there is no result to hand back and None is returned.
+    Legacy callers that ignore the return keep working unchanged.
 
     v18-1-d (متانة إشعارات تليجرام): when the coroutine returns the notify_*
     summary dict (telegram_bot._notify_admins), its verdict is logged as ONE
@@ -134,7 +140,7 @@ async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_
             "telegram %s notify: TIMEOUT after %.1fs — row stays in the review queue",
             kind, timeout,
         )
-        return  # cancelled mid-send — no result dict exists to log
+        return None  # cancelled mid-send — no result dict exists to log or persist
     except Exception as exc:  # noqa: BLE001 — external send must never break the payment
         log.error("admin money notification failed (non-fatal): %s", exc, exc_info=True)
         try:
@@ -144,7 +150,7 @@ async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_
         except Exception:
             # observability must never amplify a notification failure
             pass
-        return
+        return None
     if isinstance(result, dict) and "sent" in result:
         # v18-1-d observability contract (telegram_bot._notify_admins)
         if result.get("skipped_no_config"):
@@ -154,6 +160,10 @@ async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_
             log.info("telegram %s notify: sent=%s failed=%s recipients=%s",
                      kind, result.get("sent", 0), result.get("failed", 0),
                      result.get("recipients", 0))
+    # W7-I-A: the summary (incl. tg_msgs refs) flows back to the caller —
+    # whatever shape it is (dict with "sent", partial dict, or a foreign
+    # coroutine's return); callers without refs just see no tg_msgs key.
+    return result
 
 
 async def _reject_wallet_above_cap(provider: str, amount: float, db) -> None:
@@ -220,6 +230,71 @@ async def _payment_rate_limit(request: Request, key: str, max_attempts: int = 10
         log.warning("payment rate-limit check failed — allowing through", exc_info=True)
 
 
+# ── W7-I-A: مراجع النسخ الإدارية — التثبيت والقراءة ─────────────────────
+# الجذر الذي وُصّف به الفراغ: sendMessage كان يُعيد معرف الرسالة ويُهدر؛ بلا
+# المرجع لا يستطيع أي حسم من قناة أخرى (اللوحة/الإلغاء الذاتي) تحرير نسخ
+# الأدمن، فتبقى أزرار حية على طلب محسوم. هذان المساعدان يُثبّتان المراجع
+# في extra_data["tg_msgs"] لحظة الإرسال (الدمج لا الكبت) ويقرآنها دفاعيًا
+# عند الحسم — نفس المخطط في PaymentRequest (عمود W7-I-A الجديد) و
+# SubscriptionPayment (عمود قائم).
+
+
+def tg_refs_from_result(result) -> list[dict]:
+    """استخراج مراجع النسخ الإدارية من ملخص الإشعار — دفاعي ضد المُحاكاة
+    القديمة (None/قاموس بلا tg_msgs) وضد صفوف JSON فاسدة."""
+    if not isinstance(result, dict):
+        return []
+    refs = result.get("tg_msgs")
+    if not isinstance(refs, list):
+        return []
+    return [r for r in refs
+            if isinstance(r, dict)
+            and r.get("chat_id") is not None
+            and r.get("message_id") is not None]
+
+
+def tg_refs_from_row(row) -> list[dict]:
+    """قراءة مراجع النسخ من extra_data صف الدفعة — دفاعي ضد أي شكل مخزون
+    (العمود JSON حر: صف قديم/فاسد قد يحمل قائمة أو نصًا بدل القاموس)."""
+    extra = getattr(row, "extra_data", None)
+    return tg_refs_from_result({"tg_msgs": extra.get("tg_msgs")}
+                               if isinstance(extra, dict) else {})
+
+
+def tg_username_from_row(row) -> str:
+    """اسم المستخدم كما خُزّن في extra_data (نص نصوص الحسم) — فارغ عند الغياب."""
+    extra = getattr(row, "extra_data", None)
+    if not isinstance(extra, dict):
+        return ""
+    return str(extra.get("username", "") or "")
+
+
+async def persist_tg_refs(db, row, result) -> None:
+    """تثبيت مراجع النسخ الإدارية في extra_data بعد إشعار ناجح.
+
+    MERGE لا كبت: SubscriptionPayment يحمل مسبقًا username/receipt_url/…
+    في extra_data — التعيين بقاموس جديد (لا تعديل مكاني: عمود JSON لا
+    يتتبّع التعديل الداخلي). فشل التثبيت لا يكسر الدفع أبدًا: الصف مُثبت
+    مسبقًا والحسم من تليجرام يبقى ممكنًا — فقط تُفقد مزامنة اللوحة لهذا
+    الطلب (تُسجّل بتحذير واضح).
+    """
+    refs = tg_refs_from_result(result)
+    if not refs:
+        return
+    try:
+        row.extra_data = {**(getattr(row, "extra_data", None) or {}),
+                          "tg_msgs": refs}
+        await db.commit()
+    except Exception:
+        log.warning("telegram refs persist failed (payment=%s) — panel sync "
+                    "will be skipped for this request",
+                    getattr(row, "id", "?"), exc_info=True)
+        try:
+            await db.rollback()
+        except Exception:
+            pass  # r133-A6 (a): the log already fired; the response continues
+
+
 @router.post("/api/payments/topup")
 async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     await _payment_rate_limit(request, "topup")
@@ -264,9 +339,12 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
     await db.refresh(pr)
     # v14-E1 #3: inline (was spawn) — Vercel kills post-response tasks, so the
     # topup alert must leave BEFORE this response does (short timeout inside).
-    await _notify_admins_inline(
+    notify_result = await _notify_admins_inline(
         notify_admins_new_payment(pr.id, current_user.username, amount, provider, phone)
     )
+    # W7-I-A: ثبت مراجع نسخ الأدمن (التي أعادها sendMessage) في extra_data —
+    # بدونها يبقى أي حسم مستقبلي للشحن من أي سطح ويب أعمى عن تليجرام.
+    await persist_tg_refs(db, pr, notify_result)
     instructions = (
         f"حوالة إلى {provider} على الرقم {phone} بمبلغ {fmt_lyd(amount)} د.ل "
         f"— بعد الإرسال، انتظر موافقة الإدارة"

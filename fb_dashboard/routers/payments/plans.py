@@ -22,7 +22,11 @@ from loop_safe import LoopLocalLock
 from models import SubscriptionPayment, SubscriptionPlan, Tenant, User
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError  # v25 (B-03/D-08): cross-instance pending guard
-from telegram_bot import notify_admins_new_subscription
+from telegram_bot import (
+    notify_admins_new_subscription,
+    sub_cancelled_by_user_edit_text,
+    sync_resolution_to_admins,
+)
 
 from routers.auth import get_current_user
 from routers.payments.wallet import (
@@ -34,6 +38,9 @@ from routers.payments.wallet import (
     _payment_rate_limit,
     _reject_wallet_above_cap,
     canonical_provider,
+    persist_tg_refs,
+    tg_refs_from_row,
+    tg_username_from_row,
 )
 
 log = logging.getLogger("fb-api")
@@ -214,9 +221,12 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
 
     # v14-E1 #3: inline (was spawn) — Vercel kills post-response tasks; the
     # subscription alert must leave BEFORE this response does.
-    await _notify_admins_inline(
+    notify_result = await _notify_admins_inline(
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone or "-", plan.name_ar)
     )
+    # W7-I-A: ثبت مراجع نسخ الأدمن في extra_data (دمجًا فوق username/الإيصال)
+    # حتى يستطيع حسم اللوحة (approvals.py) تحريرها وتجريد أزرارها.
+    await persist_tg_refs(db, sp, notify_result)
 
     if provider == "bank":
         msg = "تم استلام طلب التحويل البنكي — سيتم التفعيل بعد موافقة الإدارة"
@@ -319,6 +329,22 @@ async def cancel_pending_subscription(body: dict = Body(...), db=Depends(get_db)
         raise HTTPException(400, "لا يمكن إلغاء طلب غير معلق")
     sp.status = "cancelled"
     await db.commit()
+    # W7-I-A (لوحة→تليجرام): إلغاء المستخدم يحسم الطلب — نسخ الأدمن في
+    # تليجرام لا يجوز أن تبقى بأزرار حية على طلب مسحوب. نص صادق يميّز
+    # الإلغاء الذاتي عن قرار الإدارة (🚫 أُلغي — ليس «رفض» ولا «✅»).
+    # فشل تليجرام لا يفشل الإلغاء أبدًا (الحسم خالد في القاعدة قبل النداء).
+    try:
+        refs = tg_refs_from_row(sp)
+        if refs:
+            await sync_resolution_to_admins(
+                refs,
+                sub_cancelled_by_user_edit_text(
+                    sp.id, sp.plan_name, tg_username_from_row(sp) or sp.phone),
+                payment_id=sp.id,
+            )
+    except Exception:
+        log.warning("payment %s: user-cancel→telegram sync failed — cancel stands",
+                    sp.id, exc_info=True)
     return ok({"id": sp.id, "status": "cancelled"})
 
 
@@ -412,8 +438,11 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
         await db.refresh(sp)
 
     # v14-E1 #3: inline (was spawn) — same Vercel rationale as create.
-    await _notify_admins_inline(
+    notify_result = await _notify_admins_inline(
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone or "-", new_plan.name_ar)
     )
+    # W7-I-A: نفس تثبيت المراجع في مسار الترقية — الحسم من اللوحة يغطي
+    # طلبات الترقية أيضًا (نفس الجدول، نفس أزرار sub_app/sub_rej).
+    await persist_tg_refs(db, sp, notify_result)
 
     return ok({"payment_id": sp.id, "status": "pending"})

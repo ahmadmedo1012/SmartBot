@@ -1,5 +1,5 @@
 /**
- * SmartBot Mobile — MonoStamp: الختم الزمني/الرقمي بترولي (r154).
+ * SmartBot Mobile — MonoStamp: الختم الزمني/الرقمي (r154).
  *
  * قيمة لاتينية (HH:MM · تاريخ ISO · عدّاد) بخط IBM Plex Mono وأرقام
  * جدولية (tnum) واتجاه LTR قسريًا داخل التخطيط العربي RTL — مع عنوان
@@ -7,7 +7,7 @@
  * hook») الذي تستهلكه وكلاء الشاشات اللاحقين لسجلات الدوائر/الرسائل
  * (مرآة سلوك الويب: ردود حديثة mono HH:MM dir=ltr + عنوان تاريخ عربي).
  *
- * ليس علامة AI — علامات الآلة (thinking dots/LED) تستخدم colors.lime
+ * ليس علامة AI — علامات الآلة (thinking dots/LED) تستخدم colors.violet
  * مباشرة؛ هذا الختم محايد الطابع (mutedFg افتراضيًا).
  */
 import { View, type ViewProps } from 'react-native'
@@ -22,7 +22,7 @@ export interface MonoStampProps extends ViewProps {
   value: string
   /** عنوان عربي اختياري فوق الختم (تاريخ اليوم مثلًا) */
   title?: string
-  /** لون القيمة — الافتراضي mutedFg (ختم هادئ على البترول) */
+  /** لون القيمة — الافتراضي mutedFg (ختم هادئ على الأرض الداكنة) */
   color?: keyof AppTheme['colors']
   /** وزن Plex Mono: 400 متن أو 500 ختم حضور — الافتراضي 500 */
   weight?: 400 | 500

@@ -1,32 +1,34 @@
 #!/usr/bin/env python3
-"""Generate SmartBot mobile raster brand assets — Phase 6 «Circuit Petrol»
-identity (P6-2-e3), mobile twin of the Circuit Petrol design system
-(fb_dashboard globals.css series #071A21).
+"""Generate SmartBot mobile raster brand assets — «Machine Instrument»
+identity (Phase 17 / W21), mobile twin of the web design system
+(fb_dashboard globals.css + design-system/smartbot-phase17/ART-DIRECTION.md
+series #050506).
 
 Outputs (EXACT sizes/formats/paths of the retired Madarek set — zero app.json
 or import changes anywhere):
-  - icon.png                     1024x1024 RGBA — petrol #071A21 full-bleed
-                                                ground + teal robot-head glyph.
+  - icon.png                     1024x1024 RGBA — #050506 full-bleed
+                                                ground + cyan robot-head glyph.
   - splash-icon.png              1024x1024 RGBA — glyph on TRANSPARENT bg
                                                 (expo-splash-screen paints the
-                                                #071A21 ground — app.json pin).
+                                                #050506 ground — app.json pin).
   - android-icon-foreground.png  1024x1024 RGBA — glyph only, transparent,
                                                 inside the adaptive safe zone.
-  - android-icon-background.png  1024x1024 RGBA — solid petrol #071A21
+  - android-icon-background.png  1024x1024 RGBA — solid #050506
                                                 (app.json pins the same hex).
   - android-icon-monochrome.png  1024x1024 RGBA — white glyph silhouette.
-  - brand-icon.png               160x160   RGBA — rounded petrol plate (22%
+  - brand-icon.png               160x160   RGBA — rounded dark plate (22%
                                                 radius) + glyph — the MOBILE
                                                 mark; deliberately not a copy
                                                 of the web brand-icon.png.
   - favicon.png                  128x128   RGBA — same plate recipe at 128.
 
-The mark: a teal #17C3A4 robot-head glyph (rounded head + ear studs +
-antenna) with petrol eye slots and mouth, a lime #C6F24E LED on the antenna
-(the reserved AI signal), and a short circuit trace (teal line, lime end
+The mark: a cyan #56E2F2 robot-head glyph (rounded head + ear studs +
+antenna) with dark eye slots and mouth, a violet #9380FF LED on the antenna
+(the reserved AI signal), and a short circuit trace (cyan line, violet end
 node) beneath — the RobotMark/CircuitTrace motif as a static raster.
 Replaces the retired Madarek night+gold pixels (night #070B16 / void
-#05070F / gold #E9B44C family — banned).
+#05070F / gold #E9B44C family — banned) AND the retired Circuit Petrol
+pixels (#071A21 / #17C3A4 / #C6F24E — banned, W21).
 
 Pure Pillow, geometry-only (no system font) — bit-reproducible anywhere.
 
@@ -39,11 +41,11 @@ from PIL import Image, ImageDraw
 OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "images")
 os.makedirs(OUT, exist_ok=True)
 
-# ── Circuit Petrol palette — literal theme.ts (SSOT) values ──────────────────
-GROUND   = (7, 26, 33, 255)     # #071A21 — background dark / splash+adaptive pin
-TEAL     = (23, 195, 164, 255)  # #17C3A4 — primary (the machine's voice)
-LIME     = (198, 242, 78, 255)  # #C6F24E — reserved AI/automation LED
-HAIRLINE = (29, 68, 80, 255)    # #1D4450 — border ring on the plates
+# ── Machine Instrument palette — literal theme.ts (SSOT) values ──────────────────
+GROUND   = (5, 5, 6, 255)       # #050506 — background dark / splash+adaptive pin
+CYAN     = (86, 226, 242, 255)  # #56E2F2 — primary (the machine's voice)
+VIOLET   = (147, 128, 255, 255) # #9380FF — reserved AI/automation LED
+HAIRLINE = (41, 42, 48, 255)    # #292A30 — border ring on the plates
 WHITE    = (255, 255, 255, 255) # monochrome layer
 
 # ── the glyph: 512-unit space, drawn at SS× scale then LANCZOS-down ─────────
@@ -69,12 +71,12 @@ def _new_mask(s):
 def glyph_masks(s):
     """Per-color masks of the robot-head mark at s×s (512-unit geometry).
 
-    head  — teal: antenna stem + ear studs + head shell, with the eye slots
-            and mouth CUT OUT (they show whatever is behind: petrol ground
-            on the icon/splash/adaptive, page bg under brand plates).
-    led   — lime: the antenna LED (reserved AI signal).
-    trace — teal circuit line + start node under the chin.
-    node  — lime trace end node.
+    head  — cyan: antenna stem + ear studs + head shell, with the eye slots
+            and mouth CUT OUT (they show whatever is behind: the dark
+            #050506 ground on the icon/splash/adaptive, page bg under plates).
+    led   — violet: the antenna LED (reserved AI signal).
+    trace — cyan circuit line + start node under the chin.
+    node  — violet trace end node.
     """
     head, led, trace, node = (_new_mask(s) for _ in range(4))
 
@@ -116,7 +118,7 @@ def _colorize(mask, color):
     return img
 
 
-def glyph(size, head=TEAL, led=LIME, trace=None, node=None):
+def glyph(size, head=CYAN, led=VIOLET, trace=None, node=None):
     """The full robot-head mark composited on a transparent size×size canvas.
 
     Pass head=WHITE, led=WHITE, trace=WHITE, node=WHITE for the monochrome
@@ -137,7 +139,7 @@ def glyph(size, head=TEAL, led=LIME, trace=None, node=None):
 
 
 def plate(size, ratio=0.22):
-    """Rounded petrol plate (radius = 22% — the .qr-corner law) with a
+    """Rounded dark plate (radius = 22% — the .qr-corner law) with a
     hairline ring, on a transparent canvas."""
     s = size * SS
     r = s * ratio
@@ -159,19 +161,19 @@ def _paste_center(canvas, sprite):
 def build_all():
     assets = {}
 
-    # 1. icon.png — petrol full-bleed ground + glyph (corners opaque petrol).
+    # 1. icon.png — #050506 full-bleed ground + glyph (corners opaque).
     icon = Image.new("RGBA", (1024, 1024), GROUND)
     assets["icon.png"] = _paste_center(icon, glyph(800))
 
     # 2. splash-icon.png — 1024 canvas, glyph 760 on transparent
-    #    (expo-splash-screen paints the #071A21 ground — app.json pin).
+    #    (expo-splash-screen paints the #050506 ground — app.json pin).
     assets["splash-icon.png"] = _paste_center(Image.new("RGBA", (1024, 1024), (0, 0, 0, 0)), glyph(760))
 
     # 3. android-icon-foreground.png — glyph only on the 1024 canvas,
     #    inside the adaptive safe zone (inner ~66%): 430px.
     assets["android-icon-foreground.png"] = _paste_center(Image.new("RGBA", (1024, 1024), (0, 0, 0, 0)), glyph(430))
 
-    # 4. android-icon-background.png — solid petrol (app.json pins the hex).
+    # 4. android-icon-background.png — solid #050506 (app.json pins the hex).
     assets["android-icon-background.png"] = Image.new("RGBA", (1024, 1024), GROUND)
 
     # 5. android-icon-monochrome.png — white silhouette on the 1024 canvas,
@@ -180,7 +182,7 @@ def build_all():
         Image.new("RGBA", (1024, 1024), (0, 0, 0, 0)),
         glyph(430, WHITE, WHITE, WHITE, WHITE))
 
-    # 6. brand-icon.png — 160px rounded petrol plate + 65% glyph (the MOBILE
+    # 6. brand-icon.png — 160px rounded dark plate + 65% glyph (the MOBILE
     #    mark; the web one is a separate asset owned by the web identity).
     brand = plate(160)
     assets["brand-icon.png"] = _paste_center(brand, glyph(104))
@@ -199,6 +201,9 @@ BANNED = {
     "Madarek night #070B16": lambda r, g, b: abs(r - 7) <= 1 and abs(g - 11) <= 1 and abs(b - 22) <= 1,
     "Madarek void  #05070F": lambda r, g, b: abs(r - 5) <= 1 and abs(g - 7) <= 1 and abs(b - 15) <= 1,
     "Madarek gold family":   lambda r, g, b: 225 <= r <= 245 and 168 <= g <= 192 and 60 <= b <= 96,
+    "Petrol ground #071A21 (W21 retired)": lambda r, g, b: abs(r - 7) <= 1 and abs(g - 26) <= 1 and abs(b - 33) <= 1,
+    "Petrol teal  #17C3A4 (W21 retired)": lambda r, g, b: abs(r - 23) <= 1 and abs(g - 195) <= 1 and abs(b - 164) <= 1,
+    "Petrol lime  #C6F24E (W21 retired)": lambda r, g, b: abs(r - 198) <= 1 and abs(g - 242) <= 1 and abs(b - 78) <= 1,
 }
 
 EXPECTED = {  # name -> size (mode pinned below — all RGBA)
@@ -211,8 +216,8 @@ EXPECTED = {  # name -> size (mode pinned below — all RGBA)
     "favicon.png": 128,
 }
 
-# sample points: corner ×2 · head-mid (teal) · right-eye slot (ground/transparent)
-# · antenna LED (lime) · trace end node (lime) — coords mapped from the
+# sample points: corner ×2 · head-mid (cyan) · right-eye slot (ground/transparent)
+# · antenna LED (violet) · trace end node (violet) — coords mapped from the
 # 512-unit glyph geometry through each asset's offset/scale.
 SAMPLES = {
     "icon.png": [(2, 2), (1021, 1021), (512, 456), (603, 446), (512, 178), (677, 768)],
@@ -252,7 +257,7 @@ def verify(assets):
         print(f"  {name:34s} {img.size}  samples={samples}  banned=0")
 
     assert total_bad == 0
-    print("✓ pixel-true: petrol #071A21 grounds, teal glyph, lime LED — zero #070B16/#05070F/gold pixels")
+    print("✓ pixel-true: Machine Instrument #050506 grounds, cyan glyph, violet LED — zero Madarek/petrol pixels")
 
 
 def main():

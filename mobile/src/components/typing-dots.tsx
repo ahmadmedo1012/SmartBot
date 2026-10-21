@@ -2,7 +2,7 @@
  * SmartBot Mobile — TypingDots: نقاط التفكير الثلاث (منقولة من الويب
  * r152، globals.css .sb-typing — سجل «الآلة تفكر»).
  *
- * ثلاث نقاط لايم 6px (اللون المحجوز لعلامات AI) تنبض بترتيب متدرج:
+ * ثلاث نقاط بنفسجية 6px (اللون المحجوز لعلامات AI) تنبض بترتيب متدرج:
  * دورة 1.2s خطية لكل نقطة مع انزياح 0.18s — عتامة 0.35→1 ورفع -3px
  * عند القمة (نفس sb-dot-pulse). النسخة العارية (bare) بلا إطار الفقاعة
  * لصفوف الحالة المضمنة؛ الافتراضية فقاعة سطح بخُطّة (مثل .sb-typing).
@@ -99,7 +99,7 @@ export function TypingDots({ bare = false, style, ...rest }: TypingDotsProps) {
       {...rest}
     >
       {DOT_PHASE.map((phase) => (
-        <Dot key={phase} phase={phase} t={t} reduced={reduced} color={colors.lime} />
+        <Dot key={phase} phase={phase} t={t} reduced={reduced} color={colors.violet} />
       ))}
     </View>
   )

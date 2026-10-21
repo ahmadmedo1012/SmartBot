@@ -3,14 +3,14 @@
  * fb_dashboard/frontend/src/components/shared/RobotMark.tsx — الهندسة
  * حرفية بالوحدات نفسها: viewBox 0 0 120 120).
  *
- * هوية واحدة في كل مكان: قوقعة بترول مطفية (سطح + خُطّة) · زجاج عين
- * أزرق-أخضر إشاري (صوت الآلة) · LED حالة لايم (إشارة الذكاء/الأتمتة —
+ * هوية واحدة في كل مكان: قوقعة معدنية مطفية (سطح + خُطّة) · زجاج عين
+ * سماوي (صوت الآلة) · LED حالة بنفسجية (إشارة الذكاء/الأتمتة —
  * اللون المحجوز). لا أصول صور: SVG واحد خفيف يتبع الثيم.
  *
  * الحالات (مرآة سلوك الويب):
  *   idle       — هدوء، LED يتنفس (rb-led). الافتراضي.
  *   greeting   — عينان قوسان + موجة إشارية (rb-wave).
- *   thinking   — شريط مسح لايم يجوب الزجاج (rb-scan) — سجل الذكاء.
+ *   thinking   — شريط مسح بنفسجي يجوب الزجاج (rb-scan) — سجل الذكاء.
  *   responding — عينان مفتوحتان + أمواج صوتية إشارية (rb-say).
  *   error      — الزجاج والـLED يتحولان rose مع رجّة (rb-glitch).
  *
@@ -58,9 +58,9 @@ export function RobotMark({ state = 'idle', size = 48, accessibilityLabel }: Rob
   const { colors, isDark } = useTheme()
   const reduced = useReducedMotion()
 
-  /* السجل المحجوز: الـLED لايم (نبض الآلة) إلا في الخطأ حيث تتحول
+  /* السجل المحجوز: الـLED بنفسجي (نبض الآلة) إلا في الخطأ حيث تتحول
    * الآلة كلها rose (مرآة led/visor في الويب). */
-  const led = state === 'error' ? colors.destructive : colors.lime
+  const led = state === 'error' ? colors.destructive : colors.violet
   const visor = state === 'error' ? colors.destructive : colors.primary
   /* --secondary الويب = السطح؛ --surface-sunken = أعمق درجة (أرض dark /
    * سطح light — نفس القيم الحرفية). */
@@ -177,7 +177,7 @@ export function RobotMark({ state = 'idle', size = 48, accessibilityLabel }: Rob
       {/* عقدا الأذن — وصلتان كهربائيتان */}
       <Rect x={8} y={44} width={7} height={16} rx={3.5} fill={colors.card} stroke={colors.border} strokeWidth={1.5} />
       <Rect x={105} y={44} width={7} height={16} rx={3.5} fill={colors.card} stroke={colors.border} strokeWidth={1.5} />
-      {/* قوقعة الرأس — بترول مطفي */}
+      {/* قوقعة الرأس — معدن مطفي */}
       <Rect x={22} y={24} width={76} height={56} rx={18} fill={shell} stroke={colors.border} strokeWidth={2} />
       {/* الرقبة */}
       <Rect x={54} y={76} width={12} height={10} rx={3} fill={colors.card} />
@@ -207,9 +207,9 @@ export function RobotMark({ state = 'idle', size = 48, accessibilityLabel }: Rob
           <Rect x={66} y={45} width={9} height={12} rx={4.5} />
         </G>
       )}
-      {/* شريط المسح — سجل التفكير (لايم: جولة الذكاء) */}
+      {/* شريط المسح — سجل التفكير (بنفسجي: جولة الذكاء) */}
       {state === 'thinking' ? (
-        <AnimatedRect x={scanX} y={40} width={5} height={20} rx={2.5} fill={colors.lime} opacity={scanOpacity} />
+        <AnimatedRect x={scanX} y={40} width={5} height={20} rx={2.5} fill={colors.violet} opacity={scanOpacity} />
       ) : null}
       {/* الأمواج الصوتية — سجل الرد (إشاري، الجانبان) */}
       {state === 'responding' ? (
@@ -226,7 +226,7 @@ export function RobotMark({ state = 'idle', size = 48, accessibilityLabel }: Rob
       ) : null}
       {/* قوقعة الجسد */}
       <Rect x={34} y={84} width={52} height={26} rx={12} fill={shell} stroke={colors.border} strokeWidth={2} />
-      {/* مسار الصدر وعقده — موتيف الدارة البترولية على الجسد */}
+      {/* مسار الصدر وعقده — موتيف الدارة على الجسد */}
       <Line x1={44} y1={97} x2={76} y2={97} stroke={colors.border} strokeWidth={1.6} />
       <Circle cx={44} cy={97} r={2.4} fill={colors.primary} />
       <Circle cx={76} cy={97} r={2.4} fill={colors.primary} />

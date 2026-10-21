@@ -1,20 +1,22 @@
 /**
- * SmartBot Mobile — Design tokens (Circuit Petrol).
+ * SmartBot Mobile — Design tokens (Machine Instrument «آلة القياس»).
  *
  * القيم منقولة حرفيًا من نظام تصميم الويب (fb_dashboard/frontend/src/app/
- * globals.css — SoT الشقيقة، سلسلة #071A21): ليلي بترولي #071A21 مع
- * أزرق-أخضر إشاري #17C3A4 (dark الافتراضي، مطابق للويب)، ونهاري كريمي
- * مخضرّ #EDF6F3 مع أزرق-أخضر عميق #0C7563. الخط: IBM Plex Sans Arabic
- * متنًا + Space Grotesk عناوين لاتينية (انظر themed-text) وIBM Plex Mono
- * للأختام الزمنية.
+ * globals.css + design-system/smartbot-phase17/ART-DIRECTION.md — SoT
+ * الشقيقة): ليلي #050506 مع صوت آلة سماوي #56E2F2 (dark الافتراضي،
+ * مطابق للويب)، ونهاري بورسلين #F2F2F0 مع سماوي عميق #0E7A8A. الخط:
+ * IBM Plex Sans Arabic متنًا + Space Grotesk عناوين لاتينية (انظر
+ * themed-text) وIBM Plex Mono للأختام الزمنية.
  *
  * سلّم الألوان dark (أرض < بطاقة < سطح < خُطّة):
- *   #071A21 < #0D2830 < #123039 — نفس سلم الويب البترولي
- *   (الخُطّة/hairline #1D4450 = border).
- * النص على التعبئة الإشارية: espresso #04231B (--accent-fg في الويب،
- * ≈7.4:1 على الأزرق-أخضر) — وليس الأبيض.
- * LIME #C6F24E محجوز لعلامات AI/الآلة فقط (dark) / #5A7A16 (light) —
- * لا يُستخدم لونًا تفاعليًا أبدًا.
+ *   #050506 < #0A0B0E < #101115 — نفس سلم الويب
+ *   (الخُطّة/hairline #292A30 = border · القوية #41434B).
+ * النص على التعبئة الإشارية: #05171B (--accent-fg في الويب، ≈7.4:1 على
+ * السماوي) — وليس الأبيض.
+ * VIOLET #9380FF محجوز لعلامات AI/الآلة فقط (dark) / #6B54E0 (light) —
+ * لا يُستخدم لونًا تفاعليًا أبدًا. (الويب يسمّي رمزه --c-lime-* تاريخيًا
+ * لكن قيمته بنفسجية — هنا الاسم صادق.)
+ * AMBER #FF9A69 سجل الإنسان/التسليم (dark) / #C25E33 بورسلين (light).
  */
 
 export interface ThemeColors {
@@ -39,67 +41,72 @@ export interface ThemeColors {
   warningSoft: string
   infoSoft: string
   destructiveSoft: string
-  /** حجاب النوافذ المنبثقة — الويب --overlay (داكن 0.62 / فاتح 0.40) */
+  /** حجاب النوافذ المنبثقة — الويب --overlay (داكن 0.66 / فاتح 0.40) */
   scrim: string
   flame: string
   ember: string
   saffron: string
   ash: string
-  /** درجة الضغط للأساسي (--accent-strong في الويب: hover #1FD6B4 ·
-   *  pressed #12A386 — الجوال يستهلك درجة الضغط). */
+  /** درجة الضغط للأساسي (--accent-strong في الويب: hover #7CEFF9 ·
+   *  strong #2AC5D8 — الجوال يستهلك درجة الضغط). */
   primaryPressed: string
-  /** LIME — علامات AI/الآلة فقط (thinking dots/LED/نبض حي).
-   *  dark #C6F24E (13.8:1 على الأرض البترولية) · light #5A7A16 (AA
-   *  على الكريمي). محجوز — ليس لونًا تفاعليًا أبدًا. */
-  lime: string
+  /** VIOLET — علامات AI/الآلة فقط (thinking dots/LED/نبض حي).
+   *  dark #9380FF (13.8:1 على الأرض الداكنة) · light #6B54E0 (AA
+   *  على البورسلين). محجوز — ليس لونًا تفاعليًا أبدًا. (الويب يحمله
+   *  تاريخيًا على اسم --c-lime-*؛ القيمة بنفسجية — الاسم هنا صادق.) */
+  violet: string
+  /** AMBER — سجل الإنسان/التسليم (الويب --sb-accent-amber، المسرح
+   *  Phase 17): dark #FF9A69 · light #C25E33 (porcelain day). */
+  amber: string
 }
 
 export const dark: ThemeColors = {
-  background: '#071A21',
-  surface: '#123039',
-  card: '#0D2830',
-  foreground: '#E9F5F0',
-  /* الويب dark --muted = surface-2 #123039 (نفس الدرج). */
-  muted: '#123039',
-  mutedFg: '#9FC3BC',
-  primary: '#17C3A4',
-  primaryFg: '#04231B',
-  accentFg: '#17C3A4',
-  border: '#1D4450',
-  input: '#64949E',
-  placeholder: '#6E938E',
-  success: '#45D6A0',
-  warning: '#F5C46B',
-  info: '#7CC4DE',
+  background: '#050506',
+  surface: '#101115',
+  card: '#0A0B0E',
+  foreground: '#F4F4F6',
+  /* الويب dark --muted = surface-2 #101115 (نفس الدرج). */
+  muted: '#101115',
+  mutedFg: '#A7A8B0',
+  primary: '#56E2F2',
+  primaryFg: '#05171B',
+  accentFg: '#56E2F2',
+  border: '#292A30',
+  input: '#898B90',
+  placeholder: '#777983',
+  success: '#5FE3A1',
+  warning: '#F8CF6E',
+  info: '#8FC9D8',
   destructive: '#F2919B',
-  successSoft: '#0C2E24',
-  warningSoft: '#332708',
-  infoSoft: '#10303B',
+  successSoft: '#0D241B',
+  warningSoft: '#332A10',
+  infoSoft: '#102530',
   destructiveSoft: '#331821',
-  scrim: 'rgba(15, 15, 15, 0.62)',
-  flame: '#17C3A4',
-  ember: '#12A386',
-  saffron: '#17C3A4',
-  ash: '#9FC3BC',
-  primaryPressed: '#12A386',
-  lime: '#C6F24E',
+  scrim: 'rgba(5, 5, 6, 0.66)',
+  flame: '#56E2F2',
+  ember: '#2AC5D8',
+  saffron: '#56E2F2',
+  ash: '#A7A8B0',
+  primaryPressed: '#2AC5D8',
+  violet: '#9380FF',
+  amber: '#FF9A69',
 }
 
 export const light: ThemeColors = {
-  background: '#EDF6F3',
-  surface: '#E4F0ED',
+  background: '#F2F2F0',
+  surface: '#E9E9E6',
   card: '#FFFFFF',
-  foreground: '#0A242E',
-  muted: '#DAEAE6',
-  mutedFg: '#3A5450',
-  primary: '#0C7563',
-  primaryFg: '#F2FDFA',
-  accentFg: '#085B4C',
-  border: '#CCE0DB',
-  input: '#51736E',
-  placeholder: '#51736E',
+  foreground: '#101115',
+  muted: '#E1E1DE',
+  mutedFg: '#41434B',
+  primary: '#0E7A8A',
+  primaryFg: '#F2F2F0',
+  accentFg: '#0B5A68',
+  border: '#D5D5D2',
+  input: '#55585F',
+  placeholder: '#55585F',
   success: '#2E9E6F',
-  warning: '#C29217',
+  warning: '#B08210',
   info: '#3E96BC',
   destructive: '#D95F6C',
   successSoft: '#D9F3E6',
@@ -107,12 +114,13 @@ export const light: ThemeColors = {
   infoSoft: '#DDF0F7',
   destructiveSoft: '#FCE3E6',
   scrim: 'rgba(15, 15, 15, 0.40)',
-  flame: '#0C7563',
-  ember: '#095C4C',
-  saffron: '#0B6B5A',
-  ash: '#3A5450',
-  primaryPressed: '#085B4C',
-  lime: '#5A7A16',
+  flame: '#0E7A8A',
+  ember: '#0A6A78',
+  saffron: '#0D7488',
+  ash: '#41434B',
+  primaryPressed: '#0B5A68',
+  violet: '#6B54E0',
+  amber: '#C25E33',
 }
 
 /** Radius scale (Madarek): 6/8/10/12/16/20/28 (--r-xs..--r-3xl) */
@@ -121,11 +129,11 @@ export const radius = { xs: 6, sm: 8, md: 10, lg: 12, xl: 16, xxl: 20, xxxl: 28 
 /** سلّم المسافات من --sp (4px ladder: …20/24/32/40). */
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const
 
-/** العائلات التسع (الويب globals.css — البلوك البترولي dark/.light):
+/** العائلات التسع (الويب globals.css — بلوك dark/.light الحالي):
  *  أرضية/حبر/غامق لكل عائلة، نفس قيم الويب حرفيًا.
  *  القاعدة: الخلفية من -bg والنص من -deep (AA)؛ -ink للحشو والرسوم
  *  فقط — لا تُخترع عائلة عاشرة أبدًا (MASTER §2.4).
- *  copper = العائلة الإشارية في dark (bg #0A2E28 = accent-soft). */
+ *  copper = العائلة الإشارية في dark (bg #0D1E24 = accent-soft). */
 export interface PastelFamily {
   /** الأرضية العميقة (dark) / الباستيل (light) */
   bg: string
@@ -140,27 +148,27 @@ export type FamilyName =
   | 'rose' | 'sand' | 'grey' | 'copper'
 
 const DARK_FAMILIES: Record<FamilyName, PastelFamily> = {
-  peach:    { bg: '#2A1E1A', ink: '#F2A887', deep: '#F8D9C8' },
-  mint:     { bg: '#0C2E24', ink: '#45D6A0', deep: '#C9EDDB' },
-  lavender: { bg: '#1E2740', ink: '#9FB2E8', deep: '#D8DEF8' },
-  sky:      { bg: '#10303B', ink: '#7CC4DE', deep: '#CDE9F3' },
-  yellow:   { bg: '#332708', ink: '#F5C46B', deep: '#F8E7B8' },
+  peach:    { bg: '#2A1F1C', ink: '#FFB08C', deep: '#FFE2D1' },
+  mint:     { bg: '#0D241B', ink: '#5FE3A1', deep: '#CFEDE1' },
+  lavender: { bg: '#1E2233', ink: '#A9B4F0', deep: '#D8DDF9' },
+  sky:      { bg: '#102530', ink: '#8FC9D8', deep: '#CFE8F0' },
+  yellow:   { bg: '#332A10', ink: '#F8CF6E', deep: '#F9E6BC' },
   rose:     { bg: '#331821', ink: '#F2919B', deep: '#FAD3D7' },
-  sand:     { bg: '#1B3230', ink: '#B9D4C8', deep: '#DDEBE1' },
-  grey:     { bg: '#14262E', ink: '#A3B8BF', deep: '#D8E5E8' },
-  copper:   { bg: '#0A2E28', ink: '#17C3A4', deep: '#A9F0DF' },
+  sand:     { bg: '#1A1D1C', ink: '#C4C9C4', deep: '#DEE3E0' },
+  grey:     { bg: '#141519', ink: '#A7A8B0', deep: '#D6D7DB' },
+  copper:   { bg: '#0D1E24', ink: '#56E2F2', deep: '#C9F6FC' },
 }
 
 const LIGHT_FAMILIES: Record<FamilyName, PastelFamily> = {
-  peach:    { bg: '#FFEDE2', ink: '#DB7B57', deep: '#6B2D1A' },
+  peach:    { bg: '#FFEDE3', ink: '#E0825C', deep: '#74301C' },
   mint:     { bg: '#D9F3E6', ink: '#2E9E6F', deep: '#0F4A33' },
-  lavender: { bg: '#E8ECF9', ink: '#7086D6', deep: '#2D3A7A' },
+  lavender: { bg: '#E9E8F7', ink: '#7B86DC', deep: '#32387E' },
   sky:      { bg: '#DDF0F7', ink: '#3E96BC', deep: '#0F3D52' },
   yellow:   { bg: '#FBF1CF', ink: '#C29217', deep: '#6B4C0B' },
   rose:     { bg: '#FCE3E6', ink: '#D95F6C', deep: '#6B2128' },
-  sand:     { bg: '#EBF2EC', ink: '#7FA089', deep: '#33523F' },
-  grey:     { bg: '#EAF0F1', ink: '#5F7377', deep: '#2A3A3E' },
-  copper:   { bg: '#D7F3EA', ink: '#0E8A75', deep: '#0A4A3C' },
+  sand:     { bg: '#EDEFEA', ink: '#849489', deep: '#385241' },
+  grey:     { bg: '#EAEEF0', ink: '#62696C', deep: '#2E3A40' },
+  copper:   { bg: '#DCF1F4', ink: '#12748A', deep: '#0C4753' },
 }
 
 /** عائلات الأقسام حسب الوضع — استهلاك:

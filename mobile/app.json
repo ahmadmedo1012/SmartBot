@@ -18,7 +18,7 @@
     "android": {
       "package": "ly.smartlink.smartbot",
       "adaptiveIcon": {
-        "backgroundColor": "#071A21",
+        "backgroundColor": "#050506",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -35,7 +35,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#071A21",
+          "backgroundColor": "#050506",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 160
         }

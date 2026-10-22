@@ -89,6 +89,24 @@ html.light .sb-shell {
   display: flex;
   flex-direction: column;
 }
+
+/* W21-B — section separators: defaultNavSections' grouping stays VISIBLE in
+ * the 80px rail — a hairline between the labeled clusters, inset from the
+ * edges so a GROUP boundary reads differently from the panel seams above
+ * (brand cap) and below (footer). Token-only: var(--border) is the semantic
+ * hairline (the ART-DIRECTION §4 workhorse 1px line — #292A30 night /
+ * #D5D5D2 porcelain day), the same rung every other rail hairline rides.
+ * Logical properties only → RTL/LTR symmetric. The markup is a named <hr>
+ * (section label), so the grouping reaches screen readers too. */
+.sb-rail-sep {
+  flex-shrink: 0;
+  block-size: 0;
+  margin-block: 8px;
+  margin-inline: 16px;
+  border: 0;
+  border-block-start: 1px solid var(--border);
+}
+
 .sb-rail-item {
   position: relative;
   display: flex;

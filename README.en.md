@@ -12,7 +12,7 @@
 
 **[🌐 bot.smart-link.ly](https://bot.smart-link.ly)** · [🧪 Live demo](https://bot.smart-link.ly/demo) · [📚 Docs](docs/INDEX.md) · [العربية](README.md) · **English**
 
-<img src="docs/screenshots/hero.webp" width="820" alt="SmartBot landing page in the night Madarek identity (navy/gold): navbar, headline «اكتشف ذكاءً اصطناعيًا», and «ابدأ مجانًا» / «جرّب البوت الآن» CTAs">
+<img src="docs/screenshots/hero.webp" width="820" alt="SmartBot landing page: navbar, robot protagonist on the night stage, display headline, and the two CTA buttons">
 
 </div>
 
@@ -35,7 +35,7 @@ A **multi-tenant** platform for managing Facebook pages: an Arabic-first RTL con
 | 💳 **Libyan payments** | **Lybiana/Madar** mobile wallets + bank transfer, with **Telegram approvals** and full payments admin |
 | 🧾 **PDF reports** | Reports rendered with the bundled IBM Plex Sans Arabic font — `pdf_reports_engine.py` |
 | 📱 **Native mobile app** | Expo + React Native — native navigation, not a WebView (`mobile/`) |
-| 🌓 **Madarek identity** | night/gold dark & cream/copper light themes, full RTL, mathematically measured AA contrast |
+| 🌓 **Machine Instrument identity** | ink night `#050506` with machine-voice cyan `#56E2F2`, AI-register violet `#9380FF` and handoff amber `#FF9A69` — porcelain day `#F2F2F0`/`#0E7A8A`, full RTL, mathematically measured AA contrast |
 
 ## 📸 Screenshots
 
@@ -74,7 +74,7 @@ All shots are from **production** (`bot.smart-link.ly`) — click any image to v
 | Mobile | **Expo + React Native** — `mobile/` (native app) |
 | Hosting | Vercel — frontend [bot.smart-link.ly](https://bot.smart-link.ly) + API [api.smart-link.ly](https://api.smart-link.ly) |
 | Observability | Sentry/GlitchTip + critical Telegram alerts |
-| Design | The **Madarek** identity: night/gold `#070B16`/`#E9B44C` dark — cream/copper `#FBFAF9`/`#B57438` light — IBM Plex Sans Arabic. Reference: `design-system/smartbot/MASTER.md` |
+| Design | The **Machine Instrument** identity: ink/cream night `#050506`/`#F4F4F6` with machine-voice cyan `#56E2F2` — porcelain day `#F2F2F0`/`#0E7A8A` — IBM Plex Sans Arabic. Reference: `design-system/smartbot-phase17/ART-DIRECTION.md` |
 
 ## 🚀 Getting started
 
@@ -175,7 +175,7 @@ Two Vercel projects (details in [docs/deployment.md](docs/deployment.md)):
 
 ## 🛰️ Part of the Madarek Ecosystem — جزء من منظومة مدارك
 
-> One design system across all projects · the Madarek identity: night/gold `#070B16`/`#E9B44C` dark — cream/copper `#FBFAF9`/`#B57438` light — IBM Plex Sans Arabic
+> Every project in the ecosystem ships its own identity · SmartBot's: the **Machine Instrument** — ink night `#050506` with machine-voice cyan `#56E2F2` and AI-register violet `#9380FF` — porcelain day `#F2F2F0`/`#0E7A8A` — IBM Plex Sans Arabic
 
 | Project | Role | GitHub | Live |
 |---|---|---|---|

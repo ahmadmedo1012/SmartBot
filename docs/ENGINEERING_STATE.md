@@ -23,7 +23,7 @@
 **Envelope contract:** every `/api` response is `{success, data, error?}` — central unwrap only (`src/lib/api.ts` / `_responses.py`).
 **Auth:** JWT cookie (web) + Bearer `/api/auth/token` (mobile); jti blacklist; tenant_id isolation (claim `tid` is only a lookup filter — effective tenant always from DB row); CSRF double-submit (Bearer-header requests exempt by design — B-18).
 **Mobile contracts:** `mobile/src/lib/envelope.ts` mirrors backend envelope.
-**Design canon:** **Machine Instrument** (P17) — ink `#050506`/`#0A0B0E`, cream `#F4F4F6`, cyan `#56E2F2` (machine voice), violet `#9380FF` (AI register), amber `#E9B44C` (human/handoff), 3-line instrument grid, ChainGPT-grammar shell (80px icon rail, 70px top band, ticker strip, persistent AI bar). Supersedes Circuit Petrol (r152, which superseded Madarek r125). Contract: `design-system/smartbot-phase17/ART-DIRECTION.md`. Parity ledger: **582 GREEN** (see CLAUDE.md ledger history).
+**Design canon:** **Machine Instrument** (P17) — ink `#050506`/`#0A0B0E`, cream `#F4F4F6`, cyan `#56E2F2` (machine voice), violet `#9380FF` (AI register), amber `#FF9A69` (human/handoff), 3-line instrument grid, ChainGPT-grammar shell (80px icon rail, 70px top band, ticker strip, persistent AI bar). Supersedes Circuit Petrol (r152, which superseded Madarek r125). Contract: `design-system/smartbot-phase17/ART-DIRECTION.md`. Parity ledger: **582 GREEN** (see CLAUDE.md ledger history).
 
 ## 2. CURRENT STATE
 

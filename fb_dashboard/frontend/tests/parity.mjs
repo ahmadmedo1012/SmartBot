@@ -2912,6 +2912,48 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('W6-B5 toasts: every new mutation surfaces the server copy (ApiError message) via brandedToast');
 }
 
+// ── §W21-B — rail section grouping (discoverability, single-source law) ──────
+{
+  /* Self-contained block (own raw readers): pins the W21-B rail-grouping
+     grammar — the 80px icon rail stops flattening defaultNavSections' 5
+     labeled sections into 24 unlabeled icons. Hairline separators (the
+     semantic var(--border) rung) land BETWEEN sections; the geometry law
+     is untouched (80px rail, 52px slots, tooltips intact); the section
+     inventory stays the ONE exported source (rail + bottom nav + demo). */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const rawRail = nc(readRaw('../src/components/dashboard/ShellNavRail.tsx'));
+  const rawShellCss = nc(readRaw('../src/components/dashboard/dashboard-shell.css'));
+
+  // (1) the rail maps SECTIONS (no flatMap flattening) and renders the
+  //     separator as a NAMED <hr> — the section label reaches AT users,
+  //     the hairline reaches everyone else (tooltips still name items).
+  const railGroupingOk = rawRail.includes('defaultNavSections.map')
+    && rawRail.includes('<hr className="sb-rail-sep" aria-label={section.label} />')
+    && !rawRail.includes('flatMap');
+  if (railGroupingOk) pass += 1;
+  else fails.push('W21-B rail grouping: ShellNavRail maps defaultNavSections per-section (no flatMap) and renders the named sb-rail-sep <hr> between groups');
+
+  // (2) the separator rides the semantic hairline token ONLY — 1px
+  //     var(--border) (the ART-DIRECTION §4 workhorse line; #292A30 night
+  //     / #D5D5D2 porcelain day); zero raw hex/shadow in the rule.
+  const sepBody = rawShellCss.match(/\.sb-rail-sep\s*\{([^}]*)\}/)?.[1] ?? '';
+  const sepCssOk = sepBody.includes('border-block-start: 1px solid var(--border)')
+    && !/#/.test(sepBody)
+    && !/shadow/i.test(sepBody);
+  if (sepCssOk) pass += 1;
+  else fails.push('W21-B rail separator: .sb-rail-sep rides 1px var(--border) — the semantic hairline token, no raw hex/shadow');
+
+  // (3) the geometry law: grouping ADDS separation, never width — the
+  //     rail keeps its 80px inline-size and the 52px slot pitch.
+  const railBody = rawShellCss.match(/\.sb-rail\s*\{([^}]*)\}/)?.[1] ?? '';
+  const slotBody = rawShellCss.match(/\.sb-rail-item\s*\{([^}]*)\}/)?.[1] ?? '';
+  const railGeometryOk = railBody.includes('inline-size: 80px')
+    && slotBody.includes('block-size: 52px');
+  if (railGeometryOk) pass += 1;
+  else fails.push('W21-B rail geometry: 80px rail + 52px slots unchanged (the separators group, they do not widen)');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Machine Instrument parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css instrument layer == the phase17 contract + the character-led cinematic hero composition)`

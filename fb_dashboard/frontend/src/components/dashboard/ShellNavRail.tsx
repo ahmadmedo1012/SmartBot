@@ -7,13 +7,21 @@
  * no text labels at rest, active = 2px accent bar + teal icon + soft wash,
  * bottom-anchored utility cluster (theme · settings · logout).
  *
- * Route inventory: the REAL 23-route dashboard tree, consumed from
+ * Route inventory: the REAL 24-route dashboard tree, consumed from
  * defaultNavSections (AdminSidebar's exported inventory) — every existing
  * route stays reachable, tour ids are preserved for the onboarding tour,
  * and demo/activeHref semantics are not needed here (this rail is only the
  * authenticated shell's).
+ *
+ * W21-B: the rail no longer FLATTENS the inventory — defaultNavSections'
+ * labeled groups stay visible as hairline-separated clusters, from the
+ * SAME single source (no second nav data, no geometry change: 80px rail,
+ * 52px pitch, tooltips intact). Each separator is a named <hr> carrying
+ * the section label that FOLLOWS it, so the grouping reaches screen
+ * readers too — the info the 256px sidebar shows as section text.
  */
 
+import { Fragment } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -36,7 +44,6 @@ function isActiveItem(href: string | undefined, pathname: string): boolean {
 
 export function ShellNavRail({ onLogout }: ShellNavRailProps) {
   const pathname = usePathname() ?? ""
-  const items = defaultNavSections.flatMap((s) => s.items)
 
   return (
     <aside className="sb-rail" aria-label="التنقل الرئيسي">
@@ -54,25 +61,33 @@ export function ShellNavRail({ onLogout }: ShellNavRailProps) {
         />
       </div>
 
-      {/* icon slots — all 23 real routes, scrollable rail (spec §1 pitch) */}
+      {/* icon slots — all 24 real routes, grouped by section (spec §1 pitch):
+          hairline separators between the labeled clusters, scrollable rail */}
       <nav className="sb-rail-nav" aria-label="أقسام لوحة التحكم">
-        {items.map((item) => {
-          const active = isActiveItem(item.href, pathname)
-          return (
-            <Link
-              key={`${item.label}-${item.href ?? ""}`}
-              id={item.tourId}
-              href={item.href ?? "#"}
-              aria-current={active ? "page" : undefined}
-              aria-label={item.label}
-              title={item.label}
-              className="sb-rail-item"
-            >
-              <item.icon className="size-[22px] shrink-0" aria-hidden="true" />
-              <span className="sb-rail-tip" aria-hidden="true">{item.label}</span>
-            </Link>
-          )
-        })}
+        {defaultNavSections.map((section, si) => (
+          <Fragment key={section.label}>
+            {/* W21-B: group boundary — named for the section that starts
+                here (AT hears the grouping; the eye sees the hairline) */}
+            {si > 0 && <hr className="sb-rail-sep" aria-label={section.label} />}
+            {section.items.map((item) => {
+              const active = isActiveItem(item.href, pathname)
+              return (
+                <Link
+                  key={`${item.label}-${item.href ?? ""}`}
+                  id={item.tourId}
+                  href={item.href ?? "#"}
+                  aria-current={active ? "page" : undefined}
+                  aria-label={item.label}
+                  title={item.label}
+                  className="sb-rail-item"
+                >
+                  <item.icon className="size-[22px] shrink-0" aria-hidden="true" />
+                  <span className="sb-rail-tip" aria-hidden="true">{item.label}</span>
+                </Link>
+              )
+            })}
+          </Fragment>
+        ))}
       </nav>
 
       {/* bottom-anchored utility cluster (spec §1: icon anchored at bottom) */}

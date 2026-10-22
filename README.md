@@ -12,7 +12,7 @@
 
 **[🌐 bot.smart-link.ly](https://bot.smart-link.ly)** · [🧪 لوحة تجريبية](https://bot.smart-link.ly/demo) · [📚 التوثيق](docs/INDEX.md) · **العربية** · [English](README.en.md)
 
-<img src="docs/screenshots/hero.webp" width="820" alt="صفحة هبوط SmartBot بهوية مدارك الليلية (ليلي/ذهبي): شريط تنقّل، عنوان «اكتشف ذكاءً اصطناعيًا»، وزرّا دعوة «ابدأ مجانًا» و«جرّب البوت الآن» — Landing page hero, night theme">
+<img src="docs/screenshots/hero.webp" width="820" alt="صفحة هبوط SmartBot: شريط تنقّل والروبوت البطل على المسرح الليلي مع عنوان العرض وزرّي الدعوة — Landing page hero, night stage">
 
 </div>
 
@@ -35,7 +35,7 @@
 | 💳 **مدفوعات ليبية** | محافظ **ليبيانا/مدار** + تحويل بنكي، مع **موافقات تيليجرام** وإدارة المدفوعات من لوحة الأدمن |
 | 🧾 **تقارير PDF** | تقارير بخط IBM Plex Sans Arabic المرفق — `pdf_reports_engine.py` |
 | 📱 **تطبيق جوال أصلي** | Expo + React Native — تنقّل أصلي لا WebView (`mobile/`) |
-| 🌓 **هوية مدارك** | ثيم ليلي night/gold ونهاري cream/copper، RTL كامل، تباين AA مقاس رياضيًا |
+| 🌓 **هوية آلة القياس** | Machine Instrument: ليلي حبري `#050506` بصوت الآلة السماوي `#56E2F2` وسجل AI البنفسجي `#9380FF` وكهرماني التسليم `#FF9A69` — نهاري «بورسلان» `#F2F2F0`/`#0E7A8A`، RTL كامل، تباين AA مقاس رياضيًا |
 
 ## 📸 لقطات الشاشة
 
@@ -74,7 +74,7 @@
 | الجوال | **Expo + React Native** — `mobile/` (تطبيق أصلي) |
 | الاستضافة | Vercel — واجهة [bot.smart-link.ly](https://bot.smart-link.ly) + API [api.smart-link.ly](https://api.smart-link.ly) |
 | المراقبة | Sentry/GlitchTip + تنبيهات تيليجرام الحرجة |
-| التصميم | هوية **مدارك**: ليلي night/gold `#070B16`/`#E9B44C` — نهاري cream/copper `#FBFAF9`/`#B57438` — خط IBM Plex Sans Arabic. المرجع: `design-system/smartbot/MASTER.md` |
+| التصميم | هوية **آلة القياس** (Machine Instrument): ليلي حبر/كريم `#050506`/`#F4F4F6` بصوت الآلة `#56E2F2` — نهاري «بورسلان» `#F2F2F0`/`#0E7A8A` — خط IBM Plex Sans Arabic. المرجع: `design-system/smartbot-phase17/ART-DIRECTION.md` |
 
 ## 🚀 التشغيل محليًا
 
@@ -175,7 +175,7 @@ docs/                       ← التوثيق المنظَّم — docs/INDEX.m
 
 ## 🛰️ جزء من منظومة مدارك — Part of the Madarek Ecosystem
 
-> نظام تصميم واحد لكل المشاريع · هوية مدارك: ليلي night/gold `#070B16`/`#E9B44C` — نهاري cream/copper `#FBFAF9`/`#B57438` — خط IBM Plex Sans Arabic
+> كل مشروع في المنظومة يحمل هويته المشحونة · هوية SmartBot: **آلة القياس** (Machine Instrument) — ليلي حبري `#050506` بصوت آلة سماوي `#56E2F2` وسجل AI بنفسجي `#9380FF` — نهاري «بورسلان» `#F2F2F0`/`#0E7A8A` — خط IBM Plex Sans Arabic
 
 | المشروع | الدور | GitHub | الموقع المباشر |
 |---|---|---|---|

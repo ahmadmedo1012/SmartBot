@@ -16,7 +16,7 @@
  *   ground        #050506 deep petrol          (was indigo #070B16)
  *   raised        #0A0B0E · soft #101115 · hairline #292A30
  *   ink           #F4F4F6 foam · #A7A8B0 secondary · #777983 muted
- *   primary       #56E2F2 SIGNAL TEAL — button text #05171B ≈7.4:1
+ *   primary       #56E2F2 SIGNAL TEAL — button text #05171B 11.84:1 (W21-I recomputed; ≈7.4:1 was the petrol-era figure)
  *                 (hover #7CEFF9 · pressed #2AC5D8)
  *   AI/automation LIME #9380FF — RESERVED for AI moments ONLY:
  *                 AI-reply indicators, automation-active states,
@@ -558,7 +558,7 @@
   --c-rose-deep: #FAD3D7;
   /* ── LIME family (phase5 r152) — the AI/automation signal triad.
      bg = the deep olive wash for AI/Automation section states; ink =
-     #9380FF (13.8:1 on the petrol ground — thinking dots, LED, live
+     #9380FF (6.56:1 on the night ground #050506 — thinking dots, LED, live (W21-I recomputed; 13.8:1 was measured on the retired petrol ground)
      beats); deep = the pale wash (large AI markers). RESERVED for AI
      moments only — see the @theme bridge note. ── */
   --c-lime-bg: #1D1B3A;

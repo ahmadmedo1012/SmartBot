@@ -23,7 +23,7 @@
 **Envelope contract:** every `/api` response is `{success, data, error?}` — central unwrap only (`src/lib/api.ts` / `_responses.py`).
 **Auth:** JWT cookie (web) + Bearer `/api/auth/token` (mobile); jti blacklist; tenant_id isolation (claim `tid` is only a lookup filter — effective tenant always from DB row); CSRF double-submit (Bearer-header requests exempt by design — B-18).
 **Mobile contracts:** `mobile/src/lib/envelope.ts` mirrors backend envelope.
-**Design canon:** **Machine Instrument** (P17) — ink `#050506`/`#0A0B0E`, cream `#F4F4F6`, cyan `#56E2F2` (machine voice), violet `#9380FF` (AI register), amber `#FF9A69` (human/handoff), 3-line instrument grid, ChainGPT-grammar shell (80px icon rail, 70px top band, ticker strip, persistent AI bar). Supersedes Circuit Petrol (r152, which superseded Madarek r125). Contract: `design-system/smartbot-phase17/ART-DIRECTION.md`. Parity ledger: **582 GREEN** (see CLAUDE.md ledger history).
+**Design canon:** **Machine Instrument** (P17) — ink `#050506`/`#0A0B0E`, cream `#F4F4F6`, cyan `#56E2F2` (machine voice), violet `#9380FF` (AI register), amber `#FF9A69` (human/handoff), 3-line instrument grid, ChainGPT-grammar shell (80px icon rail, 70px top band, ticker strip, persistent AI bar). Supersedes Circuit Petrol (r152, which superseded Madarek r125). Contract: `design-system/smartbot-phase17/ART-DIRECTION.md`. Parity ledger: **588 GREEN** (see CLAUDE.md ledger history; W21-I truth pass: 582→585 W7-H →588 W21-B).
 
 ## 2. CURRENT STATE
 
@@ -118,9 +118,9 @@
 | Backend | `.venv/bin/python -m pytest -q --cov=fb_dashboard --cov-fail-under=60` | **1209 passed, 3 skipped** (4:46, cov 68.41%) |
 | Backend reverse | `pytest -q $(ls tests/test_*.py \| sort -r)` | **1209 passed, 3 skipped** (3:40) |
 | Web types | `npx tsc --noEmit` | 0 errors |
-| Web unit | `npx vitest run` | 590/590 (62 files) |
+| Web unit | `npx vitest run` | 591/591 (62 files) |
 | Web lint | `eslint src/ --max-warnings 0` | clean |
-| Parity | `npm run test:parity` (tests/parity.mjs) | **582/582** |
+| Parity | `npm run test:parity` (tests/parity.mjs) | **588/588** |
 | Build | `npm run build` | PASS — 44/44 static pages |
 | Bundle | `scripts/measure_bundle.py` | 192.1KB gz ≤ 195 PASS |
 | Static sync | `scripts/sync_next_static.py` | 138 files, buildId fresh |

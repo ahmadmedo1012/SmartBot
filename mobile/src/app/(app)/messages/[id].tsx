@@ -146,11 +146,11 @@ export default function ConversationScreen() {
                   accessibilityLabel={formatDate(item.created_time)}
                 />
                 {isBotReply ? (
-                  /* r154: شارة «رد آلي» — السجل المحجوز: لايم + صاعقة
+                  /* r154: شارة «رد آلي» — السجل المحجوز: بنفسجي + صاعقة
                       (مرآة نقطة AI في /demo الويب) */
-                  <View style={[styles.aiChip, { borderColor: `${colors.lime}52` }]}>
-                    <Icon name="zap" size={10} color={colors.lime} />
-                    <AppText variant="caption" style={{ color: colors.lime, fontWeight: '500' }}>
+                  <View style={[styles.aiChip, { borderColor: `${colors.violet}52` }]}>
+                    <Icon name="zap" size={10} color={colors.violet} />
+                    <AppText variant="caption" style={{ color: colors.violet, fontWeight: '500' }}>
                       رد آلي
                     </AppText>
                   </View>

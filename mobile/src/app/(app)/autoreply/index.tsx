@@ -154,14 +154,14 @@ export default function AutoreplyScreen() {
                 </Row>
                 <Row style={{ gap: spacing.sm }}>
                   {/* r154: شارة «رد آلي» — السجل المحجوز لعلامة الآلة
-                      (عائلة sb-ai-chip الويب: غسيل لايم + حبر لايم + حد 32%) */}
+                      (عائلة sb-ai-chip الويب: غسيل بنفسجي + حبر بنفسجي + حد 32%) */}
                   <View
                     style={[
                       styles.aiChip,
-                      { backgroundColor: `${colors.lime}1f`, borderColor: `${colors.lime}52` },
+                      { backgroundColor: `${colors.violet}1f`, borderColor: `${colors.violet}52` },
                     ]}
                   >
-                    <AppText variant="caption" style={{ color: colors.lime, fontWeight: '700' }}>
+                    <AppText variant="caption" style={{ color: colors.violet, fontWeight: '700' }}>
                       رد آلي
                     </AppText>
                   </View>
@@ -171,11 +171,11 @@ export default function AutoreplyScreen() {
                 </Row>
               </View>
               {typeof item.replies_count === 'number' && item.replies_count > 0 ? (
-                /* r154: سطر الحالة — نقطة لايم + نص لايم (مرآة شريط
+                /* r154: سطر الحالة — نقطة بنفسجية + نص بنفسجي (مرآة شريط
                     جاهزية المزود في الويب: النبض النشط للأتمتة) */
                 <Row style={{ marginTop: spacing.xs, gap: 6 }}>
-                  <View style={[styles.statusDot, { backgroundColor: colors.lime }]} />
-                  <AppText variant="caption" style={{ color: colors.lime }}>
+                  <View style={[styles.statusDot, { backgroundColor: colors.violet }]} />
+                  <AppText variant="caption" style={{ color: colors.violet }}>
                     أطلقت {item.replies_count} ردًا
                   </AppText>
                 </Row>

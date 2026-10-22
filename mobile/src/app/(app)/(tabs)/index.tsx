@@ -50,10 +50,23 @@ interface Bundle {
 
 /** رسم شرائح خطي مصغّر (Sparkline) لآخر 7 أيام — SVG خالص بلا مكتبات رسوم. */
 function Sparkline({ data, color }: { data: number[]; color: string }) {
-  if (data.length < 2) return null
+  const { colors } = useTheme()
+  const h = 72
+  if (data.length < 2) {
+    /* W21 (W1-c): فراغ صادق داخل البطاقة — خط خُطّة رفيع حيث كان الأثر
+     * ونص صامت (كان `return null` يترك مساحة عمياء بلا دلالة). نفس
+     * ارتفاع الرسم فلا تقفز البطاقة عند وصول البيانات. */
+    return (
+      <View style={{ height: h, justifyContent: 'center', gap: spacing.sm }}>
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+        <AppText variant="caption" color="mutedFg" style={{ textAlign: 'center' }}>
+          لا توجد ردود بعد
+        </AppText>
+      </View>
+    )
+  }
   const max = Math.max(...data, 1)
   const w = 300
-  const h = 72
   const step = w / (data.length - 1)
   const pts = data.map((v, i) => [i * step, h - (v / max) * (h - 8) - 4] as const)
   const d = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
@@ -107,7 +120,7 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <AppText variant="small" color="mutedFg">
-            مرحباً {user?.username} 👋
+            مرحباً {user?.username}
           </AppText>
           <AppText variant="title" style={{ marginTop: 2 }}>
             لوحة التحكم

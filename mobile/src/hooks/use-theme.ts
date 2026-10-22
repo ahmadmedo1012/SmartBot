@@ -1,8 +1,8 @@
 /**
  * SmartBot Mobile — الثيم الفعّال (dark افتراضي كما الويب).
  *
- * colors.lime متاحة هنا لعلامات AI/الآلة (نقاط التفكير/LED/النبض الحي)
- * — محجوزة لذلك فقط، ليست لونًا تفاعليًا (راجع theme.ts §LIME).
+ * colors.violet متاحة هنا لعلامات AI/الآلة (نقاط التفكير/LED/النبض الحي)
+ * — محجوزة لذلك فقط، ليست لونًا تفاعليًا (راجع theme.ts §VIOLET).
  */
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { dark, light, type ThemeColors } from '@/constants/theme'

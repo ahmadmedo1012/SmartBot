@@ -5,7 +5,7 @@
  *
  * مسار إشارة رفيع بعُقد — لكنة عالم غرفة الآلة وفاصل قصير. متدرج
  * بالثيم: المسار = primary @34% (عتامة بدل color-mix)، العُقد = primary،
- * والعقدة الحية = لايم (محجوزة لنبضات AI/الأتمتة). SVG خالص: لا حركة.
+ * والعقدة الحية = بنفسجية (محجوزة لنبضات AI/الأتمتة). SVG خالص: لا حركة.
  *
  * عقد الهندسة (مقاوم للتمدد): preserveAspectRatio="none" — الخط الأفقي
  * يحمل vectorEffect="non-scaling-stroke" والعُقد خطوط عمودية (محصّنة من
@@ -13,7 +13,7 @@
  *
  * المتغيرات:
  *   divider (افتراضي) — مسار أفقي، عقدة طرفية + عقدة وسطى.
- *   live              — العقدة الطرفية النهائية لايم (أتمتة نشطة).
+ *   live              — العقدة الطرفية النهائية بنفسجية (أتمتة نشطة).
  *   corner            — مسار على شكل L لبطاقات/لوحات.
  */
 import Svg, { Line, Path } from 'react-native-svg'
@@ -43,8 +43,8 @@ export function CircuitTrace({ variant = 'divider', height = 8 }: CircuitTracePr
               (non-scaling) عند كل عرض حاوية */}
           <Line x1={2} y1={2.2} x2={2} y2={5.8} stroke={colors.primary} strokeWidth={3} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           <Line x1={60} y1={3.1} x2={60} y2={4.9} stroke={colors.primary} strokeWidth={2} strokeLinecap="round" opacity={0.75} vectorEffect="non-scaling-stroke" />
-          {/* العقدة الحية — لايم: نبض الأتمتة (سطح نشط/AI يعمل) */}
-          <Line x1={118} y1={2.2} x2={118} y2={5.8} stroke={isLive ? colors.lime : colors.primary} strokeWidth={3} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          {/* العقدة الحية — بنفسجية: نبض الأتمتة (سطح نشط/AI يعمل) */}
+          <Line x1={118} y1={2.2} x2={118} y2={5.8} stroke={isLive ? colors.violet : colors.primary} strokeWidth={3} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         </>
       )}
     </Svg>

@@ -204,13 +204,18 @@ export default function HomePage() {
                 {/* W2-C1 (delta 1) — CONNECTOR TRACES: the reference's
                     circuit grammar — thin 1px traces with 45° elbows and
                     small node pads linking the machine to the terminal
-                    console (head + chest) and down the far rail to the
-                    scroll invitation. DOM/SVG so the paths respect the
-                    layout layer (viewBox maps the ≥1025px hero box);
+                    console and down the far rail to the scroll
+                    invitation. DOM/SVG so the paths respect the layout
+                    layer (viewBox maps the ≥1025px hero box);
                     desktop composition only — the CSS layer gates it off
                     below 1025px and mirrors it for LTR. Decorative
                     (aria-hidden); rides INSIDE the exit frame so it sinks
-                    with the machine layer on scroll. */}
+                    with the machine layer on scroll.
+                    P22 recalibration (the head-only bust, fig 0.80 /
+                    floor 0.88 / x 0.47 — measured against the rendered
+                    canvas): the bezel's screen-side edge lands at
+                    SVG ≈(641, 200-290), the plinth's corners at
+                    ≈(240, 731) top-left / (661, 727) top-right. */}
                 <svg
                   className="ln-hero-traces"
                   viewBox="0 0 1440 900"
@@ -218,24 +223,24 @@ export default function HomePage() {
                   aria-hidden="true"
                   focusable="false"
                 >
-                  {/* console → head (the upper terminal line — W3-A
-                      recalibrated to the new fig-0.6 framing: the head's
-                      left edge lands at SVG ≈(390, 165)) */}
-                  <path className="ln-tx" d="M 962 250 H 690 L 620 180 H 392" />
-                  {/* console → chest (the lower terminal line — exits the
-                      console's bottom corner; W3-A: the chest edge ≈(415, 455)) */}
-                  <path className="ln-tx" d="M 962 312 H 720 L 640 455 H 415" />
-                  {/* machine → far rail → the scroll invitation (the drop
-                      lands just above the invitation label — live rect
-                      [65,721] hero-rel, the invitation line at x≈104) */}
-                  <path className="ln-tx" d="M 135 505 H 118 L 104 519 V 712" />
+                  {/* console → head (the upper terminal line — ends at
+                      the bezel's screen-side edge, the eyes' level) */}
+                  <path className="ln-tx" d="M 966 250 H 726 L 660 184 H 650" />
+                  {/* console → plinth (the lower terminal line — exits the
+                      console's bottom corner, drops the far column, lands
+                      on the plinth's top-right corner: the stand is the
+                      machine's port now that the chest is retired) */}
+                  <path className="ln-tx" d="M 966 312 H 760 L 690 382 V 730 H 666" />
+                  {/* plinth → far rail → the scroll invitation (the drop
+                      lands just above the invitation label) */}
+                  <path className="ln-tx" d="M 242 733 H 120 L 106 747 V 776" />
                   {/* the node pads — ports on the console edge, live nodes
                       at the machine, one terminal above the invitation */}
-                  <rect className="ln-tx-node" x="959" y="247" width="5" height="5" />
-                  <rect className="ln-tx-node" x="959" y="309" width="5" height="5" />
-                  <rect className="ln-tx-node ln-tx-live" x="389" y="177" width="6" height="6" />
-                  <rect className="ln-tx-node ln-tx-live" x="412" y="452" width="6" height="6" />
-                  <rect className="ln-tx-node" x="101" y="709" width="6" height="6" />
+                  <rect className="ln-tx-node" x="963" y="247" width="5" height="5" />
+                  <rect className="ln-tx-node" x="963" y="309" width="5" height="5" />
+                  <rect className="ln-tx-node ln-tx-live" x="644" y="181" width="6" height="6" />
+                  <rect className="ln-tx-node ln-tx-live" x="663" y="727" width="6" height="6" />
+                  <rect className="ln-tx-node" x="103" y="773" width="6" height="6" />
                 </svg>
                 <RobotSceneMount className="ln-robot-canvas" />
               </div>

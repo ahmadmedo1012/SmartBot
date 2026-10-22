@@ -2246,16 +2246,23 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
    chrome (the 73px landing header + hairline, measured live), a
    petrol void with a faint teal horizon breath at the floor line. */
 .landing .ln-hero-robot {
-  /* the framing contract (W3-A reference re-measure): the reference
-   * hero holds the FULL figure with real negative space — head-top
-   * ≈20% from the viewport top, floor ≈80%, the figure ≈60% of the
-   * host height (the old 76% read as a cropped close-up and pushed
-   * the camera into a looking-down read). Composition stays
-   * ASYMMETRIC — the character owns the INLINE-END band (RTL:
-   * screen-left), the display lockup owns inline-start. No glyph
-   * ever crosses the figure (the §2.5 law — scrims retired). */
-  --sb-fig: 0.65;   /* W4-A: 0.6 -> 0.65 — the measured occupancy gap (robot 50% vs reference 54% of host height) */
-  --sb-floor: 0.8;  /* where the floor line lands (from top) */
+  /* P22 — THE BUST FRAMING: the figure is the levitating head alone
+   * (plinth 0..0.10 + hover gap + neck + head to 1.02, the head
+   * ~63% of it). fig 0.92 fills the stage with the bust — the head
+   * lands ~55% of the host height, the reference's close-product
+   * presence. Composition stays ASYMMETRIC — the bust owns the
+   * INLINE-END band (RTL: screen-left), the display lockup owns
+   * inline-start. No glyph ever crosses the figure (§2.5 law). */
+  --sb-fig: 0.80;   /* P22: the bust era — 0.80 keeps the bezel's
+                       PERSPECTIVE-BOOSTED crown AND its swept side
+                       arcs (the ring stands proud at z+0.29; at the
+                       living yaw extremes — pointer + beat glance +
+                       gaze wander — its silhouette sweeps well past
+                       the head box; measured wisps kissed the frame
+                       top at fig 0.86) inside the frame at EVERY
+                       animation moment, not just the rest pose */
+  --sb-floor: 0.88; /* the floor line (from top) — plinth + pools stay
+                       clear of the hero's bottom chrome */
   --sb-x: 0;        /* lateral camera bias (world units) — 0 = centered */
   --sb-glow-x: 50%; /* the atmospherics' horizontal anchor (figure zone) */
   display: block;
@@ -2493,12 +2500,16 @@ html.light .landing .ln-chapter-head::after {
   .landing .ln-hero-robot {
     block-size: calc(100svh - 74px); /* 73px sticky header + hairline, measured */
     min-block-size: 620px;
-    --sb-x: 0.6;      /* 1025–1280: the narrower stage — figure ~34% */
-    --sb-glow-x: 34%;
+    /* P22: the bust is FAR larger in-frame than the retired figure
+     * (fig 0.65 → 0.92) — the old 0.6/0.85 biases now push the head's
+     * back edge off-canvas. 0.47 lands the head center ≈28% of the
+     * width at 1440 (the verified band) with the whole crown inside. */
+    --sb-x: 0.47;      /* 1025–1280: the narrower stage */
+    --sb-glow-x: 26%;
   }
   [dir='ltr'] .landing .ln-hero-robot {
-    --sb-x: -0.6;     /* direction-aware: inline-end flips */
-    --sb-glow-x: 66%;
+    --sb-x: -0.47;     /* direction-aware: inline-end flips */
+    --sb-glow-x: 74%;
   }
   /* the interface island — the shared z0 layer under the machine.
      P16-W6 (evaluator P0): the island keeps pointer-events:none (the
@@ -2574,17 +2585,19 @@ html.light .landing .ln-chapter-head::after {
      emissive edge strip is the light signature. */
 }
 
-/* P18-W2-a — the wide-stage refinement (≥1281px): the lateral bias
-   opens up (figure ~33% of the width, a deeper asymmetric column)
-   while the mobile/tablet grammar stays centered (--sb-x 0). */
+/* P18-W2-a — the wide-stage refinement (≥1281px): P22 keeps the SAME
+   bias as 1025–1280 (the bust's size no longer tolerates the deeper
+   0.85 push — measured: the skull's back edge left the canvas); the
+   glow anchors follow the head center. The mobile/tablet grammar
+   stays centered (--sb-x 0). */
 @media (min-width: 1281px) {
   .landing .ln-hero-robot {
-    --sb-x: 0.85;
-    --sb-glow-x: 33%;
+    --sb-x: 0.47;
+    --sb-glow-x: 30%;
   }
   [dir='ltr'] .landing .ln-hero-robot {
-    --sb-x: -0.85;
-    --sb-glow-x: 67%;
+    --sb-x: -0.47;
+    --sb-glow-x: 70%;
   }
 }
 
@@ -3164,25 +3177,24 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   /* the protagonist first — the figure owns the opening beat.
      P16-W3: 62svh → 57svh — the scenario selector (the agency port)
      added ~86px to the stack; the stage gives it room so the h1 lockup
-     returns in-fold and the CTA stays within one gesture (the figure
-     fractions 0.92/0.94 are unchanged — only the box breathes). */
+     returns in-fold and the CTA stays within one gesture. */
   .landing .ln-robot-stage {
     order: 1;
     position: relative;
     inline-size: 100%;
-    /* P17: 56svh → 41svh + fig 1.3 — the bust close-up; the CTA returns
-     * IN the fold (the brief's rejection of the P16 trade-off) — the
-     * camera answer is the reference's own mobile grammar: CLOSER. */
+    /* P17: 56svh → 41svh + the close grammar — the CTA returns
+     * IN the fold (the brief's rejection of the P16 trade-off). */
     block-size: 41svh;
     min-block-size: 264px;
-    /* P19-W2-C: the VESSEL's bust grammar. The vessel is 1.34 world
-       units tall (feet 0 → crown 1.36) — unlike the old obelisk+pedestal
-       (1.9), the bust crop needs the visible window ≈ [0.52, 1.38]:
-       head + lens + upper chest, feet cropped by design. fig 1.58 ≈ the
-       solver clamp ceiling (1.6); floor 1.55 puts the look height at the
-       chest line so the crown + breathing margin stay whole. */
-    --sb-fig: 1.63;   /* visible window ≈ [0.52, 1.38] — head + lens + upper chest */
-    --sb-floor: 1.6;
+    /* P22: THE BUST ON MOBILE — the figure is the levitating head
+     * (1.02 world units: plinth + hover gap + neck + head). The whole
+     * bust stays in-box (the levitation READS only when the plinth +
+     * its light pool are visible below the hovering head); fig 0.80 +
+     * floor 0.88 keep the bezel's perspective-boosted crown AND its
+     * swept arcs (see the desktop note) clear of the stage top at
+     * every animation moment. */
+    --sb-fig: 0.80;
+    --sb-floor: 0.88;
   }
   .landing .ln-robot-exit,
   .landing .ln-robot-frame { position: absolute; inset: 0; }
@@ -3339,8 +3351,11 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     position: relative;
     block-size: 54svh;
     min-block-size: 380px;
-    --sb-fig: 0.88;
-    --sb-floor: 0.90;
+    /* P22: the whole levitating bust in-box on the paired band too
+       (fig 0.80/floor 0.88 — the same sweep-safe pair as the desktop
+       + mobile brackets) */
+    --sb-fig: 0.80;
+    --sb-floor: 0.88;
   }
   .landing .ln-robot-exit,
   .landing .ln-robot-frame { position: absolute; inset: 0; }

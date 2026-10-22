@@ -10,11 +10,15 @@
  *   screen filling ~70% of the face, the SPECTRUM bezel ring (the
  *   hero's tube, here the same diagonal the WebGL-fallback SVG blesses)
  *   and TWO white dot eyes — wide-set, upper third, glow haloed.
- * · BODY — the boxy chest with its one horizontal seam + two vertical
- *   slots, waist, hips; SMOOTH off-white limbs on graphite BALL joints
- *   (shoulder → elbow → articulated three-finger hand), legs with
- *   graphite knees + flat feet; the low RECT pedestal only where the
- *   story stages it (panel 04).
+ * · BUST (P22 — the head-only era, the owner's directive): the body,
+ *   limbs, ball joints and the articulated hands are RETIRED at the
+ *   source everywhere. Each panel stages the SAME levitating bust the
+ *   3D hero now renders — the head on its slim docking neck + collar,
+ *   hovering above its own cyan levitation pool on the ground line
+ *   (BustGround: pool + bright core + the soft high shadow a hovering
+ *   mass casts). No pose can deform, no grip can misread — the
+ *   machine's expressiveness rides the EYES (four registers), the head
+ *   TILT, and the props' composition.
  * · MATERIAL (v2 — the VLM round-2 upgrade: mass, not stickers):
  *   2–3-stop gradients from ONE light law shared by all four panels —
  *   key light from the upper inline-start (the hero's key sits at
@@ -54,15 +58,17 @@
  *   cyan = the machine's voice (wave arcs, sound waves, chart bars),
  *   violet = the AI register (scan line, intent chips, growth point),
  *   amber = the human/handoff register (the envelope, the dawn sun).
- * · POSES — four genuinely distinct silhouettes: the 06:00 wave (arm
- *   up, arcs + chevrons of motion, welcome bubble clear of the crown),
- *   the 13:20 classify (hand REACHED OUT to catch the شكوى chip —
- *   violet sparks bridge fingertips and chip — while سؤال/طلب sit
- *   classified in the tray), the 21:45 reply (presenting arm offers
- *   the bubble by its tail, sound waves broadcast, the amber dotted
- *   escalation carries the human-decision message to the glowing
- *   envelope), the 00:00 report (confident on its pedestal, one arm
- *   presenting the day's rising chart, calm eyes, midnight moon).
+ * · SCENES (P22) — four genuinely distinct narratives around the one
+ *   bust: the 06:00 wave (the head tilted into its greeting, arcs +
+ *   chevrons of motion ringing the screen side, the welcome bubble
+ *   clear of the crown), the 13:20 classify (scan-line eyes, the شكوى
+ *   chip drawn magnetically toward the OLED face — violet sparks
+ *   bridging chip ↔ screen — while سؤال/طلب sit classified in the
+ *   tray), the 21:45 reply (the bubble offered beside the head, sound
+ *   waves broadcasting, the amber dotted escalation carrying the
+ *   human-decision message to the glowing envelope), the 00:00 report
+ *   (calm eyes on the numbers, the head hovering beside its rising
+ *   chart, midnight moon overhead).
  *   RTL: every prop (bubble, tray, trajectory, chart) is composed
  *   right → left, the reading direction — the bars rise toward the
  *   left (forward in RTL time), with a small inline time arrow.
@@ -256,177 +262,68 @@ function RobotHead({
   );
 }
 
-/* ── one arm — ball shoulder → smooth upper → elbow ball → forearm →
-   the articulated three-finger hand. Limbs are capsule strokes in the
-   figure-local shell gradient (coherent lighting); the elbow ball
-   carries its machined specular. ──────────────────────────────────── */
-type ArmPose = {
-  elbow: [number, number];
-  hand: [number, number];
-  /** rotation of the hand frame — 0 = fingers up, 180 = fingers down */
-  handAngle: number;
-  /** the same articulated hand, fingers configured: open (the 3-finger
-      relaxed hand) or point (index extended — the presenting register) */
-  fingers?: "open" | "point";
-};
-
-function RobotArm({ uid, shoulder, pose }: { uid: string; shoulder: [number, number]; pose: ArmPose }) {
-  const [sx, sy] = shoulder;
-  const [ex, ey] = pose.elbow;
-  const [hx, hy] = pose.hand;
+/* ── the levitation ground (P22) — the bust's own light: a cyan pool
+ *   on the ground line with a brighter core (the hover's source), and
+ *   the SOFT wide shadow a mass hovering HIGH casts — light, never a
+ *   pressed contact (the head rides above its light, not on it). ──── */
+function BustGround({ uid, cx, cy = 232, rx = 48 }: { uid: string; cx: number; cy?: number; rx?: number }) {
   return (
     <g>
-      {/* the arm's occlusion fringe — a dark under-line the limb sits
-          on, so it reads IN FRONT of the torso, not pasted over it */}
-      <line x1={sx} y1={sy + 3.5} x2={ex} y2={ey + 3.5} stroke="var(--ln-day-shadow-core)" strokeWidth="10.5" strokeLinecap="round" opacity="0.16" />
-      <line x1={ex} y1={ey + 3} x2={hx} y2={hy + 3} stroke="var(--ln-day-shadow-core)" strokeWidth="9" strokeLinecap="round" opacity="0.13" />
-      <line x1={sx} y1={sy} x2={ex} y2={ey} stroke={`url(#${uid}-shell)`} strokeWidth="10.5" strokeLinecap="round" />
-      <line x1={ex} y1={ey} x2={hx} y2={hy} stroke={`url(#${uid}-shell)`} strokeWidth="9" strokeLinecap="round" />
-      {/* the cylinder sheen — the key-side highlight that makes the
-          capsule read as a tube (mass, not a flat sticker) */}
-      <g stroke="#FFFFFF" strokeOpacity="0.2" strokeLinecap="round">
-        <line x1={sx + 1.7} y1={sy - 1.7} x2={ex + 1.7} y2={ey - 1.7} strokeWidth="2.8" />
-        <line x1={ex + 1.5} y1={ey - 1.5} x2={hx + 1.5} y2={hy - 1.5} strokeWidth="2.4" />
-      </g>
-      <circle cx={ex} cy={ey} r="6.4" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
-      <circle cx={ex + 2.1} cy={ey - 2.1} r="2.1" fill={`url(#${uid}-spec)`} />
-      <g transform={`translate(${hx} ${hy}) rotate(${pose.handAngle})`}>
-        <rect x="-8.5" y="-6" width="17" height="12" rx="5.5" fill="var(--ln-day-shell)" stroke="var(--ln-day-edge)" strokeWidth="1.2" />
-        {pose.fingers === "point" ? (
-          /* the presenting hand — index finger extended toward the
-             subject, the other two folded (the rig's own hand, posed) */
-          <g fill="var(--ln-day-shell)" stroke="var(--ln-day-edge)" strokeWidth="1">
-            <rect x="-2.2" y="-20" width="4.4" height="20.5" rx="2.2" />
-            <rect x="-6.4" y="-11.5" width="4.3" height="8" rx="2.1" />
-            <rect x="2.1" y="-11.5" width="4.3" height="8" rx="2.1" />
-          </g>
-        ) : (
-          <g fill="var(--ln-day-shell)" stroke="var(--ln-day-edge)" strokeWidth="1">
-            <rect x="-6" y="-13" width="4.3" height="9" rx="2.1" />
-            <rect x="-1.8" y="-14.5" width="4.3" height="10.5" rx="2.1" />
-            <rect x="2.4" y="-13" width="4.3" height="9" rx="2.1" />
-          </g>
-        )}
-      </g>
+      <ellipse cx={cx} cy={cy} rx={rx} ry={8} fill={`url(#${uid}-pool)`} />
+      <ellipse cx={cx} cy={cy - 1} rx={rx * 0.4} ry={3.2} fill="var(--ln-lime)" opacity={0.28} />
+      <ellipse cx={cx} cy={cy + 2} rx={rx * 0.86} ry={4.6} fill={`url(#${uid}-shadow)`} opacity={0.4} />
     </g>
   );
 }
 
-/* ── the standing figure — the hero's proportions, feet on the y=178
-   floor (the pedestal adds its 12 below, to y=190). Placed on the
-   scene's ground line (232) via translate. ────────────────────────── */
-function RobotFigure({
+/* ── the bust (P22) — the head-only staging the hero renders, in 2D:
+ *   the RobotHead crown on its slim docking neck + collar, hovering
+ *   above BustGround. cx centers the HEAD; y seats the crown; s scales
+ *   (the head is the protagonist now — big); tilt + the eye register
+ *   carry the panel's mood. No body, no limbs, no hands — by the
+ *   owner's directive, at the source. ─────────────────────────────── */
+function RobotBust({
   uid,
-  x,
-  y = 54,
+  cx,
+  y,
   eyes,
   eyeShift,
-  tilt,
-  armL,
-  armR,
-  pedestal = false,
+  tilt = 0,
+  s = 1.4,
+  ground = 232,
+  groundRx = 48,
 }: {
   uid: string;
-  x: number;
-  y?: number;
+  cx: number;
+  y: number;
   eyes: EyeState;
   eyeShift?: [number, number];
   tilt?: number;
-  armL: ArmPose;
-  armR: ArmPose;
-  pedestal?: boolean;
+  s?: number;
+  ground?: number;
+  groundRx?: number;
 }) {
   return (
-    <g transform={`translate(${x} ${y})`}>
-      {pedestal ? (
-        <g>
-          {/* the deck — the pedestal's top slab, wide enough to
-              overhang its plinth (mass, not a wireframe) */}
-          <rect x="16" y="178" width="108" height="10" rx="3" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1.2" />
-          <rect x="24" y="179.6" width="92" height="2.8" rx="1.4" fill="var(--ln-day-graphite-hi)" opacity="0.7" />
-          {/* the plinth front — the hero's low stage: a sunk face under
-              the deck's overhang, so the pedestal reads as a solid
-              object with weight (VLM round 4: mass, not a thin line) */}
-          <path d="M22 188 L118 188 L112 199 L28 199 Z" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
-          <path d="M22 188 L118 188 L112 199 L28 199 Z" fill="var(--ln-day-shadow-core)" opacity="0.3" />
-          {/* the body CAST onto the deck (toward the end side, opposite
-              the key) + the feet pressed into it — the figure is ON the
-              platform, not hovering over it (VLM round 3) */}
-          <ellipse cx="54" cy="179.6" rx="17" ry="2.1" fill="var(--ln-day-shadow-core)" opacity="0.3" />
-          <ellipse cx="70" cy="177.9" rx="30" ry="2.6" fill="var(--ln-day-shadow-core)" opacity="0.5" />
-        </g>
-      ) : null}
-      {/* the ground contact — feet pressed into their own soft pools
-          (the shared deck crease lives in the pedestal group above) */}
-      {pedestal ? null : (
-        <g>
-          <ellipse cx="54.5" cy="179.5" rx="11.5" ry="2.6" fill={`url(#${uid}-shadow)`} opacity="0.62" />
-          <ellipse cx="85.5" cy="179.5" rx="11.5" ry="2.6" fill={`url(#${uid}-shadow)`} opacity="0.62" />
-        </g>
-      )}
-      {/* legs — smooth limbs with the cylinder sheen, graphite knees
-          (specular), flat feet */}
-      <line x1="55" y1="148" x2="55" y2="172" stroke={`url(#${uid}-shell)`} strokeWidth="11" strokeLinecap="round" />
-      <line x1="85" y1="148" x2="85" y2="172" stroke={`url(#${uid}-shell)`} strokeWidth="11" strokeLinecap="round" />
-      <g stroke="#FFFFFF" strokeOpacity="0.18" strokeWidth="2.6" strokeLinecap="round">
-        <line x1="56.7" y1="150" x2="56.7" y2="170" />
-        <line x1="86.7" y1="150" x2="86.7" y2="170" />
+    <g>
+      <BustGround uid={uid} cx={cx} cy={ground} rx={groundRx} />
+      <g transform={`translate(${cx - 70 * s} ${y}) scale(${s})`}>
+        {/* the neck — the docking mount, ending in its wider collar
+            disc (the deliberate mechanical termination) */}
+        <rect x="62" y="72" width="16" height="22" rx="5" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
+        <rect x="58" y="90" width="24" height="7" rx="3.5" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
+        <rect x="60" y="91" width="20" height="2" rx="1" fill="var(--ln-day-graphite-hi)" opacity={0.7} />
+        {/* soft occlusion where the neck seats into the skull */}
+        <ellipse cx="70" cy="78" rx="10" ry="2.4" fill="var(--ln-day-shadow-core)" opacity={0.35} />
+        <RobotHead uid={uid} eyes={eyes} shift={eyeShift} tilt={tilt} />
       </g>
-      <circle cx="55" cy="161" r="6.2" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
-      <circle cx="85" cy="161" r="6.2" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
-      <circle cx="57" cy="159" r="2.2" fill={`url(#${uid}-spec)`} />
-      <circle cx="87" cy="159" r="2.2" fill={`url(#${uid}-spec)`} />
-      <rect x="45" y="169" width="19" height="9" rx="3.5" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
-      <rect x="76" y="169" width="19" height="9" rx="3.5" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
-      {/* hips + waist + chest — one boxy family, with the waist's
-          ambient occlusion crease where the segments meet */}
-      <rect x="48" y="136" width="44" height="17" rx="8.5" fill={`url(#${uid}-shell)`} stroke="var(--ln-day-edge)" strokeWidth="1.3" />
-      <rect x="53.5" y="125" width="33" height="14" rx="7" fill={`url(#${uid}-shell)`} stroke="var(--ln-day-edge)" strokeWidth="1.3" />
-      <ellipse cx="70" cy="139.5" rx="14" ry="2.6" fill="var(--ln-day-shadow-core)" opacity="0.3" />
-      <rect x="45" y="90" width="50" height="38" rx="11" fill={`url(#${uid}-shell)`} stroke="var(--ln-day-edge)" strokeWidth="1.4" />
-      {/* the chest's quiet details — one seam + two vertical slots */}
-      <line x1="56" y1="104" x2="84" y2="104" stroke={`url(#${uid}-graphite)`} strokeWidth="2.4" strokeLinecap="round" />
-      <rect x="58.5" y="100" width="5" height="15" rx="2.5" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="0.8" />
-      <rect x="76.5" y="100" width="5" height="15" rx="2.5" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="0.8" />
-      {/* chest rim light — the lit shoulder, same key as the head */}
-      <path d="M52 91.2 Q 84 88.4 94.4 108" fill="none" stroke="#FFFFFF" strokeOpacity="0.38" strokeWidth="1.7" strokeLinecap="round" />
-      {/* the chest's specular band on the lit face — the broad sheen
-          that gives the boxy torso its front-facing mass */}
-      <rect x="48.5" y="93" width="13" height="32" rx="6.5" fill="#FFFFFF" opacity="0.07" />
-      {/* soft chin occlusion on the chest crown */}
-      <ellipse cx="70" cy="93" rx="15" ry="3.5" fill="var(--ln-day-shadow-core)" opacity="0.35" />
-      {/* the neck collar */}
-      <rect x="62" y="80" width="16" height="12" rx="4" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1" />
-      <RobotHead uid={uid} eyes={eyes} shift={eyeShift} tilt={tilt} />
-      {/* the shoulder balls — crease occlusion seated under each, then
-          the machined ball with its specular (integrated, not pasted) */}
-      <ellipse cx="44" cy="105.5" rx="8" ry="2.4" fill="var(--ln-day-shadow-core)" opacity="0.3" />
-      <ellipse cx="96" cy="105.5" rx="8" ry="2.4" fill="var(--ln-day-shadow-core)" opacity="0.3" />
-      <circle cx="44" cy="97" r="9" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1.1" />
-      <circle cx="96" cy="97" r="9" fill={`url(#${uid}-graphite)`} stroke="var(--ln-day-edge)" strokeWidth="1.1" />
-      <circle cx="46.4" cy="94.6" r="2.6" fill={`url(#${uid}-spec)`} />
-      <circle cx="98.4" cy="94.6" r="2.6" fill={`url(#${uid}-spec)`} />
-      {/* arms last — the poses (wave, catch, presenting) read over the body */}
-      <RobotArm uid={uid} shoulder={[44, 97]} pose={armL} />
-      <RobotArm uid={uid} shoulder={[96, 97]} pose={armR} />
     </g>
   );
 }
 
 /* ── shared prop helpers ───────────────────────────────────────────── */
 
-/** the grounded contact — the stage-light pool under the contact shadow */
-function GroundGlow({ uid, cx, rx, ry = 11, cy = 232 }: { uid: string; cx: number; rx: number; ry?: number; cy?: number }) {
-  return <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#${uid}-pool)`} />;
-}
-
-/** the grounded contact shadow — a soft radial pool */
-function GroundShadow({ uid, cx, rx, ry = 7, cy = 232 }: { uid: string; cx: number; rx: number; ry?: number; cy?: number }) {
-  return <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#${uid}-shadow)`} />;
-}
-
-/** the figure halo — the machine's own light sphere behind head +
- *  torso (the hero's light-stage device; transparent at night) */
+/** the figure halo — the machine's own light sphere behind the bust
+ *  (the hero's light-stage device; transparent at night) */
 function FigureHalo({ uid, cx, cy, rx = 96, ry = 122 }: { uid: string; cx: number; cy: number; rx?: number; ry?: number }) {
   return <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={`url(#${uid}-halo)`} />;
 }
@@ -451,24 +348,22 @@ function MsgLine({ x, y, w, opacity = 0.5 }: { x: number; y: number; w: number; 
 }
 
 /* ═══ PANEL 01 · 06:00 — the wave ═══════════════════════════════════
- * The robot leans into its raised wave — arcs + chevrons of motion
- * ring the relaxed hand, the welcome bubble rides clear above the
- * crown (its tail stitched into the bubble outline — no floating
- * triangle), and the 06:00 dawn sun is a soft warm orb on the
- * horizon, not line-art. */
+ * P22: the bust tilts into its greeting — arcs + chevrons of motion
+ * ring the head's screen side (the machine's voice, cyan), the
+ * welcome bubble rides clear above-left of the crown (its tail
+ * stitched into the bubble outline — no floating triangle), and the
+ * 06:00 dawn sun is a soft warm orb on the horizon, not line-art. */
 function WavePanel({ uid, className }: PanelProps) {
   return (
     <svg viewBox="0 0 400 250" aria-hidden="true" focusable="false" className={className}>
       <PanelDefs uid={uid} />
       {/* the 06:00 dawn wash on the stage floor — the day's first warm
-          light arriving at the end side (scene dressing; the figure's
+          light arriving at the end side (scene dressing; the bust's
           key stays the one law) */}
       <ellipse cx={128} cy={229} rx={56} ry={9} fill={`url(#${uid}-amber)`} opacity={0.4} />
-      <GroundGlow uid={uid} cx={217} rx={74} />
-      <GroundShadow uid={uid} cx={214} rx={58} />
       <PropShadow uid={uid} cx={154} cy={57} rx={50} />
       {/* the welcome reply — the machine's voice in cyan; the tail is
-          part of the bubble's own outline (VLM round 2: no drift) */}
+          part of the bubble's own outline (no floating triangle) */}
       <g className="dpa-bob">
         <path
           d="M114 10 H194 Q208 10 208 24 V36 Q208 50 194 50 L186 50 L188 62 L178 50 H114 Q100 50 100 36 V24 Q100 10 114 10 Z"
@@ -481,25 +376,18 @@ function WavePanel({ uid, className }: PanelProps) {
           أهلاً!
         </text>
       </g>
-      <FigureHalo uid={uid} cx={220} cy={163} />
-      <RobotFigure
-        uid={uid}
-        x={150}
-        eyes="happy"
-        tilt={-5}
-        armL={{ elbow: [22, 86], hand: [32, 52], handAngle: 40 }}
-        armR={{ elbow: [103, 122], hand: [101, 146], handAngle: 180 }}
-      />
-      {/* the wave — motion arcs + chevrons ringing the relaxed hand
-          (strong enough to carry at 300-420px — VLM round 4) */}
-      <g stroke="var(--ln-lime)" strokeWidth={2.5} strokeLinecap="round" fill="none">
-        <path d="M170 96 Q 177 87 187 88" opacity={1} />
-        <path d="M162 100 Q 172 80 192 81" opacity={0.7} />
-        <path d="M155 106 Q 167 73 197 74" opacity={0.45} />
+      <FigureHalo uid={uid} cx={278} cy={110} rx={82} ry={92} />
+      <RobotBust uid={uid} cx={278} y={40} s={1.4} eyes="happy" tilt={-5} />
+      {/* the greeting — motion arcs + chevrons ringing the head's
+          screen side (strong enough to carry at 300-420px) */}
+      <g stroke="var(--ln-lime)" strokeWidth={2.6} strokeLinecap="round" fill="none">
+        <path d="M224 86 Q 209 103 216 122" opacity={1} />
+        <path d="M212 76 Q 191 103 202 130" opacity={0.7} />
+        <path d="M200 66 Q 173 103 188 138" opacity={0.45} />
       </g>
       <g stroke="var(--ln-lime)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none">
-        <path d="M171 111 l-7 4 l7 4" opacity={0.95} />
-        <path d="M160 116 l-7 4 l7 4" opacity={0.65} />
+        <path d="M182 98 l-7 4 l7 4" opacity={0.95} />
+        <path d="M173 108 l-7 4 l7 4" opacity={0.65} />
       </g>
       {/* 06:00 — the dawn orb rising over the horizon hairline (kept
           quiet: scene storytelling, not a second key light). The line
@@ -514,11 +402,11 @@ function WavePanel({ uid, className }: PanelProps) {
 }
 
 /* ═══ PANEL 02 · 13:20 — the classify ═══════════════════════════════
- * Scan-line eyes, head tilted into the work: the near hand is REACHED
- * OUT to catch the incoming شكوى chip — violet sparks bridge the
- * fingertips and the chip (the magnetic read) — while سؤال and طلب
- * sit already classified in the tray; the chip's trajectory carries
- * it (RTL) to the dashed slot still awaiting it. */
+ * P22: scan-line eyes, the bust tilted into the work — the incoming
+ * شكوى chip is drawn MAGNETICALLY toward the OLED face (violet
+ * sparks bridge chip ↔ screen, the AI register's pull) while سؤال
+ * and طلب sit already classified in the tray; the chip's trajectory
+ * carries it (RTL) to the dashed slot still awaiting it. */
 function ClassifyPanel({ uid, className }: PanelProps) {
   const rows = [
     { y: 74, label: "سؤال" },
@@ -528,8 +416,6 @@ function ClassifyPanel({ uid, className }: PanelProps) {
   return (
     <svg viewBox="0 0 400 250" aria-hidden="true" focusable="false" className={className}>
       <PanelDefs uid={uid} />
-      <GroundGlow uid={uid} cx={278} rx={74} />
-      <GroundShadow uid={uid} cx={273} rx={56} />
       {/* the intent tray — grounded on the stage, three labeled slots */}
       <g>
         <PropShadow uid={uid} cx={77} cy={187} rx={64} ry={6} opacity={0.55} />
@@ -556,57 +442,50 @@ function ClassifyPanel({ uid, className }: PanelProps) {
       </g>
       {/* the classify trajectory — violet, dotted, RTL; the final
           approach arcs DOWN into the awaiting slot */}
-      <path d="M182 110 Q 114 122 58 160" stroke="var(--ln-violet)" strokeWidth={2.4} strokeLinecap="round" strokeDasharray="0.5 7" fill="none" opacity={0.85} />
-      <FigureHalo uid={uid} cx={282} cy={163} />
-      <RobotFigure
-        uid={uid}
-        x={212}
-        eyes="scan"
-        eyeShift={[-4, -3]}
-        tilt={-10}
-        armL={{ elbow: [30, 80], hand: [14, 52], handAngle: -60 }}
-        armR={{ elbow: [103, 122], hand: [101, 146], handAngle: 180 }}
-      />
-      {/* the magnetic catch — the chip's violet glow bathing the
-          contact, then the sparks ringing fingertip ↔ chip */}
-      <ellipse cx={216} cy={100} rx={17} ry={14} fill={`url(#${uid}-violetglow)`} />
+      <path d="M172 112 Q 110 124 58 160" stroke="var(--ln-violet)" strokeWidth={2.4} strokeLinecap="round" strokeDasharray="0.5 7" fill="none" opacity={0.85} />
+      <FigureHalo uid={uid} cx={266} cy={104} rx={78} ry={88} />
+      <RobotBust uid={uid} cx={266} y={36} s={1.38} eyes="scan" eyeShift={[-4, -3]} tilt={-9} />
+      {/* the magnetic catch — the chip's violet glow bathing the gap
+          between chip and screen (a clear gap: the chip hovers BEFORE
+          the face, never touching its rim), then the sparks bridging */}
+      <ellipse cx={208} cy={101} rx={16} ry={13} fill={`url(#${uid}-violetglow)`} />
       <g fill="var(--ln-violet)">
-        <circle cx={215} cy={96} r={1.8} opacity={0.9} />
-        <circle cx={220} cy={101} r={1.2} opacity={0.6} />
-        <circle cx={223} cy={107} r={0.9} opacity={0.4} />
+        <circle cx={207} cy={96} r={1.8} opacity={0.9} />
+        <circle cx={211} cy={101} r={1.2} opacity={0.6} />
+        <circle cx={214} cy={107} r={0.9} opacity={0.4} />
       </g>
-      {/* the incoming chip — mid-flight at the fingertips */}
+      {/* the incoming chip — mid-flight, pulled toward the OLED face
+          (a deliberate 20px air gap to the bezel — hovering, never
+          clipped) */}
       <g className="dpa-bob">
-        <g transform="translate(196 99) rotate(-8)">
+        <g transform="translate(186 100) rotate(-8)">
           <rect x={-17} y={-10} width={34} height={20} rx={7} fill="var(--ln-violet)" fillOpacity={0.18} stroke="var(--ln-violet)" strokeWidth={1.3} />
           <MsgLine x={-11} y={-4} w={22} opacity={0.55} />
           <MsgLine x={-11} y={4} w={13} opacity={0.35} />
         </g>
       </g>
       {/* the chip's motion ticks — it flies right → left (RTL), so its
-          wake trails off the right edge (VLM round 3: no static pasting) */}
+          wake trails up-right of the chip, clear of the head's rim */}
       <g stroke="var(--ln-violet)" strokeWidth={2.2} strokeLinecap="round" opacity={0.55}>
-        <line x1={224} y1={93} x2={233} y2={90} />
-        <line x1={227} y1={102} x2={234} y2={100} />
+        <line x1={208} y1={86} x2={217} y2={83} />
+        <line x1={211} y1={93} x2={219} y2={91} />
       </g>
     </svg>
   );
 }
 
 /* ═══ PANEL 03 · 21:45 — the reply + the handoff ════════════════════
- * The presenting arm offers the instant reply by its tail — fingertips
- * at the bubble's edge, sound waves broadcasting from its far side —
- * while the dotted amber path carries what needs a human decision to
- * the envelope, whose badge now glows its receiving halo. */
+ * P22: the instant reply rides beside the head — the bubble's tail
+ * pointing home to the machine, sound waves broadcasting from its
+ * far side — while the dotted amber path carries what needs a human
+ * decision to the envelope, whose badge glows its receiving halo. */
 function ReplyPanel({ uid, className }: PanelProps) {
   return (
     <svg viewBox="0 0 400 250" aria-hidden="true" focusable="false" className={className}>
       <PanelDefs uid={uid} />
-      <GroundGlow uid={uid} cx={274} rx={74} />
-      <GroundShadow uid={uid} cx={270} rx={56} />
       {/* the reply bubble + its sound waves (the machine's voice, cyan).
-          One outline: the tail is stitched in — its tip rides the
-          presenting hand (VLM round 2: no floating triangle). */}
+          One outline: the tail is stitched in — its tip points toward
+          the head, the speaker. */}
       <PropShadow uid={uid} cx={154} cy={110} rx={54} />
       <g className="dpa-bob">
         <path
@@ -635,32 +514,20 @@ function ReplyPanel({ uid, className }: PanelProps) {
         <circle cx={50} cy={141} r={9.5} fill={`url(#${uid}-amber)`} />
         <circle cx={50} cy={141} r={5} fill="var(--ln-bot-amber)" />
       </g>
-      <FigureHalo uid={uid} cx={278} cy={163} />
-      <RobotFigure
-        uid={uid}
-        x={208}
-        eyes="wide"
-        eyeShift={[-3, -1]}
-        tilt={-4}
-        armL={{ elbow: [26, 100], hand: [-18, 66], handAngle: -15 }}
-        armR={{ elbow: [103, 122], hand: [101, 146], handAngle: 180 }}
-      />
+      <FigureHalo uid={uid} cx={272} cy={106} rx={78} ry={88} />
+      <RobotBust uid={uid} cx={272} y={40} s={1.38} eyes="wide" eyeShift={[-3, -1]} tilt={-4} />
     </svg>
   );
 }
 
 /* ═══ PANEL 04 · 00:00 — the report ═════════════════════════════════
- * Confident on its pedestal (the only panel that stages it — deck +
- * sunk plinth, the hero's low stage), one arm STRAIGHT and long, its
- * index finger aimed at the chart's growth point — the unambiguous
- * «behold the numbers» presentation line, a silhouette owned by no
- * other panel (the wave bends its elbow beside the head; the reply
- * offers low by the bubble's tail). Bars + trend climb toward the
- * LEFT, forward in RTL time, with a small inline time arrow to make
- * the direction unmistakable — the projection seated in its cyan
- * hologram pool, its light spilling onto the presenting arm and the
- * chart-facing chest (the bounce that binds pose to story), calm
- * eyes on the numbers, midnight moon overhead. */
+ * P22: calm eyes on the numbers — the bust hovers BESIDE its rising
+ * chart, the hologram's cyan light spilling onto the head's
+ * chart-facing face (the bounce that binds the gaze to its story).
+ * Bars + trend climb toward the LEFT, forward in RTL time, with a
+ * small inline time arrow to make the direction unmistakable — the
+ * projection seated in its cyan hologram pool, midnight moon
+ * overhead. */
 function ReportPanel({ uid, className }: PanelProps) {
   const bars = [
     { x: 134, h: 26, o: 0.4 },
@@ -671,13 +538,6 @@ function ReportPanel({ uid, className }: PanelProps) {
   return (
     <svg viewBox="0 0 400 250" aria-hidden="true" focusable="false" className={className}>
       <PanelDefs uid={uid} />
-      {/* ground contact for the raised staging: the plinth's foot at
-          y≈241, its pool + shadow beneath it */}
-      <GroundGlow uid={uid} cx={308} rx={78} cy={240} />
-      <GroundShadow uid={uid} cx={308} rx={68} cy={240} />
-      {/* the plinth's own pressed contact — a second, tighter shadow at
-          its foot so the pedestal carries the robot's weight (VLM r5) */}
-      <ellipse cx={308} cy={241} rx={54} ry={2.8} fill={`url(#${uid}-shadow)`} opacity={0.6} />
       {/* the performance projection — seated in its cyan hologram pool
           (two depths of spill for the volumetric read) */}
       <ellipse cx={96} cy={109} rx={132} ry={80} fill={`url(#${uid}-pool)`} opacity={0.45} />
@@ -727,24 +587,13 @@ function ReportPanel({ uid, className }: PanelProps) {
         <rect x={385} y={62} width={3.2} height={3.2} rx={0.8} transform="rotate(45 386.6 63.6)" />
         <rect x={328} y={50} width={2.8} height={2.8} rx={0.7} transform="rotate(45 329.4 51.4)" />
       </g>
-      <FigureHalo uid={uid} cx={308} cy={151} />
-      <RobotFigure
-        uid={uid}
-        x={238}
-        y={42}
-        pedestal
-        eyes="calm"
-        eyeShift={[-4, -1]}
-        tilt={-10}
-        armL={{ elbow: [26, 92], hand: [-16, 64], handAngle: -72, fingers: "point" }}
-        armR={{ elbow: [103, 122], hand: [101, 146], handAngle: 180 }}
-      />
-      {/* the hologram's cyan light spilling onto the presenter — the
-          chart's own glow washing the presenting forearm and the
-          chest's chart-facing face (VLM round 3: bounce light binds the
-          pose to its story) */}
-      <line x1={262} y1={132} x2={226} y2={108} stroke="var(--ln-lime)" strokeWidth={3} strokeLinecap="round" opacity={0.26} />
-      <rect x={284.5} y={135} width={13} height={32} rx={6.5} fill="var(--ln-lime)" opacity={0.06} />
+      <FigureHalo uid={uid} cx={292} cy={92} rx={80} ry={90} />
+      <RobotBust uid={uid} cx={292} y={28} s={1.38} ground={240} groundRx={52} eyes="calm" eyeShift={[-4, -1]} tilt={-9} />
+      {/* the hologram's cyan light spilling onto the reader — the
+          chart's own glow washing the head's chart-facing face (the
+          bounce that binds the gaze to its story) */}
+      <line x1={252} y1={116} x2={214} y2={90} stroke="var(--ln-lime)" strokeWidth={3} strokeLinecap="round" opacity={0.26} />
+      <rect x={248} y={88} width={12} height={44} rx={6} fill="var(--ln-lime)" opacity={0.06} />
     </svg>
   );
 }

@@ -15,9 +15,11 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
  * understanding, 24/7 instant replies + human escalation, performance
  * reports) — the same honest registry the rest of the landing documents.
  * The four renders are ONE character family (DayPanelArt): the hero
- * robot's own design language — filleted skull, OLED face, spectrum
- * bezel, ball-jointed shell — posed four ways (wave/classify/reply/
- * report). Server-safe layout; the only client work is the --sp scrub. */
+ * robot's own design language — the levitating BUST (P22: head +
+ * docking neck, no body/limbs/hands, the owner's directive) staged
+ * four ways (wave/classify/reply/report), distinguished by the eye
+ * register, the head tilt and the props' composition. Server-safe
+ * layout; the only client work is the --sp scrub. */
 
 /* v17-SB (17-PERF #1): sizes = the .ln-day-media rendered width, derived
  * from landing.css (not guessed). ≤760: single column — gutter 20×2 + node

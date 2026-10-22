@@ -2391,19 +2391,19 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   //     stack re-poses (fig 1.3 / floor 1.35 — the P17 bust close-up in a 41svh box).
   {
     const heroRobot = parseDecls(landingBlocks.find((x) => x.prelude === '.landing .ln-hero-robot')?.body ?? '');
-    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.65') pass += 1;
-    else fails.push(`P16-A-tokens --sb-fig: expected 0.65 (W4-A occupancy — the figure's host share), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
-    if (norm(resolve(landingCascade, heroRobot['--sb-floor'] ?? '')) === '0.8') pass += 1;
-    else fails.push(`P16-A-tokens --sb-floor: expected 0.8 (the floor line fraction), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
+    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.80') pass += 1;
+    else fails.push(`P16-A-tokens --sb-fig: expected 0.80 (P22 bust era — sweep-safe at every animation moment), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
+    if (norm(resolve(landingCascade, heroRobot['--sb-floor'] ?? '')) === '0.88') pass += 1;
+    else fails.push(`P16-A-tokens --sb-floor: expected 0.88 (P22 — plinth + pools clear of the bottom chrome), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
   }
   {
     /* P19-W2-C re-anchor: the VESSEL is 1.34 world units (feet 0 →
        crown 1.36) — unlike the old obelisk+pedestal (1.9) the bust
        window ≈ [0.52, 1.38] needs fig 1.63 / floor 1.6. Same pose law
        (bust close-up, >1 crop), re-pinned values. */
-    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 1\.63;[^@]*?--sb-floor: 1\.6;/s;
+    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 0\.80;[^@]*?--sb-floor: 0\.88;/s;
     if (mobileRe.test(rawLanding)) pass += 1;
-    else fails.push('P19 mobile pose: the ≤1024px character-first stack must re-pose the vessel (--sb-fig 1.63 / --sb-floor 1.6 — grounded bust close-up)');
+    else fails.push('P19 mobile pose: the ≤1024px character-first stack must pose the levitating bust in-box (--sb-fig 0.80 / --sb-floor 0.88 — P22 head-only era, sweep-safe)');
   }
 
   // (3) ONE composed viewport: desktop hero = 100svh minus the sticky
@@ -2572,9 +2572,9 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     if (rmOk) pass += 1;
     else fails.push('P16-A scene RM: reduced-motion = one static posed frame, no rAF (W4-A liveness-prove re-anchor)');
     const trackOk = rawRobot.includes("matchMedia('(pointer: fine)')")
-      && rawRobot.includes('degToRad(22)') && rawRobot.includes('degToRad(10)');
+      && rawRobot.includes('degToRad(13)') && rawRobot.includes('degToRad(7)');
     if (trackOk) pass += 1;
-    else fails.push('P19 tracking: pointer-follow gated on (pointer: fine), head ±22°/±10° (the vessel)');
+    else fails.push('P19 tracking: pointer-follow gated on (pointer: fine), head ±13°/±7° (P22 bust-era temper — sweep-safe at close-up)');
     /* P18-W2-a re-anchor (the §2.1/§2.2 rebuild): the GLB protagonist is
      * SUPERSEDED by the fully procedural character — authored
      * BufferGeometry, zero loader bytes on the critical path (the

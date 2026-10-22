@@ -724,16 +724,18 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     }
   })
 
-  /* P19-W2-C re-anchor + W3-A re-anchor: the reference hero holds the
-     FULL figure with real negative space (the 0.76 close-up crop read
-     as filling the frame — re-measured off chaingpt.org: head-top
-     ≈20%, floor ≈80%, figure ≈60% of the host). The vessel is 1.34
-     world units — the bust crop keeps fig 1.63 / floor 1.6; same pose
-     law, re-pinned values). */
-  it("the composition tokens (W4-A re-anchor): --sb-fig 0.65 / --sb-floor 0.8 desktop + the mobile bust re-pose 1.63/1.6", () => {
-    expect(rawLanding).toMatch(/--sb-fig:\s*0\.65;/)
-    expect(rawLanding).toMatch(/--sb-floor:\s*0\.8;/)
-    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.63;[^@]*?--sb-floor:\s*1\.6;/)
+  /* P19-W2-C re-anchor + W3-A re-anchor, then P22: the head-only era
+     retires the full figure — the bust (plinth + hover gap + neck +
+     head, 1.02 world units) is framed at fig 0.80 / floor 0.88 at
+     EVERY breakpoint (the bezel tube's front arc is
+     perspective-boosted ~17% above any flat-map estimate and its
+     swept side arcs ride the yaw extremes — the P22-PROJ instrument
+     measured both; fig 0.80 keeps every animation moment in-frame,
+     verified by the 15×3 pointer×moment sweep matrix). */
+  it("the composition tokens (P22 bust era): --sb-fig 0.80 / --sb-floor 0.88 at every breakpoint", () => {
+    expect(rawLanding).toMatch(/--sb-fig:\s*0\.80;/)
+    expect(rawLanding).toMatch(/--sb-floor:\s*0\.88;/)
+    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*0\.80;[^@]*?--sb-floor:\s*0\.88;/)
   })
 
   it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the P18-W2-a 44vw display column measure", () => {
@@ -818,8 +820,8 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawRobot).toContain("for (const m of materials) m.dispose()")
     expect(rawRobot).toContain("one static posed frame")
     expect(rawRobot).toContain("matchMedia('(pointer: fine)')")
-    expect(rawRobot).toContain("degToRad(22)") /* P19-W2-C: the vessel's calmer ±22° */
-    expect(rawRobot).toContain("degToRad(10)")
+    expect(rawRobot).toContain("degToRad(13)") /* P22 bust-era temper: ±13°/±7° — sweep-safe at close-up (the ±22° sweeps threw the bezel ring's arcs past the frame) */
+    expect(rawRobot).toContain("degToRad(7)")
     // the P21-C re-anchor: the owner-rejected P19 Vessel (authored
     // LatheGeometry turned body) is superseded by the ChainGPT reference
     // character — authored RoundedBoxGeometry build (filleted head/body,

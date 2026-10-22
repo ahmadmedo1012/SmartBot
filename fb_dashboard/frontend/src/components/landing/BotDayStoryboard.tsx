@@ -1,6 +1,6 @@
 "use client";
 
-import { RobotMark } from "@/components/shared/RobotMark";
+import { DayPanelArt } from "@/components/landing/DayPanelArt";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 
@@ -14,8 +14,10 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
  * Every panel maps to a shipped capability (welcome auto-replies, intent
  * understanding, 24/7 instant replies + human escalation, performance
  * reports) — the same honest registry the rest of the landing documents.
- * The four renders are the character's real poses (wave/think/chat/
- * hero). Server-safe layout; the only client work is the --sp scrub. */
+ * The four renders are ONE character family (DayPanelArt): the hero
+ * robot's own design language — filleted skull, OLED face, spectrum
+ * bezel, ball-jointed shell — posed four ways (wave/classify/reply/
+ * report). Server-safe layout; the only client work is the --sp scrub. */
 
 /* v17-SB (17-PERF #1): sizes = the .ln-day-media rendered width, derived
  * from landing.css (not guessed). ≤760: single column — gutter 20×2 + node
@@ -31,8 +33,7 @@ const PANELS = [
     n: "01",
     clock: "06:00",
     pose: "يلوّح",
-    robot: "greeting",
-    alt: "روبوت SmartBot يلوّح بترحيب",
+    art: "wave",
     title: "يفتح يومه بترحيب كل تعليق",
     desc: "أول تعليق على منشورك يحصل على ردّ ترحيبي فوري — بلهجة صفحتك، قبل أن تفتح أنت عينيك.",
   },
@@ -41,8 +42,7 @@ const PANELS = [
     n: "02",
     clock: "13:20",
     pose: "يفهم",
-    robot: "thinking",
-    alt: "روبوت SmartBot يفكّر ويد على ذقنه",
+    art: "classify",
     title: "يصنّف كل رسالة قبل أن يرد",
     desc: "استفسار، طلب، شكوى تحتاج فريقك — النية تُحدَّد لحظة الوصول فكل رد يأتي في سياقه الصحيح.",
   },
@@ -51,8 +51,7 @@ const PANELS = [
     n: "03",
     clock: "21:45",
     pose: "يردّ",
-    robot: "responding",
-    alt: "روبوت SmartBot يحمل فقاعة محادثة",
+    art: "reply",
     title: "يردّ فوراً — وينقل المهم لفريقك",
     desc: "بلغة العميل وفي أي ساعة، على الرسائل والتعليقات — واللي يحتاج قراراً بشرياً يوصل جاهزاً لصندوقك الموحد.",
   },
@@ -61,8 +60,7 @@ const PANELS = [
     n: "04",
     clock: "00:00",
     pose: "يقف جاهزاً",
-    robot: "idle",
-    alt: "روبوت SmartBot يقف واثقاً على منصته",
+    art: "report",
     title: "يقرأ لك أرقام اليوم… ويستعد للغد",
     desc: "تحليلات الأداء والتفاعل تصل واضحة — تعرف بالأرقام أين تزيد خطوتك القادمة، ورفيقك يبقى على منصته.",
   },
@@ -105,11 +103,9 @@ export function BotDayStoryboard() {
               </div>
               <div className="ln-day-card">
                 <div className="ln-day-media">
-                  <RobotMark
-                    state={p.robot}
-                    title={p.alt}
-                    className="ln-day-robot"
-                  />
+                  {/* W6 2-a: the panel art — ONE character family, aria-hidden
+                      (the h3/p below carry the panel's meaning) */}
+                  <DayPanelArt pose={p.art} className="ln-day-art" />
                   <span className="ln-day-media-glow" aria-hidden="true" />
                 </div>
                 <div className="ln-day-body">

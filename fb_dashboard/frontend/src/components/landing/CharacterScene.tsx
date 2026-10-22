@@ -214,66 +214,9 @@ const CYAN = 0x56e2f2;
 const VIOLET = 0x9380ff;
 const AMBER = 0xff9a69;
 
-/* The ChainGPT spectrum rim (the bezel's gradient stops — measured off
- * the reference hero: cyan → blue → purple → pink → orange). W2-C1: the
- * five anchors are the HUE PATH of record, not the render list — the
- * sweep below samples them densely (HSL, monotonic unwrapped hue) so the
- * conic frame reads as ONE continuous spectrum (the five-stop piecewise
- * gradient produced visible band boundaries at hero scale). */
-const SPECTRUM_STOPS = ['#00f0ff', '#4a6bff', '#b04dff', '#ff5ac8', '#ff8a3c'];
-
-type Hsl = { h: number; s: number; l: number };
-
-function hexToHsl(hex: string): Hsl {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  if (max === min) return { h: 0, s: 0, l };
-  const d = max - min;
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h: number;
-  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-  else if (max === g) h = ((b - r) / d + 2) / 6;
-  else h = ((r - g) / d + 4) / 6;
-  return { h, s, l };
-}
-
-function hslToCss(c: Hsl): string {
-  const f = (n: number) => {
-    const k = (n + c.h * 12) % 12;
-    const a = c.s * Math.min(c.l, 1 - c.l);
-    const v = c.l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-    return Math.round(v * 255);
-  };
-  return `rgb(${f(0)}, ${f(8)}, ${f(4)})`;
-}
-
-/* the smooth bezel sweep — n+1 (offset, color) samples along the
- * anchors' hue path (piecewise-linear in HSL, hue unwrapped monotone:
- * 187° → 227° → 275° → 322° → 389°), clockwise as the reference reads */
-function spectrumSweep(n: number): Array<[number, string]> {
-  const anchors = SPECTRUM_STOPS.map(hexToHsl);
-  for (let i = 1; i < anchors.length; i++) {
-    if (anchors[i].h < anchors[i - 1].h) anchors[i].h += 1;
-  }
-  const out: Array<[number, string]> = [];
-  for (let k = 0; k <= n; k++) {
-    const t = k / n;
-    const f = Math.min(t * (anchors.length - 1), anchors.length - 1 - 1e-4);
-    const i = Math.floor(f);
-    const u = f - i;
-    const a = anchors[i];
-    const b = anchors[i + 1];
-    out.push([
-      t,
-      hslToCss({ h: a.h + (b.h - a.h) * u, s: a.s + (b.s - a.s) * u, l: a.l + (b.l - a.l) * u }),
-    ]);
-  }
-  return out;
-}
+/* W6-A — the bezel halo helpers (makeBezelTexture, roundRectPath,
+ * spectrumSweep + the SPECTRUM_STOPS sweep path) retired with the halo
+ * plane: the tube's per-vertex bezelColorAt/BEZEL_STOPS own the spectrum. */
 
 /* ── the composition contract (world units) ────────────────────────
  * The framing solver places these inside the host box:
@@ -312,7 +255,6 @@ type Palette = {
   screen: number;
   lime: number;
   eyeIntensity: number;
-  bezelOpacity: number;
   glowOpacity: number;
   shadowStrength: number;
   fogColor: Color;
@@ -331,7 +273,6 @@ function samplePalette(): Palette {
       screen: 0x090b0f,
       lime: 0x0e7a8a,
       eyeIntensity: 1.6,
-      bezelOpacity: 0.62,
       glowOpacity: 0.5,
       shadowStrength: 0.34,
       fogColor: new Color(0xf2f2f0),
@@ -353,65 +294,12 @@ function samplePalette(): Palette {
     screen: 0x04060a,
     lime: readVar(html, '--ln-lime', CYAN),
     eyeIntensity: 2.2,
-    bezelOpacity: 0.98,
     glowOpacity: 0.5,
     shadowStrength: 0.62,
     fogColor: new Color(0x050506),
   };
 }
 
-/* ── the bezel BLOOM texture — W3-A: the bezel's CRISP spectrum now
- * lives on the geometry (the vertex-colored tube); this canvas is
- * ONLY the soft additive halo that bleeds the tube's light onto the
- * shell cheeks (the reference's rim-light spill). One blurred pass,
- * low alpha — never a second frame stroke (the old double-stroke
- * read as a flat decal at hero scale). */
-function makeBezelTexture(): CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = 1024;
-  c.height = 800;
-  const ctx = c.getContext('2d')!;
-  let g: CanvasGradient;
-  if (typeof ctx.createConicGradient === 'function') {
-    g = ctx.createConicGradient(-Math.PI / 2, 512, 400);
-  } else {
-    g = ctx.createLinearGradient(48, 40, 976, 760);
-  }
-  for (const [offset, color] of spectrumSweep(45)) g.addColorStop(offset, color);
-  /* the soft bloom pass ONLY — blurred in-canvas so the halo is
-   * stepless (ctx.filter is ignored by engines without it — the
-   * un-blurred pass is a fine fallback) */
-  ctx.filter = 'blur(26px)';
-  ctx.strokeStyle = g;
-  ctx.lineWidth = 240;
-  ctx.globalAlpha = 0.5;
-  roundRectPath(ctx, 52, 44, 920, 712, 108);
-  ctx.stroke();
-  ctx.filter = 'none';
-  ctx.globalAlpha = 1;
-  return new CanvasTexture(c);
-}
-
-function roundRectPath(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x, y, );
-  ctx.closePath();
-}
 
 /* ── W5-C5 — THE MICRO-SURFACE MAPS (original, procedural, seeded) ──
  * The W4-recorded residual was the missing micro-geometry: a flat
@@ -1036,17 +924,13 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      * as a CRT/monitor, the #1 VLM delta). The bezel's crisp spectrum
      * lives on the TUBE geometry; the canvas texture below is only
      * the soft bloom halo. */
-    const bezelTexture = makeBezelTexture();
-    const bezelMat = track(
-      new MeshBasicMaterial({
-        map: bezelTexture,
-        transparent: true,
-        opacity: palette.bezelOpacity * 0.34, /* bloom only — the tube is the bezel now */
-        depthWrite: false,
-        blending: AdditiveBlending,
-        toneMapped: false, /* the spectrum is LIGHT, not surface — raw colors, no ACES */
-      }),
-    );
+    /* W6-A — THE BEZEL HALO PLANE IS RETIRED: the blurred rounded-rect
+     * stroke (additive, 0.8×0.7 world units — LARGER than the head)
+     * read at hero scale as a faint colored PANEL floating behind the
+     * face, not as light spill (measured: +26/255 luminance blob vs the
+     * uniform 9/255 page, in a rounded-rect footprint). The bezel TUBE
+     * (crisp, emissive, toneMapped:false) alone carries the ring — an
+     * artifact-free render beats a faked bloom. The tube material below. */
     /* the bezel TUBE material — vertex-colored spectrum, unlit, raw */
     const bezelTubeMat = track(
       new MeshBasicMaterial({
@@ -1277,9 +1161,6 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     );
     bezelTube.position.set(0, 0.31, 0.295);
     headGroup.add(bezelTube);
-    const bezel = new Mesh(track(new PlaneGeometry(0.8, 0.7)), bezelMat);
-    bezel.position.set(0, 0.31, 0.34);
-    headGroup.add(bezel);
 
     /* the side mechanical detail — the reference's SIDE EARS: BLOCKY
      * graphite datum pads (iter5: the cylinder pucks read as dots) */
@@ -1310,7 +1191,8 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       graphiteMat.color.setHex(palette.graphite);
       screenMat.color.setHex(palette.screen);
       eyeMat.emissiveIntensity = palette.eyeIntensity;
-      bezelMat.opacity = palette.bezelOpacity * 0.34;
+      /* W6-A: the halo tint law retired with the halo plane — the beat
+       * channel still tints the TUBE below. */
       bezelTubeMat.opacity = palette.dark ? 1 : 0.82;
       bezelTubeMat.transparent = !palette.dark;
       glowMat.opacity = palette.glowOpacity;
@@ -1391,7 +1273,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
        * white (the reference's LED grammar, held). */
       const tintHex = b === 'classify' ? VIOLET : b === 'handoff' ? AMBER : 0xffffff;
       beatTint.lerp(tmpColor.setHex(tintHex), 1 - Math.pow(0.06, dt));
-      bezelMat.color.copy(beatTint);
+      /* W6-A: the beat tint law rides the tube ring alone now. */
       bezelTubeMat.color.copy(beatTint);
 
       /* THE HEAD — pointer tracking + the beat's look bias + the
@@ -1485,7 +1367,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       for (const m of materials) m.dispose();
       shadowTexture.dispose();
       glowTexture.dispose();
-      bezelTexture.dispose();
+      /* W6-A: bezelTexture retired with the halo plane. */
       shellMicro.normal.dispose();
       shellMicro.rough.dispose();
       graphiteMicro.normal.dispose();

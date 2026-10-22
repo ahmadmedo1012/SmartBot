@@ -1659,7 +1659,38 @@ html.light .landing .ln-marquee {
 .landing .ln-mind-foot svg { color: var(--ln-violet); flex-shrink: 0; }
 
 /* ── 17d · «يوم في الحياة» — the storyboard with the lit rail ────────── */
-.landing .ln-day { background: var(--ln-ink-2); }
+.landing .ln-day {
+  background: var(--ln-ink-2);
+  /* W6 2-a (DayPanelArt) — the character-family illustration register.
+     Shell = the hero's dark-theme shell grade #9D9B96 (the W4-A measured
+     calibration) shaded ±1 stop; graphite lifted 2% off the hero's
+     #14161A so the joints separate from the ink ground; OLED glass,
+     spectrum bezel and white eyes are LIGHT — constant, as the hero
+     renders them. Prop panels (bubble/tray/chart) ride the frame-wash
+     family so they sit ON the stage, not on paper cards. */
+  --ln-day-shell-hi: #B4B2AD;
+  --ln-day-shell: #9D9B96;
+  --ln-day-shell-lo: #767470;
+  --ln-day-edge: #C4C2BD;             /* rim-lit edge — the upper-start key */
+  --ln-day-graphite-hi: #3A3D45;
+  --ln-day-graphite: #23262D;
+  --ln-day-screen-hi: #0B0D12;
+  --ln-day-screen: #04060A;
+  --ln-day-prop: rgb(244 244 246 / 0.09);
+  --ln-day-shadow-core: rgb(0 0 0 / 0.68);
+  --ln-day-shadow-edge: rgb(0 0 0 / 0);
+  /* W6 2-a v2 — the stage-light pool: a plain black shadow vanishes on
+     the ink stage, so the figure's ground contact rides its own cyan
+     spill (the machine's light pooling under it, like the hero stage). */
+  --ln-day-pool: rgb(86 226 242 / 0.13);
+  /* W6 2-a v4 — the light-theme-strengthening tokens, night twins: the
+     halo is the DAY device (the hero's white machine-glow on porcelain)
+     and reads as nothing at night; the prop lines are byte-identical to
+     the --ln-line family they replaced, so the night stage is unchanged. */
+  --ln-day-halo: transparent;
+  --ln-day-prop-line: rgb(244 244 246 / 0.14);
+  --ln-day-prop-line-soft: rgb(244 244 246 / 0.07);
+}
 .landing .ln-day-board {
   position: relative;
   max-inline-size: 1080px;
@@ -1735,15 +1766,26 @@ html.light .landing .ln-marquee {
   aspect-ratio: 16 / 10;
   transition: border-color var(--ln-t-base) var(--ln-ease);
 }
-/* phase5 r152: the panel renders RobotMark (inline SVG) — centered on the
-   frame wash with breathing room; the glow wash stays above it. */
-.landing .ln-day-media .ln-day-robot {
+/* W6 2-a: the panel renders DayPanelArt — a full-frame 16:10 scene
+   (viewBox 0 0 400 250) of the hero's own character, filling the frame
+   wash edge-to-edge; the glow wash stays above it. */
+.landing .ln-day-media .ln-day-art {
   position: absolute;
   inset: 0;
-  margin: auto;
-  inline-size: min(62%, 240px);
-  block-size: auto;
-  aspect-ratio: 1;
+  inline-size: 100%;
+  block-size: 100%;
+}
+/* the one motion verb — floating props (bubble/chips/chart) bob a few
+   px; pure decoration, removed under prefers-reduced-motion below. */
+@keyframes ln-day-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(-4px); }
+}
+.landing .ln-day-art .dpa-bob {
+  animation: ln-day-bob 4.6s var(--ln-ease-soft) infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing .ln-day-art .dpa-bob { animation: none; }
 }
 .landing .ln-day-media-glow {
   position: absolute;
@@ -1766,6 +1808,33 @@ html.light .landing .ln-marquee {
   line-height: 1.7;
   max-inline-size: 48ch;
   overflow-wrap: anywhere;
+}
+/* W6 2-a — porcelain day: the character re-grades to the hero's LIGHT
+   build (shell 0xD9D7D2 family, graphite 0x2A2C33) so the family holds
+   in both themes; the OLED glass, bezel spectrum and eyes stay as
+   light. Shadows soften to ink mist; props become mist-white cards.
+   W6 2-a v4 (VLM light round): the off-white shell on porcelain needed
+   the hero's OWN light-stage device — a white machine-halo behind the
+   figure (the hero's radial white glow behind its machine), plus a
+   wider shell gradient (brighter lit shoulder, deeper shadow stop),
+   real ink-mist contact shadows, and solid white prop cards with
+   stronger day lines (the product's own white-bubble light language). */
+html.light .landing .ln-day {
+  --ln-day-shell-hi: #F4F1EC;
+  --ln-day-shell: #D9D7D2;
+  --ln-day-shell-lo: #A9A7A2;
+  --ln-day-edge: #8A8C90;
+  --ln-day-graphite-hi: #4A4D56;
+  --ln-day-graphite: #2A2C33;
+  --ln-day-screen-hi: #10141C;
+  --ln-day-screen: #070A10;
+  --ln-day-prop: rgb(255 255 255 / 0.92);
+  --ln-day-prop-line: rgb(16 17 21 / 0.30);
+  --ln-day-prop-line-soft: rgb(16 17 21 / 0.14);
+  --ln-day-halo: rgb(255 255 255 / 0.9);
+  --ln-day-shadow-core: rgb(16 17 21 / 0.32);
+  --ln-day-shadow-edge: rgb(16 17 21 / 0);
+  --ln-day-pool: rgb(14 122 138 / 0.13);   /* cyan-ink mist — the pool in daylight */
 }
 
 /* ── 17e · «المنصة الحقيقية» — the real dashboard windows ────────────── */
@@ -2192,10 +2261,20 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   display: block;
   padding: 0;
   overflow: clip;
+  /* W6-A — THE CHARCOAL SPOTLIGHT PANEL IS RETIRED: the third layer
+   * (radial-gradient(64% 44% … rgb(10 11 14 / 0.85))) read as a
+   * distinct lighter-charcoal PANEL against the pure-black page —
+   * the owner-reported "dark square-looking background artifact
+   * behind the head" (verified empirically: with the layer removed
+   * the background measures uniform ~9/255 luminance around the
+   * figure; with it present, a ~49/255 blob floats behind the head,
+   * and its top arc cuts the hero as a hard compositional edge).
+   * Depth separation now comes from the character's own lighting
+   * (rim + bezel) and the two faint cyan atmosphere glows below —
+   * never from a backdrop panel. */
   background:
     radial-gradient(110% 62% at var(--sb-glow-x) 116%, rgb(86 226 242 / 0.09) 0%, transparent 62%),
     radial-gradient(42% 30% at var(--sb-glow-x) 24%, rgb(86 226 242 / 0.05) 0%, transparent 70%),
-    radial-gradient(64% 44% at var(--sb-glow-x) 34%, rgb(10 11 14 / 0.85) 0%, transparent 78%),
     var(--ln-ink);
 }
 

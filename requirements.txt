@@ -53,3 +53,4 @@ mcp>=1.2.0
 ruff>=0.16.0,<0.17
 pytest-cov>=5.0.0
 pygments>=2.20.0              # v15-E9 (OSV gate): transitive via mcp->rich; floor pinned so pip never resolves the vulnerable 2.9-2.15 line (ReDoS PYSEC-2023-117 + PYSEC-2026-2987)
+certifi>=2026.10.19           # W21-F (OSV gate): transitive via httpx/requests; floor pinned so pip never resolves 2026.7.22 (PYSEC-2026-4320 CVSS 9.1 — fix-first at the root, pygments precedent)

@@ -2385,14 +2385,16 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
 
   // (2) the composition tokens (P16-A re-anchored for the authored
   //     character) — the layout owns the framing, the scene's solver
-  //     obeys: --sb-fig (figure share) 0.76 + --sb-floor (floor line
-  //     fraction) 0.84 on the desktop hero (figure ≈62% of the viewport,
-  //     head near the vertical midline); the character-first mobile
-  //     stack re-poses (fig 1.3 / floor 1.35 — the P17 bust close-up in a 41svh box).
+  //     obeys: P23-A rebalance — --sb-fig 0.70 (was the P22 0.80; the
+  //     art-director audit read the bust too big / too far screen-left:
+  //     the smaller share pulls the camera back — head center ~32% of
+  //     the width at 1440, MORE crown headroom at every animation
+  //     moment than the P22 pair) + --sb-floor 0.88 (plinth + pools
+  //     clear of the bottom chrome).
   {
     const heroRobot = parseDecls(landingBlocks.find((x) => x.prelude === '.landing .ln-hero-robot')?.body ?? '');
-    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.80') pass += 1;
-    else fails.push(`P16-A-tokens --sb-fig: expected 0.80 (P22 bust era — sweep-safe at every animation moment), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
+    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.70') pass += 1;
+    else fails.push(`P16-A-tokens --sb-fig: expected 0.70 (P23-A rebalance — the audit's "too big / too far screen-left" closed with MORE sweep margin than the P22 0.80), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
     if (norm(resolve(landingCascade, heroRobot['--sb-floor'] ?? '')) === '0.88') pass += 1;
     else fails.push(`P16-A-tokens --sb-floor: expected 0.88 (P22 — plinth + pools clear of the bottom chrome), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
   }
@@ -2400,10 +2402,11 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     /* P19-W2-C re-anchor: the VESSEL is 1.34 world units (feet 0 →
        crown 1.36) — unlike the old obelisk+pedestal (1.9) the bust
        window ≈ [0.52, 1.38] needs fig 1.63 / floor 1.6. Same pose law
-       (bust close-up, >1 crop), re-pinned values. */
-    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 0\.80;[^@]*?--sb-floor: 0\.88;/s;
+       (bust close-up, >1 crop), re-pinned values. P23-A: 0.70 rides
+       every breakpoint (one rebalanced share — re-pinned honestly). */
+    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 0\.70;[^@]*?--sb-floor: 0\.88;/s;
     if (mobileRe.test(rawLanding)) pass += 1;
-    else fails.push('P19 mobile pose: the ≤1024px character-first stack must pose the levitating bust in-box (--sb-fig 0.80 / --sb-floor 0.88 — P22 head-only era, sweep-safe)');
+    else fails.push('P19 mobile pose: the ≤1024px character-first stack must pose the levitating bust in-box (--sb-fig 0.70 / --sb-floor 0.88 — P23-A rebalanced share at every breakpoint, sweep-safe)');
   }
 
   // (3) ONE composed viewport: desktop hero = 100svh minus the sticky
@@ -2436,11 +2439,14 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     const cm = copy ? declOf(copy, 'max-inline-size') : undefined;
     /* P18-W2-a re-anchor (the asymmetric scene): 70vw → 44vw — the
      * display lockup owns the INLINE-START column (the figure owns
-     * inline-end); the measure stays vw-coupled to the 4.4vw display
-     * scale (9.7em lockup lines × 4.4vw = 2 lines in 44vw — same
-     * wrap-margin law, the column-proportioned rung) */
-    if (cm === '44vw') pass += 1;
-    else fails.push(`P15 copy measure: the display block must ride the vw-coupled 44vw inline-start column measure (2-line lockup, got ${cm ?? '<missing>'})`);
+     * inline-end); the measure stays vw-coupled to the display scale
+     * (9.7em lockup lines × 4.6vw = 2 lines in 46vw — same wrap-margin
+     * law, the column-proportioned rung). P23-A re-pin: 44 → 46vw in
+     * lockstep with the display rung's 4.4 → 4.6vw growth (the audit:
+     * "text small and low" — the lockup carries more of the hero's
+     * mass against the rebalanced bust). */
+    if (cm === '46vw') pass += 1;
+    else fails.push(`P15 copy measure: the display block must ride the vw-coupled 46vw inline-start column measure (2-line lockup, got ${cm ?? '<missing>'})`);
   }
 
   // (4) the Arabic display headline — the P1 font-failure fix: IBM Plex
@@ -2454,8 +2460,10 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-family', 'var(--font-arabic)');
   /* P18-W2-a re-anchor: the poster scale is column-proportioned, not
    * viewport-wide (clamp 3.2-5.5rem @7vw → 2.6-4.3rem @4.4vw — the
-   * asymmetric column's display rung) */
-  pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-size', 'clamp(2.6rem, 4.4vw, 4.3rem)');
+   * asymmetric column's display rung). P23-A re-pin: 2.7-4.5rem @4.6vw
+   * — one rung up, measure-grown in lockstep (46vw), still exactly 2
+   * display lines (the honest re-pin law, c8f1c91 pattern). */
+  pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-size', 'clamp(2.7rem, 4.6vw, 4.5rem)');
   pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'line-height', '1.14');
   pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-weight', 'var(--fw-bold)');
   {

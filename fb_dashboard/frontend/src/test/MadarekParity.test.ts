@@ -726,35 +726,44 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
 
   /* P19-W2-C re-anchor + W3-A re-anchor, then P22: the head-only era
      retires the full figure — the bust (plinth + hover gap + neck +
-     head, 1.02 world units) is framed at fig 0.80 / floor 0.88 at
-     EVERY breakpoint (the bezel tube's front arc is
-     perspective-boosted ~17% above any flat-map estimate and its
-     swept side arcs ride the yaw extremes — the P22-PROJ instrument
-     measured both; fig 0.80 keeps every animation moment in-frame,
-     verified by the 15×3 pointer×moment sweep matrix). */
-  it("the composition tokens (P22 bust era): --sb-fig 0.80 / --sb-floor 0.88 at every breakpoint", () => {
-    expect(rawLanding).toMatch(/--sb-fig:\s*0\.80;/)
+     head, 1.02 world units) is framed at fig 0.70 / floor 0.88 at
+     EVERY breakpoint. P23-A re-pin: 0.80 → 0.70 — the REBALANCE (the
+     art-director audit: figure too big / too far screen-left, text
+     small and low): the camera pulls back, the head center drifts to
+     ~32% of the width at 1440, and the bezel tube's perspective-
+     boosted crown + swept side arcs keep their in-frame margin at
+     every animation moment with 12% MORE headroom than the P22 pair
+     (the pointer×moment sweep re-verified on the live canvas). */
+  it("the composition tokens (P23-A rebalance): --sb-fig 0.70 / --sb-floor 0.88 at every breakpoint", () => {
+    expect(rawLanding).toMatch(/--sb-fig:\s*0\.70;/)
     expect(rawLanding).toMatch(/--sb-floor:\s*0\.88;/)
-    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*0\.80;[^@]*?--sb-floor:\s*0\.88;/)
+    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*0\.70;[^@]*?--sb-floor:\s*0\.88;/)
   })
 
-  it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the P18-W2-a 44vw display column measure", () => {
+  it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the P23-A 46vw display column measure", () => {
     const desk = rawLanding.match(/@media \(min-width: 1025px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? ""
     expect(desk).toMatch(/\.ln-hero-robot\s*\{[^}]*block-size:\s*calc\(100svh - 74px\)/)
     expect(desk).toMatch(/\.ln-hero-robot\s*\{[^}]*min-block-size:\s*620px/)
     expect(desk).toMatch(/\.ln-ticker-island\s*\{[^}]*z-index:\s*0/)
     expect(desk).toMatch(/\.ln-hero-copy\s*\{[^}]*z-index:\s*3/)
     /* P18-W2-a re-anchor: 70vw → 44vw — the asymmetric scene's inline-start
-     * column (the figure owns the inline-end band; no glyph crosses it) */
-    expect(desk).toMatch(/\.ln-hero-copy\s*\{[^}]*max-inline-size:\s*44vw/)
+     * column (the figure owns the inline-end band; no glyph crosses it).
+     * P23-A re-pin: 44vw → 46vw — grown in lockstep with the display rung
+     * (4.4 → 4.6vw; 9.7em lines × 4.6vw = 44.6vw < 46vw margin) so the
+     * lockup stays exactly 2 lines while carrying more of the hero's
+     * mass (the audit: "text small and low"). */
+    expect(desk).toMatch(/\.ln-hero-copy\s*\{[^}]*max-inline-size:\s*46vw/)
   })
 
-  it("the Arabic display headline: IBM Plex Sans Arabic FIRST (var(--font-arabic)) at the P18-W2-a column scale — Space Grotesk never renders the h1", () => {
+  it("the Arabic display headline: IBM Plex Sans Arabic FIRST (var(--font-arabic)) at the P23-A column scale — Space Grotesk never renders the h1", () => {
     const title = rawLanding.match(/\.landing \.ln-hero-robot \.ln-hero-title\s*\{([^}]*)\}/)?.[1] ?? ""
     expect(title).toContain("font-family: var(--font-arabic)")
     /* P18-W2-a re-anchor: the poster scale is column-proportioned, not
-     * viewport-wide (9.7em lockup lines × 4.4vw = 2 lines in the 44vw column) */
-    expect(title).toMatch(/font-size:\s*clamp\(2\.6rem,\s*4\.4vw,\s*4\.3rem\)/)
+     * viewport-wide (9.7em lockup lines × 4.4vw = 2 lines in the 44vw column).
+     * P23-A re-pin: 4.4 → 4.6vw (cap 4.5rem) with the measure grown in
+     * lockstep (46vw) — one rung up against the rebalanced bust, still
+     * exactly 2 display lines. */
+    expect(title).toMatch(/font-size:\s*clamp\(2\.7rem,\s*4\.6vw,\s*4\.5rem\)/)
     expect(title).toMatch(/line-height:\s*1\.14;/)
     expect(title).toMatch(/font-weight:\s*var\(--fw-bold\)/)
     expect(title).not.toMatch(/grotesk/i) // Space Grotesk carries no Arabic glyphs — the silent body-grade fallback was the P1 defect

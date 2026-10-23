@@ -2248,19 +2248,17 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
 .landing .ln-hero-robot {
   /* P22 — THE BUST FRAMING: the figure is the levitating head alone
    * (plinth 0..0.10 + hover gap + neck + head to 1.02, the head
-   * ~63% of it). fig 0.92 fills the stage with the bust — the head
-   * lands ~55% of the host height, the reference's close-product
-   * presence. Composition stays ASYMMETRIC — the bust owns the
+   * ~63% of it). P23-A — THE REBALANCE (the audit: "figure too big /
+   * too far screen-left, text small and low, black void
+   * upper-right"): fig 0.80 → 0.70 — the bust cedes ~12% of the frame
+   * back to the air, the camera pulls back (more crown headroom at
+   * every animation moment, the sweep contract keeps its margin), and
+   * at the same --sb-x the head center drifts 28.9% → ~32% of the
+   * width (the extreme screen-left placement relaxes toward the
+   * optical center). Composition stays ASYMMETRIC — the bust owns the
    * INLINE-END band (RTL: screen-left), the display lockup owns
    * inline-start. No glyph ever crosses the figure (§2.5 law). */
-  --sb-fig: 0.80;   /* P22: the bust era — 0.80 keeps the bezel's
-                       PERSPECTIVE-BOOSTED crown AND its swept side
-                       arcs (the ring stands proud at z+0.29; at the
-                       living yaw extremes — pointer + beat glance +
-                       gaze wander — its silhouette sweeps well past
-                       the head box; measured wisps kissed the frame
-                       top at fig 0.86) inside the frame at EVERY
-                       animation moment, not just the rest pose */
+  --sb-fig: 0.70;   /* P23-A rebalance — 0.70 (was the P22 0.80) */
   --sb-floor: 0.88; /* the floor line (from top) — plinth + pools stay
                        clear of the hero's bottom chrome */
   --sb-x: 0;        /* lateral camera bias (world units) — 0 = centered */
@@ -2280,10 +2278,15 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
    * (rim + bezel) and the two faint cyan atmosphere glows below —
    * never from a backdrop panel. */
   background:
-    radial-gradient(110% 62% at var(--sb-glow-x) 116%, rgb(86 226 242 / 0.09) 0%, transparent 62%),
+    radial-gradient(110% 62% at var(--sb-glow-x) 116%, rgb(86 226 242 / 0.08) 0%, transparent 62%),
     radial-gradient(42% 30% at var(--sb-glow-x) 24%, rgb(86 226 242 / 0.05) 0%, transparent 70%),
     var(--ln-ink);
 }
+
+/* P23-A: the horizon breath + upper haze each drop a notch (0.09 →
+   0.08) — the stage stays atmospheric without tinting the void the
+   audit read as imbalance; the FLOOR pool below is where the quiet
+   goes. */
 
 /* ── P21-C: the reference's PAGE-COLUMN GRID — faint full-height 1px
  * rules every 120px (the live ChainGPT hero measures rgba(255,255,255,
@@ -2354,17 +2357,24 @@ html.light .landing .ln-hero-robot::before {
    under the feet, a 1px horizon contact hairline where the feet meet
    the glow, and a THIRD wide wash that reads as light pooling AROUND
    the machine (grid lines dip into it). All at --sb-floor, UNDER the
-   canvas so the body occludes its own spill. */
+   canvas so the body occludes its own spill.
+   P23-A — THE QUIET POOL (the audit read the hot cyan ellipse +
+   spectrum ring as "gamer neon" against the minimal UI): the inner
+   ellipse drops 0.42 → 0.26, the horizon hairline 0.26 → 0.18, the
+   wide wash 0.08 → 0.06 — the ground reads as a calm instrument
+   glow that CARRIES the (now wider, darker) canvas contact shadow,
+   never as a lit game pad. The dark contact core stays at strength:
+   the grounding is the point. */
 .landing .ln-robot-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(86 226 242 / 0.26) calc(var(--sb-floor) * 100%), rgb(86 226 242 / 0.07) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-    radial-gradient(30% 7% at var(--sb-glow-x) calc(var(--sb-floor) * 100% + 0.4%), rgb(86 226 242 / 0.42) 0%, rgb(86 226 242 / 0.14) 46%, transparent 74%),
+    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(86 226 242 / 0.18) calc(var(--sb-floor) * 100%), rgb(86 226 242 / 0.05) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+    radial-gradient(30% 7% at var(--sb-glow-x) calc(var(--sb-floor) * 100% + 0.4%), rgb(86 226 242 / 0.26) 0%, rgb(86 226 242 / 0.1) 46%, transparent 74%),
     radial-gradient(9% 2.4% at var(--sb-glow-x) calc(var(--sb-floor) * 100% + 0.7%), rgb(1 1 2 / 0.92) 0%, rgb(1 1 2 / 0.6) 44%, transparent 80%),
     radial-gradient(15% 4.6% at var(--sb-glow-x) calc(var(--sb-floor) * 100% + 1.2%), rgb(1 1 2 / 0.62) 0%, transparent 82%),
-    radial-gradient(56% 16% at var(--sb-glow-x) calc(var(--sb-floor) * 100% + 2%), rgb(86 226 242 / 0.08) 0%, transparent 76%);
+    radial-gradient(56% 16% at var(--sb-glow-x) calc(var(--sb-floor) * 100% + 2%), rgb(86 226 242 / 0.06) 0%, transparent 76%);
 }
 /* the vignette — edge darkening that seats the machine in the void
    (top/bottom edge fades + a weak side shade). P18-W2-a: with the
@@ -2454,8 +2464,8 @@ html.light .landing .ln-hero-robot {
 }
 html.light .landing .ln-robot-glow {
   background:
-    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(14 122 138 / 0.16) calc(var(--sb-floor) * 100%), rgb(14 122 138 / 0.05) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-    radial-gradient(26% 10% at var(--sb-glow-x) calc(var(--sb-floor) * 100%), rgb(14 122 138 / 0.2) 0%, transparent 72%),
+    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(14 122 138 / 0.12) calc(var(--sb-floor) * 100%), rgb(14 122 138 / 0.04) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+    radial-gradient(26% 10% at var(--sb-glow-x) calc(var(--sb-floor) * 100%), rgb(14 122 138 / 0.14) 0%, transparent 72%),
     radial-gradient(15% 4.5% at var(--sb-glow-x) calc(var(--sb-floor) * 100% + 1.5%), rgb(16 17 21 / 0.24) 0%, transparent 78%);
 }
 html.light .landing .ln-robot-vignette {
@@ -2502,14 +2512,17 @@ html.light .landing .ln-chapter-head::after {
     min-block-size: 620px;
     /* P22: the bust is FAR larger in-frame than the retired figure
      * (fig 0.65 → 0.92) — the old 0.6/0.85 biases now push the head's
-     * back edge off-canvas. 0.47 lands the head center ≈28% of the
-     * width at 1440 (the verified band) with the whole crown inside. */
-    --sb-x: 0.47;      /* 1025–1280: the narrower stage */
-    --sb-glow-x: 26%;
+     * back edge off-canvas. P23-A: 0.47 → 0.45 — the rebalance keeps
+     * the head center in the verified band (~32% of the width at 1440
+     * under fig 0.70, measured on the rendered canvas) while the
+     * smaller bust opens the left rail's air; the whole crown stays
+     * inside with MORE margin than the P22 0.80/0.47 pair. */
+    --sb-x: 0.45;      /* 1025–1280: the narrower stage */
+    --sb-glow-x: 33%;
   }
   [dir='ltr'] .landing .ln-hero-robot {
-    --sb-x: -0.47;     /* direction-aware: inline-end flips */
-    --sb-glow-x: 74%;
+    --sb-x: -0.45;     /* direction-aware: inline-end flips */
+    --sb-glow-x: 67%;
   }
   /* the interface island — the shared z0 layer under the machine.
      P16-W6 (evaluator P0): the island keeps pointer-events:none (the
@@ -2548,15 +2561,18 @@ html.light .landing .ln-chapter-head::after {
      2-line lockup + sub sit LOW on the reading side, NEVER crossing
      the figure (the character owns the inline-end band — the h1's
      tail and the mantle are separated by a deliberate air gutter).
-     The measure is COUPLED to the display scale (9.7em lines at
-     4.4vw → 43vw; 44vw is the wrap margin) — the h1 renders exactly
-     2 display lines. */
+     P23-A — THE LOCKUP LIFTS (the audit: "text small and low", the
+     upper-right void): inset-block-end 96 → 118px + the display rung
+     grows one step below (4.4vw → 4.6vw) so the reading column
+     carries more of the hero's mass. The measure is COUPLED to the
+     display scale (9.7em lines at 4.6vw → 44.6vw; 46vw is the wrap
+     margin) — the h1 renders exactly 2 display lines. */
   .landing .ln-hero-copy {
     position: absolute;
     inset-inline-start: 5vw;
-    inset-block-end: 96px;
+    inset-block-end: 118px;
     z-index: 3;
-    max-inline-size: 44vw;
+    max-inline-size: 46vw;
   }
   .landing .ln-hero-foot {
     position: absolute;
@@ -2585,19 +2601,19 @@ html.light .landing .ln-chapter-head::after {
      emissive edge strip is the light signature. */
 }
 
-/* P18-W2-a — the wide-stage refinement (≥1281px): P22 keeps the SAME
-   bias as 1025–1280 (the bust's size no longer tolerates the deeper
-   0.85 push — measured: the skull's back edge left the canvas); the
-   glow anchors follow the head center. The mobile/tablet grammar
-   stays centered (--sb-x 0). */
+/* P18-W2-a — the wide-stage refinement (≥1281px): P23-A keeps the
+   rebalanced pair (fig 0.70 / x 0.45) — the head center holds ~32-34%
+   of the width across the wide bracket (measured on the rendered
+   canvas), the glow anchors follow the plinth. The mobile/tablet
+   grammar stays centered (--sb-x 0). */
 @media (min-width: 1281px) {
   .landing .ln-hero-robot {
-    --sb-x: 0.47;
-    --sb-glow-x: 30%;
+    --sb-x: 0.45;
+    --sb-glow-x: 34%;
   }
   [dir='ltr'] .landing .ln-hero-robot {
-    --sb-x: -0.47;
-    --sb-glow-x: 70%;
+    --sb-x: -0.45;
+    --sb-glow-x: 66%;
   }
 }
 
@@ -3074,8 +3090,12 @@ html.light .landing .ln-hero-traces .ln-tx-live {
   font-family: var(--font-arabic); /* IBM Plex Sans Arabic FIRST — the Arabic display face */
   /* P18-W2-a: the asymmetric column's display rung — 9.7em lockup
      lines * 4.4vw fit the 44vw inline-start measure exactly (2 lines);
-     the poster scale is now column-proportioned, not viewport-wide */
-  font-size: clamp(2.6rem, 4.4vw, 4.3rem);
+     the poster scale is now column-proportioned, not viewport-wide.
+     P23-A: 4.4vw → 4.6vw (cap 4.3 → 4.5rem) with the measure grown in
+     lockstep (44 → 46vw, above) — the lockup carries more of the
+     hero's mass against the rebalanced bust (the audit: "text small
+     and low"), still exactly 2 display lines */
+  font-size: clamp(2.7rem, 4.6vw, 4.5rem);
   line-height: 1.14; /* the display rung — 2 lines exactly; 1.14 (the brief's 1.05–1.15 band, upper half) keeps the diacritics/ascenders of تعرّف/رفيقك clear of the line above (VLM iter-4 legibility nit) */
   font-weight: var(--fw-bold);
   letter-spacing: 0;
@@ -3100,12 +3120,34 @@ html.light .landing .ln-hero-traces .ln-tx-live {
    teal bloom + color read as a second glowing anchor competing with
    the face. The accent word now carries the display's own cream and a
    quiet teal UNDERLINE rule (ink, not emission) — the h1 block and
-   the illuminated face become the anchor pair. */
+   the illuminated face become the anchor pair.
+   P23-A — THE UNDERLINE BECOMES INTENTIONAL: the audit read the hard
+   edge-to-edge cyan border as "rendering errors / bad PDF
+   annotations" under the Arabic glyphs. The rule is now a DESIGNED
+   accent sweep: a ::after bar under the ONE accent word, horizontally
+   faded at both ends (a light bar, not a rule box), riding at a
+   consistent optical offset under the baseline — it reads as a
+   deliberate highlight, never as an artifact. */
 .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   color: var(--ln-cream);
   text-shadow: none;
-  border-bottom: 0.045em solid rgb(86 226 242 / 0.55);
-  padding-bottom: 0.02em;
+  padding-block-end: 0.14em; /* the accent bar's optical gutter */
+}
+.landing .ln-hero-robot .ln-hero-title .ln-hero-gold::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0.04em;
+  inset-block-end: 0.02em;
+  block-size: 0.05em;
+  min-block-size: 2.5px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to left,
+    rgb(86 226 242 / 0) 0%,
+    rgb(86 226 242 / 0.55) 16%,
+    rgb(86 226 242 / 0.55) 84%,
+    rgb(86 226 242 / 0) 100%
+  );
 }
 
 /* ── 20d · light twins (the composition on mist) ───────────────────────── */
@@ -3132,8 +3174,14 @@ html.light .landing .ln-typing i { background: rgb(16 17 21 / 0.7); }
 html.light .landing .ln-ticker-badge.auto { color: var(--ln-lime-deep); border-color: rgb(14 122 138 / 0.45); }
 html.light .landing .ln-eyebrow-latin { color: var(--ln-lime-deep); }
 html.light .landing .ln-eyebrow-sep { background: var(--ln-lime-deep); }
-html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
-  border-bottom-color: rgb(14 122 138 / 0.6);
+html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold::after {
+  background: linear-gradient(
+    to left,
+    rgb(14 122 138 / 0) 0%,
+    rgb(14 122 138 / 0.6) 16%,
+    rgb(14 122 138 / 0.6) 84%,
+    rgb(14 122 138 / 0) 100%
+  );
 }
 
 /* ── 20e · reduced motion — the composed static frame ────────────────────
@@ -3189,22 +3237,26 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     /* P22: THE BUST ON MOBILE — the figure is the levitating head
      * (1.02 world units: plinth + hover gap + neck + head). The whole
      * bust stays in-box (the levitation READS only when the plinth +
-     * its light pool are visible below the hovering head); fig 0.80 +
-     * floor 0.88 keep the bezel's perspective-boosted crown AND its
-     * swept arcs (see the desktop note) clear of the stage top at
-     * every animation moment. */
-    --sb-fig: 0.80;
+     * its light pool are visible below the hovering head). P23-A:
+     * fig 0.80 → 0.70 — the SAME rebalanced share as every other
+     * breakpoint (the parity contract pins one value everywhere);
+     * floor 0.88 keeps the bezel's perspective-boosted crown AND its
+     * swept arcs clear of the stage top at every animation moment —
+     * with 12% more headroom than the P22 pair. */
+    --sb-fig: 0.70;
     --sb-floor: 0.88;
   }
   .landing .ln-robot-exit,
   .landing .ln-robot-frame { position: absolute; inset: 0; }
   /* the compact-stage twin of the contact pool — a tight bright
      ellipse + the hard dark core (the tall narrow box shrinks the
-     wide radials until the anchor reads as nothing) */
+     wide radials until the anchor reads as nothing). P23-A: the pool
+     rides the QUIET grades (0.36 → 0.26, the horizon 0.3 → 0.2) in
+     lockstep with the desktop twin. */
   .landing .ln-robot-glow {
     background:
-      linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(86 226 242 / 0.3) calc(var(--sb-floor) * 100%), rgb(86 226 242 / 0.08) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-      radial-gradient(38% 9% at 50% calc(var(--sb-floor) * 100% + 0.2%), rgb(86 226 242 / 0.36) 0%, rgb(86 226 242 / 0.14) 44%, transparent 74%),
+      linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(86 226 242 / 0.2) calc(var(--sb-floor) * 100%), rgb(86 226 242 / 0.06) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+      radial-gradient(38% 9% at 50% calc(var(--sb-floor) * 100% + 0.2%), rgb(86 226 242 / 0.26) 0%, rgb(86 226 242 / 0.1) 44%, transparent 74%),
       radial-gradient(11% 3% at 50% calc(var(--sb-floor) * 100% + 0.4%), rgb(1 1 2 / 0.92) 0%, rgb(1 1 2 / 0.64) 46%, transparent 82%);
   }
   .landing .ln-ticker-island {
@@ -3351,10 +3403,11 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     position: relative;
     block-size: 54svh;
     min-block-size: 380px;
-    /* P22: the whole levitating bust in-box on the paired band too
-       (fig 0.80/floor 0.88 — the same sweep-safe pair as the desktop
-       + mobile brackets) */
-    --sb-fig: 0.80;
+    /* P22: the whole levitating bust in-box on the paired band too.
+     * P23-A: fig 0.70 — the same rebalanced share as every other
+     * breakpoint (floor 0.88 unchanged; the sweep contract keeps its
+     * margin with 12% more headroom than the P22 pair) */
+    --sb-fig: 0.70;
     --sb-floor: 0.88;
   }
   .landing .ln-robot-exit,

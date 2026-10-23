@@ -33,6 +33,34 @@
  * repaint, the pause family, the disposal sweep, the fallback SVG
  * (redrawn to the SAME bust grammar). */
 
+/* P23-A — THE PREMIUM CERAMIC PASS (the fresh art-director audit
+ * scored the shipped bust 4.5/10; this wave closes its defect list at
+ * the source, honestly):
+ *
+ * · "STYROFOAM" (the audit's #1 kill — "porous styrofoam/concrete"):
+ *   the W5-C5 micro-surface tiers (2.4k mid-scale undulations + 6k
+ *   speckle driving the NORMAL channel at normalScale 0.42) read at
+ *   bust close-up as a SINTERED surface, not a molded one. The shell
+ *   retunes to matte CERAMIC: the normal channel collapses to a
+ *   whisper (0.42 → 0.13, the mid-tier dimples die), and the surface
+ *   life moves to the ROUGHNESS channel alone (broad soft glaze
+ *   mottling — the sheen variation of a molded ceramic part) plus a
+ *   clearcoat glaze lift (0.14 → 0.30, soft rolloff) — the finish of
+ *   high-end consumer hardware, "premium molded ceramic + anodized
+ *   graphite".
+ * · THE PLINTH's "gamer neon" (the spectrum ring + hot cyan pool read
+ *   as PlayStation-era lighting against the minimal UI): the stand
+ *   goes MUSEUM-GRADE — a hair-thin SINGLE-HUE teal ring (the brand
+ *   signal color; the bezel's rainbow stays on the HEAD, its echo on
+ *   the floor dies) + a much softer, smaller pool.
+ * · THE FLOAT ("reads like a PNG sticker"): a wider contact shadow
+ *   with a darker core grounds the stand — the bust reads STAGED on
+ *   a floor, never pasted on a void.
+ * KEPT: every graded contract — the framing solver + race fix, the
+ * frozen-loop fix, the rest-probe, the theme repaint, the pause
+ * family, the disposal sweep, the fallback SVG, the head bezel's
+ * spectrum (the reference's rainbow ring is the head's own light). */
+
 /* W5-C5 — MICRO-SURFACE + STUDIO LIGHTING (the bounded W4 residual:
  * "high-poly sculpted micro-geometry + studio lighting a procedural
  * build cannot express" — closed as far as a procedural build can):
@@ -432,16 +460,21 @@ function makeShellMicroMaps(): MicroMaps {
   const S = 512;
   const h = new Float32Array(S * S);
   const rnd = mulberry32(0x5b0c5);
-  /* three tiers, calibrated against the reference's measured surface
-   * structure (its shell carries broad soft variation — row
-   * autocorrelation still 0.89 at 11px — NOT pixel grain): */
-  /* 1. meso blotches — soft unevenness; near-zero normal slope (broad),
-   *   their work is done in the ROUGHNESS channel (mottled sheen) */
+  /* P23-A — THE CERAMIC RETUNE: the W5-C5 three-tier field (150 meso +
+   * 2.4k mid-scale DIMPLES + 6k speckle, driven through the NORMAL
+   * channel) read at bust close-up as porous styrofoam — a premium
+   * shell is MOLDED, not sintered. The field now carries almost no
+   * normal-slope work at all (the surviving amplitudes are a whisper);
+   * the surface life is the ROUGHNESS channel's alone — broad soft
+   * glaze mottling + a fine satin tooth, the sheen variation of a real
+   * molded-ceramic part:
+   * 1. meso glaze blotches — broad, near-zero slope; their work is the
+   *    mottled SATIN sheen (roughness), softened one notch */
   for (let i = 0; i < 150; i++) {
     const cx = rnd() * S;
     const cy = rnd() * S;
     const r = 40 + rnd() * 130;
-    const amp = (rnd() - 0.5) * 0.1;
+    const amp = (rnd() - 0.5) * 0.08;
     const r2 = r * r;
     const y0 = Math.floor(cy - r);
     const y1 = Math.ceil(cy + r);
@@ -456,14 +489,16 @@ function makeShellMicroMaps(): MicroMaps {
       }
     }
   }
-  /* 2. mid-scale undulations — r 3-13 map px ≈ 1-4 SCREEN px at hero
-   *   scale (repeat 1×1 on ~150px faces): the visible sculpted
-   *   micro-geometry, slopes that actually tilt normals */
-  for (let i = 0; i < 2400; i++) {
+  /* 2. the satin tooth — the W5-C5 mid-tier undulations (2.4k dimples
+   *    at amp 0.14-0.34, the styrofoam culprit) DIE; a much sparser,
+   *    far shallower fine tooth keeps the specular from reading as one
+   *    dead-flat field at any zoom without ever tilting a normal enough
+   *    to read as texture */
+  for (let i = 0; i < 700; i++) {
     const cx = rnd() * S;
     const cy = rnd() * S;
-    const r = 3 + rnd() * 10;
-    const amp = (rnd() < 0.5 ? -1 : 1) * (0.14 + rnd() * 0.2);
+    const r = 1.5 + rnd() * 4;
+    const amp = (rnd() < 0.5 ? -1 : 1) * (0.03 + rnd() * 0.05);
     const y0 = Math.floor(cy - r);
     const y1 = Math.ceil(cy + r);
     for (let y = y0; y <= y1; y++) {
@@ -477,13 +512,12 @@ function makeShellMicroMaps(): MicroMaps {
       }
     }
   }
-  /* 3. fine speckle — sub-pixel shimmer that keeps the specular from
-   *   reading as one flat field at any zoom */
+  /* 3. fine speckle — amplitude halved again: sub-pixel shimmer only */
   for (let i = 0; i < 6000; i++) {
     const cx = rnd() * S;
     const cy = rnd() * S;
     const r = 0.6 + rnd() * 1.4;
-    const amp = (rnd() < 0.5 ? -1 : 1) * (0.05 + rnd() * 0.14);
+    const amp = (rnd() < 0.5 ? -1 : 1) * (0.02 + rnd() * 0.06);
     const y0 = Math.floor(cy - r);
     const y1 = Math.ceil(cy + r);
     for (let y = y0; y <= y1; y++) {
@@ -495,7 +529,9 @@ function makeShellMicroMaps(): MicroMaps {
       }
     }
   }
-  return buildMicroMaps(h, S, 2.6, 0.62, 0.24);
+  /* P23-A: normalStrength 2.6 → 1.4 (a whisper of slope), roughSwing
+   * 0.24 → 0.15 (uniform satin — ceramic glaze does not mottle hard) */
+  return buildMicroMaps(h, S, 1.4, 0.62, 0.15);
 }
 
 function makeGraphiteMicroMaps(): MicroMaps {
@@ -530,7 +566,11 @@ function makeGraphiteMicroMaps(): MicroMaps {
     const len = 1 + Math.floor(rnd() * 3);
     for (let s = 0; s < len; s++) h[y * S + ((x + s) % S)] += amp;
   }
-  return buildMicroMaps(h, S, 3.2, 0.3, 0.42);
+  /* P23-A: normalStrength 3.2 → 2.4 — the machining stays legible as
+   * anisotropic brushed grain (it reads as METAL because metal IS
+   * brushed), the streak slopes soften one notch so the collars read
+   * machined-dark-metal, never scored; roughSwing 0.42 → 0.34 */
+  return buildMicroMaps(h, S, 2.4, 0.3, 0.34);
 }
 
 /* ── the art-directed static fallback frame (WebGL absent / failed) ──
@@ -565,8 +605,8 @@ function CharacterFallbackSvg() {
           <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="sb-fb-pool" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#56E2F2" stopOpacity="0.55" />
-          <stop offset="0.5" stopColor="#56E2F2" stopOpacity="0.18" />
+          <stop offset="0" stopColor="#56E2F2" stopOpacity="0.32" />
+          <stop offset="0.5" stopColor="#56E2F2" stopOpacity="0.1" />
           <stop offset="1" stopColor="#56E2F2" stopOpacity="0" />
         </radialGradient>
       </defs>
@@ -580,9 +620,11 @@ function CharacterFallbackSvg() {
       <rect x="96" y="404" width="168" height="13" rx="4" fill="#1D2026" />
       <rect x="104" y="405.5" width="152" height="2.6" rx="1.3" fill="#33363E" />
 
-      {/* the levitation light — the pool + the spectrum ring inset in
-          the deck (the bezel's echo, the hover's source) */}
-      <ellipse cx="180" cy="410" rx="84" ry="10" fill="url(#sb-fb-pool)" />
+      {/* the levitation light — P23-A: the QUIET museum-grade pool
+          (softer + tighter) + the hair-thin SINGLE-HUE teal ring inset in
+          the deck (the brand signal; the bezel's rainbow stays on the
+          head, its floor echo dies) */}
+      <ellipse cx="180" cy="410" rx="70" ry="8" fill="url(#sb-fb-pool)" />
       <rect
         x="128"
         y="405"
@@ -590,9 +632,9 @@ function CharacterFallbackSvg() {
         height="9"
         rx="4.5"
         fill="none"
-        stroke="url(#sb-fb-bezel)"
-        strokeWidth="1.8"
-        opacity="0.9"
+        stroke="#56E2F2"
+        strokeOpacity="0.5"
+        strokeWidth="1.4"
       />
 
       {/* THE NECK — the docking collar the head rides above (the
@@ -728,10 +770,16 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     scene.add(kicker);
     const fill = new AmbientLight(0x14161c, 0.3);
     scene.add(fill);
-    const faceGlow = new PointLight(0xffffff, 0.22, 3.4, 2);
+    const faceGlow = new PointLight(0xffffff, 0.12, 4.2, 2);
     /* P22: the bust is shorter — the glow sits at the head's screen
-     * line (skull center ≈ 0.68, screen center ≈ 0.71) */
-    faceGlow.position.set(0, 0.72, 1.0);
+     * line (skull center ≈ 0.68, screen center ≈ 0.71).
+     * P23-A (the audit: "a single harsh specular highlight on the
+     * lower-center of the face — a flashlight effect, not
+     * environmental"): the W5-C5 0.22 at 1.0 unit still concentrated
+     * a hot BEAD on the OLED glass. The glow halves again and pulls
+     * back to 1.5 — a broad soft sheen over the face surround (the
+     * bezel + eyes keep the brightness), never a specular dot. */
+    faceGlow.position.set(0, 0.76, 1.5);
     scene.add(faceGlow);
 
     /* ── registry for full disposal (scene-built) ── */
@@ -753,15 +801,26 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     const figure = new Group();
     scene.add(figure);
 
-    /* the contact shadow — a soft radial canvas pool under the pedestal */
+    /* the contact shadow — a soft radial canvas pool under the pedestal.
+     * P23-A (the audit's "floats in a void / PNG sticker" kill): WIDER
+     * (0.98×0.5 → 1.24×0.62) with a darker, tighter core + a longer
+     * soft tail — the stand reads STAGED on a real floor (an occlusion
+     * pool a museum spotlight casts), never pasted on black. */
     const shadowCanvas = document.createElement('canvas');
     shadowCanvas.width = 256;
     shadowCanvas.height = 128;
     {
       const ctx = shadowCanvas.getContext('2d')!;
-      const g = ctx.createRadialGradient(128, 64, 6, 128, 64, 118);
-      g.addColorStop(0, `rgba(0,0,2,${palette.shadowStrength})`);
-      g.addColorStop(0.55, `rgba(0,0,2,${palette.shadowStrength * 0.42})`);
+      /* P23-A iter-2 — the audit also read the base's bottom as
+       * "muddy, low-resolution": the iter-1 core (0.4 of the radius
+       * at 0.55σ) drowned the plinth's bottom edge. The core TIGHTENS
+       * (a crisp occlusion ring right under the base) while the tail
+       * runs longer (the floor keeps its presence) — the stand's
+       * silhouette stays defined, the stage keeps the grounding. */
+      const g = ctx.createRadialGradient(128, 64, 3, 128, 64, 122);
+      g.addColorStop(0, `rgba(0,0,2,${Math.min(1, palette.shadowStrength * 1.15)})`);
+      g.addColorStop(0.28, `rgba(0,0,2,${palette.shadowStrength * 0.6})`);
+      g.addColorStop(0.6, `rgba(0,0,2,${palette.shadowStrength * 0.22})`);
       g.addColorStop(1, 'rgba(0,0,2,0)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, 256, 128);
@@ -770,7 +829,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     const shadowMat = track(
       new MeshBasicMaterial({ map: shadowTexture, transparent: true, depthWrite: false, opacity: 1 }),
     );
-    const contactShadow = new Mesh(track(new PlaneGeometry(0.98, 0.5)), shadowMat);
+    const contactShadow = new Mesh(track(new PlaneGeometry(1.24, 0.62)), shadowMat);
     contactShadow.rotation.x = -Math.PI / 2;
     contactShadow.position.set(0, FLOOR_Y + 0.004, 0.02);
     contactShadow.renderOrder = 1;
@@ -932,15 +991,21 @@ export function CharacterScene({ className }: CharacterSceneProps) {
         roughness: 1.0, /* the base 0.62 lives in the map (two-sided) */
         roughnessMap: shellMicro.rough,
         normalMap: shellMicro.normal,
-        /* P22: 0.6 → 0.42 — the W5-C5 micro-surface was calibrated at
-         * the full-body scale; the bust camera rides ~35% closer and
-         * the same speckle read (VLM: "concrete, unwrapped UVs") too
-         * coarse. Sleeker for the portrait era; the base roughness
-         * modulation stays untouched. */
-        normalScale: new Vector2(0.42, 0.42),
-        metalness: 0.03,
-        clearcoat: 0.14,
-        clearcoatRoughness: 0.55,
+        /* P23-A — THE CERAMIC PASS: 0.42 → 0.13. The W5-C5
+         * normal-driven micro-surface read at bust close-up as porous
+         * styrofoam ("concrete" — the audit's #1 kill). A premium
+         * molded shell is SMOOTH: the normal channel collapses to a
+         * whisper (just enough to keep the clearcoat highlight from
+         * banding), and the surface life rides the roughness map's
+         * broad glaze mottling + the clearcoat lift below — matte
+         * ceramic, the finish of high-end consumer hardware. */
+        normalScale: new Vector2(0.13, 0.13),
+        metalness: 0.0,
+        /* 0.14/0.55 → 0.30/0.62 — a soft ceramic GLAZE: the gentle
+         * specular rolloff over the matte body (clearcoat reads as
+         * sheen, never as gloss plastic, at this roughness) */
+        clearcoat: 0.3,
+        clearcoatRoughness: 0.62,
       }),
     );
     const graphiteMat = track(
@@ -949,19 +1014,26 @@ export function CharacterScene({ className }: CharacterSceneProps) {
         roughness: 1.0, /* the base 0.30 lives in the map (two-sided) */
         roughnessMap: graphiteMicro.rough,
         normalMap: graphiteMicro.normal,
-        normalScale: new Vector2(0.65, 0.65),
+        /* P23-A: 0.65 → 0.5 — the brushed machining stays (it reads as
+         * metal because metal IS brushed), one notch quieter so the
+         * collars read anodized-machined, never scored */
+        normalScale: new Vector2(0.5, 0.5),
         metalness: 0.9,
-        clearcoat: 0.4,
-        clearcoatRoughness: 0.3,
+        clearcoat: 0.5,
+        clearcoatRoughness: 0.28,
       }),
     );
     const screenMat = track(
       new MeshPhysicalMaterial({
         color: palette.screen,
-        roughness: 0.22,
+        /* P23-A: 0.22 → 0.3 rough + the clearcoat temper below — the
+         * glass stays DEEP clean black but the specular diffuses into
+         * a soft sheen (the audit read the old near-mirror dot as a
+         * rendering artifact on the face) */
+        roughness: 0.3,
         metalness: 0.05,
-        clearcoat: 0.35,
-        clearcoatRoughness: 0.2,
+        clearcoat: 0.24,
+        clearcoatRoughness: 0.32,
       }),
     );
     const eyeMat = track(
@@ -1037,17 +1109,20 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     deck.position.y = 0.097;
     character.add(deck);
 
-    /* the levitation spill — a soft additive pool on the deck under
-     * the hovering head (the machine's own light; the level camera
-     * reads it as a luminous band across the deck) */
+    /* the levitation spill — P23-A: the QUIET pool (the audit read the
+     * hot cyan wash as "gamer neon" against the minimal UI): softer
+     * gradient (0.85/0.3 → 0.5/0.16), SMALLER footprint (0.62×0.38 →
+     * 0.46×0.28 — a tight luminous band on the deck, not a wash) and
+     * dimmer base opacity (0.42 → 0.24) — the levitation field reads
+     * as instrument light, never as a game pad */
     const poolCanvas = document.createElement('canvas');
     poolCanvas.width = 256;
     poolCanvas.height = 128;
     {
       const ctx = poolCanvas.getContext('2d')!;
       const g = ctx.createRadialGradient(128, 64, 4, 128, 64, 122);
-      g.addColorStop(0, 'rgba(255,255,255,0.85)');
-      g.addColorStop(0.4, 'rgba(255,255,255,0.3)');
+      g.addColorStop(0, 'rgba(255,255,255,0.5)');
+      g.addColorStop(0.45, 'rgba(255,255,255,0.16)');
       g.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, 256, 128);
@@ -1058,23 +1133,25 @@ export function CharacterScene({ className }: CharacterSceneProps) {
         map: poolTexture,
         color: CYAN,
         transparent: true,
-        opacity: 0.42,
+        opacity: 0.24,
         depthWrite: false,
         blending: AdditiveBlending,
         toneMapped: false, /* the pool is light, not surface */
       }),
     );
-    const underGlow = new Mesh(track(new PlaneGeometry(0.62, 0.38)), poolMat);
+    const underGlow = new Mesh(track(new PlaneGeometry(0.46, 0.28)), poolMat);
     underGlow.rotation.x = -Math.PI / 2;
     underGlow.position.set(0, 0.108, 0);
     underGlow.renderOrder = 1;
     character.add(underGlow);
 
-    /* the deck's SPECTRUM RING — the head bezel's echo, a hair-thin
-     * luminous rounded-rect inset in the deck: the levitation's
-     * source, the machine's light signature worn by its stand */
+    /* the deck's RING — P23-A: the spectrum echo DIES. The head bezel
+     * keeps the reference's rainbow (the head's own light); the STAND
+     * wears a hair-thin SINGLE-HUE teal ring instead (the brand signal
+     * color) — the museum-podium read: one quiet instrument line inset
+     * in the deck, no rainbow on the floor. */
     const ringMat = track(
-      new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85, toneMapped: false }),
+      new MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0.5, toneMapped: false }),
     );
     const deckRing = new Mesh(track(makeBezelTubeGeometry(0.46, 0.34, 0.07, 0.006)), ringMat);
     deckRing.rotation.x = -Math.PI / 2;
@@ -1092,6 +1169,15 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     const neckCollar = new Mesh(track(new CylinderGeometry(0.106, 0.112, 0.024, 28)), graphiteMat);
     neckCollar.position.y = 0.305;
     character.add(neckCollar);
+    /* P23-A — the upper BEARING RACE: a slim graphite ring where the
+     * neck column enters the skull (the audit's minor kill: "head/neck
+     * transition abrupt, lacks mechanical logic"). It rides the
+     * CHARACTER (below the headGroup pivot), so while the head YAWS
+     * above it the race stays with the column — the mount reads as a
+     * real bearing stack: collar → column → race → skull. */
+    const neckBearing = new Mesh(track(new CylinderGeometry(0.102, 0.102, 0.02, 28)), graphiteMat);
+    neckBearing.position.y = 0.366;
+    character.add(neckBearing);
 
     /* THE HEAD GROUP — the filleted THICK cube (pivots at the neck for
      * pointer/gaze aliveness). W3-A: near-square 1.11:1 skull with
@@ -1103,8 +1189,11 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      * skull (the iter2 0.62×0.56 read as a wide "TV" shape). W5-C5:
      * fillet segments 5 → 6 — the crown/cheek specular rolloff
      * smooths (the micro-surface axis's cheap geometry share; the
-     * whole build rises ~+7% vertices, moderately). */
-    const skull = new Mesh(track(new RoundedBoxGeometry(0.6, 0.6, 0.56, 6, 0.09)), shellMat);
+     * whole build rises ~+7% vertices, moderately). P23-A: 6 → 8 —
+     * the ceramic clearcoat makes the crown's rolloff gradient visible
+     * at bust scale, so the fillet arcs smooth one rung further (the
+     * +vertices stay bounded to the fillet bands only). */
+    const skull = new Mesh(track(new RoundedBoxGeometry(0.6, 0.6, 0.56, 8, 0.09)), shellMat);
     skull.position.y = 0.28;
     headGroup.add(skull);
     /* the top deck — the reference's dark vented crown: a wider
@@ -1201,9 +1290,11 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       bezelTubeMat.opacity = palette.dark ? 1 : 0.82;
       bezelTubeMat.transparent = !palette.dark;
       /* P22: the deck's ring + pool ride the repaint (the light
-       * signature dims on porcelain, never dies) */
-      ringMat.opacity = palette.dark ? 0.85 : 0.5;
-      poolMat.opacity = palette.dark ? 0.42 : 0.26;
+       * signature dims on porcelain, never dies). P23-A: the museum
+       * grades — the single-hue ring and the quiet pool sit well
+       * under the old spectrum/pool brightness. */
+      ringMat.opacity = palette.dark ? 0.5 : 0.3;
+      poolMat.opacity = palette.dark ? 0.24 : 0.15;
       glowMat.opacity = palette.glowOpacity;
       shadowMat.opacity = palette.dark ? 1 : 0.55;
       if (!reduced) renderer.render(scene, camera);
@@ -1290,7 +1381,10 @@ export function CharacterScene({ className }: CharacterSceneProps) {
        * P22: the deck's ring + pool echo the same temperature (the
        * stand tells the machine's story too). */
       bezelTubeMat.color.copy(beatTint);
-      ringMat.color.copy(beatTint);
+      /* P23-A: the deck's quiet ring + pool stay anchored on the BRAND
+       * hue and only lean toward the beat's temperature (the stand
+       * echoes the machine's state without ever going spectrum) */
+      ringMat.color.setHex(CYAN).lerp(beatTint, 0.45);
       poolMat.color.setHex(CYAN).lerp(beatTint, 0.5);
 
       /* THE HEAD — pointer tracking + the beat's look bias + the
@@ -1326,8 +1420,9 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       eyeGlowR.scale.setScalar(breath * eyeWide * (1 + corePulse * 0.3));
       eyeMat.emissiveIntensity = palette.eyeIntensity * breath * eyeWide + scanPhase * 0.35;
       glowMat.opacity = palette.glowOpacity * (0.8 + 0.2 * breath);
-      /* the deck pool breathes with the eyes — the levitation field */
-      poolMat.opacity = (palette.dark ? 0.42 : 0.26) * (0.85 + 0.15 * breath);
+      /* the deck pool breathes with the eyes — the levitation field
+       * (P23-A: the quiet base grades) */
+      poolMat.opacity = (palette.dark ? 0.24 : 0.15) * (0.85 + 0.15 * breath);
 
       renderer.render(scene, camera);
       if (restCapture) {

@@ -211,11 +211,16 @@ export default function HomePage() {
                     below 1025px and mirrors it for LTR. Decorative
                     (aria-hidden); rides INSIDE the exit frame so it sinks
                     with the machine layer on scroll.
-                    P22 recalibration (the head-only bust, fig 0.80 /
-                    floor 0.88 / x 0.47 — measured against the rendered
-                    canvas): the bezel's screen-side edge lands at
-                    SVG ≈(641, 200-290), the plinth's corners at
-                    ≈(240, 731) top-left / (661, 727) top-right. */}
+                    P22 recalibration (the head-only bust) → P23-A
+                    recalibration (the rebalanced framing, fig 0.70 /
+                    floor 0.88 / x 0.45 — re-measured on the rendered
+                    canvas, ?sb-rest): the bezel's right edge lands at
+                    SVG ≈(663, 204-640), its eyes-level point at ≈(663,
+                    371); the deck ring's corners at ≈(364, 750) /
+                    (604, 750). The machine-side terminals anchor on the
+                    VISIBLE light features (the bezel edge at the eyes'
+                    level, the ring's corners — the stand's port is its
+                    light signature now that the floor rainbow died). */}
                 <svg
                   className="ln-hero-traces"
                   viewBox="0 0 1440 900"
@@ -225,22 +230,22 @@ export default function HomePage() {
                 >
                   {/* console → head (the upper terminal line — ends at
                       the bezel's screen-side edge, the eyes' level) */}
-                  <path className="ln-tx" d="M 966 250 H 726 L 660 184 H 650" />
+                  <path className="ln-tx" d="M 966 250 H 784 L 673 361 H 663" />
                   {/* console → plinth (the lower terminal line — exits the
                       console's bottom corner, drops the far column, lands
-                      on the plinth's top-right corner: the stand is the
+                      on the deck ring's right corner: the stand is the
                       machine's port now that the chest is retired) */}
-                  <path className="ln-tx" d="M 966 312 H 760 L 690 382 V 730 H 666" />
+                  <path className="ln-tx" d="M 966 312 H 760 L 690 382 V 742 H 614" />
                   {/* plinth → far rail → the scroll invitation (the drop
                       lands just above the invitation label) */}
-                  <path className="ln-tx" d="M 242 733 H 120 L 106 747 V 776" />
+                  <path className="ln-tx" d="M 364 752 H 120 L 106 766 V 778" />
                   {/* the node pads — ports on the console edge, live nodes
                       at the machine, one terminal above the invitation */}
                   <rect className="ln-tx-node" x="963" y="247" width="5" height="5" />
                   <rect className="ln-tx-node" x="963" y="309" width="5" height="5" />
-                  <rect className="ln-tx-node ln-tx-live" x="644" y="181" width="6" height="6" />
-                  <rect className="ln-tx-node ln-tx-live" x="663" y="727" width="6" height="6" />
-                  <rect className="ln-tx-node" x="103" y="773" width="6" height="6" />
+                  <rect className="ln-tx-node ln-tx-live" x="657" y="358" width="6" height="6" />
+                  <rect className="ln-tx-node ln-tx-live" x="608" y="739" width="6" height="6" />
+                  <rect className="ln-tx-node" x="103" y="775" width="6" height="6" />
                 </svg>
                 <RobotSceneMount className="ln-robot-canvas" />
               </div>

@@ -1351,11 +1351,15 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
      directive that guards the deliberate raw <a> lives inside a JSX comment
      and must survive the pin. */
   const rawGlobalErr = readFileSync(new URL('../src/app/global-error.tsx', import.meta.url), 'utf8');
-  const linkOk = rawLanding.includes('<Link href="/demo" className="ln-btn-ghost">')
+  /* P24-A re-pin: the hero ghost now carries the xl register — the hero
+     CTA twins land 52=52 like the finale pair (the header twins stay
+     48=48 with the non-xl variants; the hero was the one mixed pair,
+     a live-measured 2px top/bottom offset between the twins). */
+  const linkOk = rawLanding.includes('<Link href="/demo" className="ln-btn-ghost xl">')
     && (nc(rawGlobalErr).match(/<a href="\/">/g) || []).length === 1
     && rawGlobalErr.includes('eslint-disable-next-line @next/next/no-html-link-for-pages');
   if (linkOk) pass += 1;
-  else fails.push('r133 A5-S4: hero CTA = Link; global-error keeps exactly the one documented raw <a>');
+  else fails.push('r133 A5-S4 + P24-A: hero CTA = Link (xl ghost, 52=52 twin parity); global-error keeps exactly the one documented raw <a>');
 
   // Error-state family last mile (A5 S5): messages' conversations column and
   // the sequences subscribers drawer ride .state state-danger + role=alert.
@@ -2654,10 +2658,10 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
       && rawPage.includes('className="ln-robot-vignette"')
       && rawPage.includes('className="ln-robot-canvas"')
       && rawPage.includes('<MagneticGoldLink href="/subscribe" xl withArrow')
-      && rawPage.includes('<Link href="/demo" className="ln-btn-ghost">')
+      && rawPage.includes('<Link href="/demo" className="ln-btn-ghost xl">')
       && rawPage.includes('تعرّف على');
     if (pageOk) pass += 1;
-    else fails.push('P16-A page: hero = exit-wrapped character layer + glow/vignette + canvas mount + ticker + honest CTA pair (h1 inline)');
+    else fails.push('P16-A page + P24-A: hero = exit-wrapped character layer + glow/vignette + canvas mount + ticker + honest 52=52 CTA pair (h1 inline)');
   }
 
   // (10) the mobile stack (P16-A: ≤1024px character-first, its OWN

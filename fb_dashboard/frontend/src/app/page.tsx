@@ -296,7 +296,12 @@ export default function HomePage() {
               <MagneticGoldLink href="/subscribe" xl withArrow ariaLabel="ابدأ الآن مجاناً — الاشتراك في SmartBot">
                 ابدأ الآن مجاناً
               </MagneticGoldLink>
-              <Link href="/demo" className="ln-btn-ghost">جرب البوت الآن</Link>
+              {/* P24-A: the ghost joins the xl register — the hero pair
+                  lands on 52=52 border-box (the header twins 48=48, the
+                  finale twins 52=52; the hero was the one mismatched pair:
+                  gold xl 52 vs ghost 48, a measured 2px top/bottom offset
+                  between the CTA twins). */}
+              <Link href="/demo" className="ln-btn-ghost xl">جرب البوت الآن</Link>
             </div>
 
             <RevealCssClass as="ul" className="ln-hero-meta" delay={4}>

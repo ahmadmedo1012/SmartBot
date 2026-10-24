@@ -865,7 +865,10 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawPage).toContain('className="ln-robot-vignette"')
     expect(rawPage).toContain('className="ln-robot-canvas"')
     expect(rawPage).toContain('<MagneticGoldLink href="/subscribe" xl withArrow')
-    expect(rawPage).toContain('<Link href="/demo" className="ln-btn-ghost">')
+    /* P24-A: the hero ghost rides the xl register — 52=52 twin parity with
+       the gold (the header twins stay 48=48; the hero was the one mixed
+       pair, a live-measured 2px top/bottom offset between the twins). */
+    expect(rawPage).toContain('<Link href="/demo" className="ln-btn-ghost xl">')
     expect(rawPage).toContain("تعرّف على")
   })
 

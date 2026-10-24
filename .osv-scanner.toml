@@ -57,43 +57,14 @@
 # of openai/mcp to user-controlled URLs (ai_service SSRF guard + the MCP
 # engine is a standalone local process, never imported by the live app).
 
-[[IgnoredVulns]]
-id = "PYSEC-2026-3844"
-reason = "httpcore2 2.9.1 transitive via openai/mcp 2026 trees; app imports httpx 0.28.x directly; fixed 2.10.0 not shipped through any SDK floor yet — re-verify at expiry"
-ignoreUntil = 2026-12-10T00:00:00Z
-
-[[IgnoredVulns]]
-id = "PYSEC-2026-3846"
-reason = "httpx2 2.9.1 CVSS 7.5 transitive via openai/mcp; not imported by app code (httpx 0.28.x is); await SDK tree refresh at TTL"
-ignoreUntil = 2026-12-10T00:00:00Z
-
-[[IgnoredVulns]]
-id = "PYSEC-2026-3847"
-reason = "httpx2 2.9.1 CVSS 5.9 transitive via openai/mcp trees; SSRF guard + standalone MCP process limit reachability; re-verify at expiry"
-ignoreUntil = 2026-12-10T00:00:00Z
-
-[[IgnoredVulns]]
-id = "PYSEC-2026-3848"
-reason = "httpx2 2.9.1 CVSS 5.3 transitive via openai/mcp trees; fixed 2.11.0 not shipped through SDK floors; expire and re-justify"
-ignoreUntil = 2026-12-10T00:00:00Z
-
-[[IgnoredVulns]]
-id = "PYSEC-2026-3849"
-reason = "httpx2 2.9.1 CVSS 5.6 transitive via openai/mcp trees; same class as 3845-3848 — documented suppression with TTL, fix-first when upstream ships"
-ignoreUntil = 2026-12-10T00:00:00Z
-
-# r133 (2026-10-09) — GHSA-vfj7-8cjw-p6xm: braces 3.0.3 (npm, DEV-only
-# transitive in fb_dashboard/frontend/package-lock.json via chokidar-class
-# build tooling). The lockfile is ALREADY on the latest published braces
-# release (3.0.3 — npm has no newer version), so there is nothing to bump
-# to. Reachability: build/watch tooling only, never shipped in the Next.js
-# runtime bundle; the ReDoS class requires crafted glob patterns fed to the
-# dev tool itself. Remove this entry the day braces publishes a patch.
-
-[[IgnoredVulns]]
-id = "GHSA-vfj7-8cjw-p6xm"
-reason = "braces 3.0.3 is the LATEST npm release — no fixed version exists to bump; dev-only build-tooling transitive, never in the runtime bundle; re-verify at TTL"
-ignoreUntil = 2027-01-09T00:00:00Z
+# P24 (2026-10-24) — expired-unused cleanup + one new entry:
+#   · PYSEC-2026-3844..3849 (httpx2/httpcore2): the requirements floors
+#     moved past the vulnerable tree — the scanner reported all five
+#     entries UNUSED for the whole P24 cycle. Entries removed; a
+#     recurrence resolves again and FAILS LOUDLY (no silent hole).
+#   · GHSA-vfj7-8cjw-p6xm (braces): WITHDRAWN upstream 2026-10-23
+#     (osv.dev shows withdrawn: 2026-10-23T12:53:02Z) — entry removed
+#     per its own removal clause. A future braces advisory fails loudly.
 
 # r137 (2026-10-10) — GHSA-w5hq-g745-h8pq: uuid 7.0.3 in mobile/package-lock.json
 # (transitive: expo-splash-screen → @expo/config-plugins → xcode@3.0.1, which
@@ -124,3 +95,29 @@ ignoreUntil = 2027-01-10T00:00:00Z
 id = "GHSA-86w9-cpqp-85rv"
 reason = "node-forge 1.4.0 has NO fixed version published (OSV fixed column empty — same class as braces); dev/build toolchain transitive only, never in the app runtime bundle; re-verify at TTL"
 ignoreUntil = 2027-01-10T00:00:00Z
+
+# P24 (2026-10-24) — GHSA-mrhx-c7xc-m3w5: zod (CVSS 8.2, availability-only:
+# memory exhaustion validating oversized constrained collections). The
+# advisory hit BOTH lockfiles this round; fix-first applied where a fix
+# exists in range:
+#   · fb_dashboard/frontend: zod 4.6.5 (DEV-only transitive via
+#     eslint-plugin-react-hooks + zod-validation-error) — FIXED AT THE
+#     ROOT by npm update zod → 4.6.7 (a 3-line lockfile diff; never in
+#     the Next.js runtime bundle even before the bump).
+#   · mobile: zod 3.25.76 pinned by @expo/cli's ^3.25.76 range — the
+#     4.6.6 fix is a MAJOR jump unreachable through the tree (an npm
+#     override to 4.x would break expo CLI at runtime against its own
+#     declared range — same override-risk class as the
+#     decode-uri-component entry). Reachability: @expo/cli consumes zod
+#     for LOCAL config/args validation — build/dev tooling only, never
+#     in the Metro bundle shipped to devices; the DoS class requires
+#     feeding oversized input to the local CLI itself.
+# NOTE: IgnoredVulns matches by ID across ALL lockfiles — this entry
+# would also mask a frontend regression below 4.6.7. The guard is the
+# lockfile review: the frontend bump lives in this same commit, and any
+# future lockfile regeneration that walks zod back must re-justify this
+# entry. Remove the day @expo/cli accepts zod@^4.
+[[IgnoredVulns]]
+id = "GHSA-mrhx-c7xc-m3w5"
+reason = "zod 3.25.76 transitive of @expo/cli (^3.25.76 pin — the 4.6.6 fix is an unreachable major); DoS class, local build-tooling validation only, never in the app runtime bundle; frontend sibling FIXED at root this commit; re-verify at TTL"
+ignoreUntil = 2027-01-24T00:00:00Z

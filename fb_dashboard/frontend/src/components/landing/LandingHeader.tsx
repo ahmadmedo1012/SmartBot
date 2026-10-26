@@ -121,10 +121,16 @@ export function LandingHeader() {
       {/* Header — the .scrolled state class is toggled imperatively */}
       <header className="landing-header" ref={headerRef}>
         <div className="landing-nav">
-          {/* P26-A (WCAG 2.5.3 Label-in-Name): the accessible name must
-              contain ALL visible lockup text (brand + tagline), not just
-              the brand — speech-input users say what they see. */}
-          <Link href="/" className="landing-brand" aria-label="SmartBot — إدارة صفحات فيسبوك — الرئيسية">
+          {/* P26-A follow-up (Label-in-Name root cause): the aria-label is
+              GONE — name-from-content, the Smart-Link main-nav.tsx:184
+              law. axe's label-content-name-mismatch only MATCHES elements
+              carrying aria-label/labelledby, and any explicit label must
+              repeat the full visible lockup (monogram included — the
+              aria-hidden S still counts as visible text for WCAG 2.5.3,
+              and it glues to the wordmark: "SSmartBot"). Name-from-content
+              is compliant by construction and self-maintaining; the «/»
+              destination reads from the logo position + href. */}
+          <Link href="/" className="landing-brand">
             <span className="landing-brand-mark" aria-hidden="true">S</span>
             <span className="landing-brand-text">
               <span className="landing-brand-name">SmartBot</span>

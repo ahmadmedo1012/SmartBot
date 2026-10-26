@@ -33,7 +33,8 @@ export function LandingFooter() {
       <div className="marketing-container">
         <div className="landing-footer-grid">
           <div className="landing-footer-col">
-            <Link href="/" className="landing-brand" aria-label="SmartBot — الرئيسية">
+            {/* P26-A: same Label-in-Name fix as the header brand. */}
+            <Link href="/" className="landing-brand" aria-label="SmartBot — إدارة صفحات فيسبوك — الرئيسية">
               <span className="landing-brand-mark" aria-hidden="true">S</span>
               <span className="landing-brand-text">
                 <span className="landing-brand-name">SmartBot</span>

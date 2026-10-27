@@ -710,6 +710,23 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       const probe = document.createElement('canvas');
       const gl = probe.getContext('webgl2') ?? probe.getContext('webgl');
       if (!gl) throw new Error('WebGL unavailable');
+      /* P27-A — the software-rasterizer probe. Under SwiftShader /
+       * llvmpipe the context OPENS but MeshPhysicalMaterial programs
+       * fail validation (measured live: THREE.WebGLProgram «Shader
+       * Error 0/1282 — VALIDATE_STATUS false» console.error storms in
+       * the Lighthouse/VM trace, best-practices 96) while the living
+       * loop burns the rasterizer for seconds per frame. Software GL
+       * joins WebGL-less clients on the DESIGNED composed-SVG path —
+       * real GPUs (the ≥99% case, and every browser that hides its
+       * renderer string behind the privacy mask) match none of these
+       * sigils and keep the procedural scene untouched. */
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      const rasterizer = dbg
+        ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) ?? '')
+        : '';
+      if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(rasterizer)) {
+        throw new Error('Software rasterizer — composed frame instead');
+      }
       renderer = new WebGLRenderer({ antialias: true, alpha: true });
     } catch {
       setFailed(true); // art-directed static fallback, not a broken canvas

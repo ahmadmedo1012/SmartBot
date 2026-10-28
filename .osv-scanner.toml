@@ -121,3 +121,21 @@ ignoreUntil = 2027-01-10T00:00:00Z
 id = "GHSA-mrhx-c7xc-m3w5"
 reason = "zod 3.25.76 transitive of @expo/cli (^3.25.76 pin — the 4.6.6 fix is an unreachable major); DoS class, local build-tooling validation only, never in the app runtime bundle; frontend sibling FIXED at root this commit; re-verify at TTL"
 ignoreUntil = 2027-01-24T00:00:00Z
+
+# P30 (2026-10-28) — the deepmerge prototype-poisoning advisory (Medium 5.3,
+# Integrity:Low) surfaced by the osv gate on a docs-only push (the scan reads
+# the CURRENT tree every run — the advisory postdates b998117's green scan).
+# Root-fix UNREACHABLE: deepmerge 4.3.1 is the LAST 4.x (no fixed 4.x exists);
+# the fix line is the ESM-only 5.x — the ^4 CJS parents (react-joyride 2.9.3 +
+# react-floater 0.7.9 in the onboarding tour bundle, @expo/config 57.0.9 in
+# the mobile build toolchain) cannot take a 5.x override without breaking
+# their require chain (same class as the decode-uri-component major jump).
+# Reachability: deepmerge merges developer-controlled OPTIONS only (the
+# joyride tour config props + the expo app config) — no attacker-controlled
+# input flows into any mergeObject call; the runtime-bundle consumer's merge
+# inputs are the app's own tour steps. Re-verify at TTL: watch react-joyride
+# ≥3 (if it drops deepmerge) and @expo/config ≥58.
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+reason = "deepmerge 4.3.1 is the last 4.x (fix is the ESM-only 5.x major — the ^4 CJS parents react-joyride/react-floater/@expo-config cannot override without breaking require); merges developer-controlled options only (tour config + expo config), no attacker input path; re-verify at TTL"
+ignoreUntil = 2027-01-24T00:00:00Z

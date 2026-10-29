@@ -89,6 +89,16 @@ id = "GHSA-vcc3-ghjq-m6fr"
 reason = "decode-uri-component 0.2.2 transitive with a consumer semver range below 0.5.0 (major jump — override risks metro tooling); query-string parsing class, dev/build toolchain only; re-verify at TTL"
 ignoreUntil = 2027-01-10T00:00:00Z
 
+# 2026-10-29: OSV re-published the SAME decode-uri-component 0.2.2
+# finding under a NEW advisory id (GHSA-qr28-fpjm-wq7f, fix 0.5.1 —
+# the same ESM-only major the entry above already documents). Same
+# package, same version, same consumer-range wall, same dev/build
+# toolchain reachability: the standing rationale covers it verbatim.
+[[IgnoredVulns]]
+id = "GHSA-qr28-fpjm-wq7f"
+reason = "decode-uri-component 0.2.2 — re-published advisory id for the SAME finding as GHSA-vcc3-ghjq-m6fr above (fix is the 0.5.x major; consumer semver ranges below 0.5.0 — override risks metro tooling); query-string parsing class, dev/build toolchain only, never in the app runtime bundle; re-verify at TTL"
+ignoreUntil = 2027-01-10T00:00:00Z
+
 # node-forge 1.4.0: OSV lists NO fixed version at all (the '--' column) —
 # same class as the braces entry: nothing exists to bump to.
 [[IgnoredVulns]]

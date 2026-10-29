@@ -1,5 +1,38 @@
 'use client';
 
+/* P31-B — THE SILHOUETTE RECONSTRUCTION (the audit's verdict: the
+ * parameter era is over — "toaster silhouette... zero brow/forehead/
+ * chin nuance... ears are extruded cubes"; the P22 head-only directive
+ * STANDS, the head is rebuilt at the GEOMETRY level):
+ *
+ * · THE SKULL is ONE MOLDED SURFACE — a swept-dome profile revolve
+ *   (lathe family) whose front sector carries a face-plate proudness
+ *   field: domeR(y) + faceOffset(y)·angMask(φ). The rounded-box cap,
+ *   the flat deck + its three fins retire at the source; the crown is
+ *   a real swept dome, the sides taper through the jaw to a rounded
+ *   chin, and the face plate READS as molded into the shell (a brow
+ *   ledge at the visor's top edge, a cheek part-line where the plate
+ *   blends flush, a chin shelf under the glass).
+ * · THE FACE is a WRAP VISOR: the OLED glass is a curved skin riding
+ *   the same radius field (+0.010 proud everywhere, wrapping ±52°),
+ *   tapered wide-brow → round chin — and the SPECTRUM TUBE (the
+ *   head's own light, kept) traces the visor's 3D perimeter: over the
+ *   top, around the wrap sides, under the chin.
+ * · THE EARS are radius-matched rounded pods (capsules of the head's
+ *   own fillet family, hugging the cheekline, angled slightly
+ *   forward) — the extruded cubes retire. THE NECK slims (the head
+ *   reads as one molded object on a quiet mount; the docking collar
+ *   termination stays). The crown wears a hair-thin machined seam
+ *   ring + a sagittal graphite crest (the deck/fins' quiet heirs).
+ * · The panels join the family: DayPanelArt redraws THIS head in its
+ *   2D grammar, the face OLED carrying four meaningful states
+ *   (listening / thinking / answering / working).
+ * KEPT: the framing solver + race fix, the frozen-loop fix, the
+ * rest-probe, the theme repaint, the pause family, the disposal
+ * sweep, the P23-A ceramic material values, the W5-C5 studio light
+ * levels, the levitating-bust composition (plinth, contact shadow,
+ * levitation breath) and the beat channel's tint law. */
+
 /* P22 — THE HEAD-ONLY ERA (the owner's directive, honored at the
  * source). The full-body machine is RETIRED: the posture read as
  * stiff/stacked, the articulated hands as deformed blobs (the VLM
@@ -170,6 +203,7 @@ import {
   CatmullRomCurve3,
   TubeGeometry,
   CircleGeometry,
+  CapsuleGeometry,
   BufferAttribute,
   type Material,
 } from 'three';
@@ -247,6 +281,256 @@ function makeBezelTubeGeometry(w: number, h: number, r: number, tubeR: number): 
   }
   geo.setAttribute('color', new BufferAttribute(colors, 3));
   return geo;
+}
+
+/* ── P31-B — THE HEAD FIELD (see the block comment up top). The head
+ * is one parametric surface R(y, φ); everything the face wears (the
+ * wrap visor, the spectrum tube, the eyes) samples the SAME field, so
+ * the whole crown reads as one molded object. */
+
+/* the cranium profile control (y, r): neck socket → chin → jaw →
+ * cheekbone → brow width (the max) → a real swept dome crown */
+const HEAD_PROFILE: Array<[number, number]> = [
+  [-0.078, 0.02],
+  [-0.075, 0.09],
+  [-0.045, 0.158],
+  [-0.01, 0.205],
+  [0.05, 0.252],
+  [0.13, 0.283],
+  [0.21, 0.3],
+  [0.3, 0.306],
+  [0.38, 0.3],
+  [0.45, 0.278],
+  [0.51, 0.24],
+  [0.565, 0.185],
+  [0.61, 0.12],
+  [0.645, 0.055],
+  [0.66, 0.001],
+];
+
+/* the face-plate proudness control (y, offset): proud over the face
+ * sector, stepping up to the BROW LEDGE (y .365–.415), fading to 0 at
+ * the chin (the chin shelf) and at the forehead (the skull takes
+ * over — the visible face-plate → skull transition) */
+const HEAD_OFFSETS: Array<[number, number]> = [
+  [-0.075, 0],
+  [-0.045, 0.014],
+  [-0.02, 0.026],
+  [0.05, 0.03],
+  [0.33, 0.03],
+  [0.365, 0.034],
+  [0.385, 0.05],
+  [0.415, 0.034],
+  [0.46, 0.016],
+  [0.52, 0],
+  [0.66, 0],
+];
+
+/* the wrap visor's span on the field: ±52° of face wrap, from the
+ * chin shelf up to just under the brow ledge */
+const FACE_PHI_HALF = MathUtils.degToRad(52);
+const FACE_Y_TOP = 0.33;
+const FACE_Y_BOT = -0.045;
+
+/* piecewise-linear table lookup (the profile tables are monotone in y) */
+function tableAt(table: Array<[number, number]>, y: number): number {
+  if (y <= table[0][0]) return table[0][1];
+  for (let i = 1; i < table.length; i++) {
+    if (y <= table[i][0]) {
+      const [y0, v0] = table[i - 1];
+      const [y1, v1] = table[i];
+      const t = (y - y0) / Math.max(1e-6, y1 - y0);
+      return v0 + (v1 - v0) * t;
+    }
+  }
+  return table[table.length - 1][1];
+}
+
+/* the profile control → a smooth (y → r) table: centripetal CatmullRom
+ * through the control points (no overshoot), sampled densely, then
+ * sorted + deduped so the lookup stays monotone */
+function buildProfileTable(control: Array<[number, number]>, steps: number): Array<[number, number]> {
+  const curve = new CatmullRomCurve3(
+    control.map(([y, r]) => new Vector3(y, r, 0)),
+    false,
+    'centripetal',
+  );
+  const raw: Array<[number, number]> = [];
+  for (let i = 0; i <= steps; i++) {
+    const p = curve.getPoint(i / steps);
+    raw.push([p.x, Math.max(0.001, p.y)]);
+  }
+  raw.sort((a, b) => a[0] - b[0]);
+  const table: Array<[number, number]> = [];
+  for (const row of raw) {
+    if (!table.length || row[0] - table[table.length - 1][0] > 1e-5) table.push(row);
+  }
+  return table;
+}
+
+const HEAD_PROFILE_TABLE = buildProfileTable(HEAD_PROFILE, 96);
+
+/* the face-plate angular weight: full proudness to 35° off the front,
+ * smoothstepping to flush at 80° — the cheek part-line */
+function headAngleWeight(phi: number): number {
+  const twoPi = Math.PI * 2;
+  const a = Math.abs((((phi + Math.PI) % twoPi) + twoPi) % twoPi - Math.PI);
+  const start = MathUtils.degToRad(35);
+  const end = MathUtils.degToRad(80);
+  if (a <= start) return 1;
+  if (a >= end) return 0;
+  const t = (a - start) / (end - start);
+  return 1 - t * t * (3 - 2 * t);
+}
+
+/* THE head radius field — one function every face element samples */
+function headRadiusAt(phi: number, y: number): number {
+  return tableAt(HEAD_PROFILE_TABLE, y) + tableAt(HEAD_OFFSETS, y) * headAngleWeight(phi);
+}
+
+/* the wrap visor's skin: +0.010 proud of the head field everywhere */
+function faceBandRadius(phi: number, y: number): number {
+  return headRadiusAt(phi, y) + 0.01;
+}
+
+/* the skull itself: a wrapped (y × φ) grid over the field, the φ seam
+ * welded by modular indices (no duplicated column, no lighting seam at
+ * the back), the y grid the profile table ∪ the offset control rows
+ * (so the brow ledge is exact, never smeared) */
+function makeHeadSurfaceGeometry(phiSteps: number): BufferGeometry {
+  const yMin = HEAD_PROFILE_TABLE[0][0];
+  const yMax = HEAD_PROFILE_TABLE[HEAD_PROFILE_TABLE.length - 1][0];
+  const ySet = new Set<number>();
+  for (const [y] of HEAD_PROFILE_TABLE) ySet.add(y);
+  for (const [y] of HEAD_OFFSETS) if (y > yMin && y < yMax) ySet.add(y);
+  const ys = [...ySet].sort((a, b) => a - b);
+  const rows = ys.length;
+  const positions = new Float32Array(rows * phiSteps * 3);
+  const uvs = new Float32Array(rows * phiSteps * 2);
+  const indices = new Uint32Array((rows - 1) * phiSteps * 6);
+  let v = 0;
+  for (let ri = 0; ri < rows; ri++) {
+    const y = ys[ri];
+    for (let ci = 0; ci < phiSteps; ci++) {
+      const phi = (ci / phiSteps) * Math.PI * 2 - Math.PI;
+      const R = headRadiusAt(phi, y);
+      positions[v * 3] = Math.sin(phi) * R;
+      positions[v * 3 + 1] = y;
+      positions[v * 3 + 2] = Math.cos(phi) * R;
+      uvs[v * 2] = ci / phiSteps;
+      uvs[v * 2 + 1] = (y - yMin) / (yMax - yMin);
+      v++;
+    }
+  }
+  let t = 0;
+  for (let ri = 0; ri < rows - 1; ri++) {
+    for (let ci = 0; ci < phiSteps; ci++) {
+      const a = ri * phiSteps + ci;
+      const b = ri * phiSteps + ((ci + 1) % phiSteps);
+      const c = (ri + 1) * phiSteps + ci;
+      const d = (ri + 1) * phiSteps + ((ci + 1) % phiSteps);
+      indices[t++] = a;
+      indices[t++] = b;
+      indices[t++] = c;
+      indices[t++] = b;
+      indices[t++] = d;
+      indices[t++] = c;
+    }
+  }
+  const geo = new BufferGeometry();
+  geo.setAttribute('position', new BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new BufferAttribute(uvs, 2));
+  geo.setIndex(new BufferAttribute(indices, 1));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/* an open (y × φ) grid skin for the wrap visor (the OLED glass) */
+function makeBandGeometry(
+  radius: (phi: number, y: number) => number,
+  yBot: number,
+  yTop: number,
+  phiHalf: number,
+  ySteps: number,
+  phiSteps: number,
+): BufferGeometry {
+  const rows = ySteps + 1;
+  const cols = phiSteps + 1;
+  const positions = new Float32Array(rows * cols * 3);
+  const uvs = new Float32Array(rows * cols * 2);
+  const indices = new Uint32Array((rows - 1) * (cols - 1) * 6);
+  let v = 0;
+  for (let ri = 0; ri < rows; ri++) {
+    const y = yBot + (yTop - yBot) * (ri / ySteps);
+    for (let ci = 0; ci < cols; ci++) {
+      const phi = -phiHalf + 2 * phiHalf * (ci / phiSteps);
+      const R = radius(phi, y);
+      positions[v * 3] = Math.sin(phi) * R;
+      positions[v * 3 + 1] = y;
+      positions[v * 3 + 2] = Math.cos(phi) * R;
+      uvs[v * 2] = ci / phiSteps;
+      uvs[v * 2 + 1] = ri / ySteps;
+      v++;
+    }
+  }
+  let t = 0;
+  for (let ri = 0; ri < rows - 1; ri++) {
+    for (let ci = 0; ci < cols - 1; ci++) {
+      const a = ri * cols + ci;
+      const b = a + 1;
+      const c = (ri + 1) * cols + ci;
+      const d = c + 1;
+      indices[t++] = a;
+      indices[t++] = b;
+      indices[t++] = c;
+      indices[t++] = b;
+      indices[t++] = d;
+      indices[t++] = c;
+    }
+  }
+  const geo = new BufferGeometry();
+  geo.setAttribute('position', new BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new BufferAttribute(uvs, 2));
+  geo.setIndex(new BufferAttribute(indices, 1));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/* the spectrum tube along an ARBITRARY closed 3D perimeter (the wrap
+ * visor's outline) — the same bezelColorAt law as the deck ring, by
+ * clockwise angle around the face center (cy) */
+function makeSpectrumTubeGeometry(points: Vector3[], tubeR: number, cy: number): TubeGeometry {
+  const curve = new CatmullRomCurve3(points, true);
+  const geo = new TubeGeometry(curve, 260, tubeR, 12, true);
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const c = tmpBezelB;
+  for (let i = 0; i < pos.count; i++) {
+    const ang = Math.atan2(pos.getY(i) - cy, pos.getX(i));
+    const u = (ang + Math.PI) / (Math.PI * 2);
+    const t = 1 - u;
+    bezelColorAt(t, c);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+  geo.setAttribute('color', new BufferAttribute(colors, 3));
+  return geo;
+}
+
+/* a hair-thin ring following the head field at height y (the crown's
+ * machined part line): a closed tube riding R(phi,y) − inset, so it
+ * seats into the molded surface everywhere — through the brow swell,
+ * around the back — never a floating hoop on the taper */
+function makeHeadRingGeometry(y: number, inset: number, tubeR: number): TubeGeometry {
+  const pts: Vector3[] = [];
+  const N = 96;
+  for (let i = 0; i < N; i++) {
+    const phi = (i / N) * Math.PI * 2 - Math.PI;
+    const R = headRadiusAt(phi, y) - inset;
+    pts.push(new Vector3(Math.sin(phi) * R, y, Math.cos(phi) * R));
+  }
+  return new TubeGeometry(new CatmullRomCurve3(pts, true), 192, tubeR, 8, true);
 }
 
 export type CharacterSceneProps = {
@@ -574,12 +858,14 @@ function makeGraphiteMicroMaps(): MicroMaps {
 }
 
 /* ── the art-directed static fallback frame (WebGL absent / failed) ──
- * P22: the SAME levitating-bust grammar as the living scene — the
- * plinth with its spectrum ring + light pool, the head hovering a
- * deliberate gap above it, the neck ending in its docking collar.
- * The head is the whole portrait (the body era is retired), drawn
- * large and premium so a WebGL-less client gets the hero, never a
- * hole. */
+ * P31-B: the SAME molded-dome grammar as the living scene — the swept
+ * crown with its seam + sagittal crest, the tapered wrap visor under
+ * the brow ledge, the spectrum tube tracing the jawline, the rounded
+ * ear pods, the slim docking neck — the head hovering its deliberate
+ * gap above the plinth (kept: the museum stand, its teal ring, the
+ * contact shadow). The head is the whole portrait (the body era is
+ * retired), drawn large and premium so a WebGL-less client gets the
+ * hero, never a hole. */
 function CharacterFallbackSvg() {
   return (
     <svg viewBox="0 0 360 470" role="presentation" focusable="false" aria-hidden="true">
@@ -637,37 +923,85 @@ function CharacterFallbackSvg() {
         strokeWidth="1.4"
       />
 
-      {/* THE NECK — the docking collar the head rides above (the
-          deliberate mechanical termination, hovering clear of the deck) */}
-      <rect x="164" y="336" width="32" height="42" rx="7" fill="#26282F" />
-      <rect x="158" y="368" width="44" height="11" rx="5" fill="#26282F" />
-      <rect x="160" y="369.6" width="40" height="2.4" rx="1.2" fill="#3A3D45" />
+      {/* THE NECK — P31-B: the slim docking mount (column + bearing
+          race + collar), hovering clear of the deck (the deliberate
+          mechanical termination — kept, slimmed). Round-3 sync: the
+          bearing + the seat occlusion drop to the chin line so the
+          race actually READS below the jaw (it sat fully hidden behind
+          the old chin), the hero's collar → column → race → skull */}
+      <rect x="169" y="232" width="22" height="62" rx="8" fill="#26282F" />
+      <line x1="173.5" y1="240" x2="173.5" y2="286" stroke="#3A3D45" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
+      <rect x="166" y="236" width="28" height="9" rx="4" fill="#30333A" />
+      <rect x="161" y="292" width="38" height="12" rx="5.5" fill="#26282F" />
+      <rect x="165" y="293.6" width="30" height="2.4" rx="1.2" fill="#3A3D45" />
+      <ellipse cx="180" cy="242" rx="15" ry="3.5" fill="rgb(1 1 2 / 0.4)" />
 
-      {/* THE HEAD — the whole portrait, drawn large: the filleted cube
-          with heavier corner radii, the vented crown deck + fins */}
-      <rect x="82" y="52" width="196" height="182" rx="44" fill="url(#sb-fb-shell)" stroke="#8A8C90" strokeWidth="1.2" />
-      <rect x="122" y="42" width="116" height="13" rx="6" fill="#26282F" />
-      {[136, 180, 224].map((fx) => (
-        <rect key={fx} x={fx - 6} y="30" width="12" height="22" rx="6" fill="#26282F" />
-      ))}
-      {/* the rim light — the shell's lit shoulder (upper inline-start) */}
-      <path d="M120 54 Q 176 46 258 88" fill="none" stroke="#FFFFFF" strokeOpacity="0.4" strokeWidth="2.4" strokeLinecap="round" />
+      {/* THE HEAD — P31-B: the molded dome. Brow-wide swept crown,
+          tapering through the jaw to the rounded chin; the machined
+          crown seam hints + the sagittal crest (the deck/fins' heirs).
+          Round-3 sync: the dome re-proportioned to the living hero's
+          own H/W (0.90 — the retired cube era — → 1.18; with the ear
+          pods 1.07 ≈ the panels' 1.10 and the hero's ~1.14), the
+          visor at the family's ~72% of head width, the eyes at the
+          18%-of-glass dot grammar */}
+      <path
+        d="M180 58 C224 58 258 92 258 148 C258 186 240 216 214 230 C202 238 191 242 180 242 C169 242 158 238 146 230 C120 216 102 186 102 148 C102 92 136 58 180 58 Z"
+        fill="url(#sb-fb-shell)"
+        stroke="#8A8C90"
+        strokeWidth="1.2"
+      />
+      {/* the rim light — the dome's lit shoulder (upper inline-start) */}
+      <path d="M132 62 Q 184 52 240 92" fill="none" stroke="#FFFFFF" strokeOpacity="0.4" strokeWidth="2.4" strokeLinecap="round" />
+      {/* the crown part-line hints (the machined seam's sides) */}
+      <path d="M112 138 Q 116 118 128 106" fill="none" stroke="#26282F" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+      <path d="M248 138 Q 244 118 232 106" fill="none" stroke="#26282F" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+      {/* the sagittal crest — the graphite spine over the crown */}
+      <rect x="176" y="59" width="8" height="28" rx="4" fill="#26282F" />
+      {/* the brow ledge — the shell ridge the visor tucks under: its
+          lit top + the crease at its underside (the face-plate → skull
+          transition, drawn as molded geometry, not a stroke) */}
+      <path d="M136 121 Q 180 108 224 121 L 219 127.5 Q 180 116 141 127.5 Z" fill="#FFFFFF" opacity="0.22" />
+      <path d="M141 127.5 Q 180 116 219 127.5" fill="none" stroke="#8A8C90" strokeWidth="1.4" strokeLinecap="round" opacity="0.55" />
 
-      {/* THE SCREEN — the recessed black glass (~70% of the face) */}
-      <rect x="106" y="84" width="148" height="116" rx="20" fill="url(#sb-fb-screen)" />
-
-      {/* THE BEZEL — the spectrum rim-light frame standing proud */}
-      <rect x="99" y="77" width="162" height="130" rx="24" fill="none" stroke="url(#sb-fb-bezel)" strokeWidth="7" />
+      {/* THE WRAP VISOR — the tapered OLED glass: wide at the brow,
+          rounding to the chin (the jawline), with its emission spill */}
+      <path
+        d="M148 128 H212 Q236 128 236 154 V166 Q236 212 208 212 H152 Q124 212 124 166 V154 Q124 128 148 128 Z"
+        fill="none"
+        stroke="#56E2F2"
+        strokeOpacity="0.2"
+        strokeWidth="6"
+      />
+      <path
+        d="M148 128 H212 Q236 128 236 154 V166 Q236 212 208 212 H152 Q124 212 124 166 V154 Q124 128 148 128 Z"
+        fill="url(#sb-fb-screen)"
+      />
+      <path d="M212 130 L229 130 L225 206 L216 206 Z" fill="#FFFFFF" opacity="0.07" />
+      {/* THE BEZEL — the spectrum tube tracing the visor (kept light),
+          its specular glint riding the lit corner */}
+      <path
+        d="M148 128 H212 Q236 128 236 154 V166 Q236 212 208 212 H152 Q124 212 124 166 V154 Q124 128 148 128 Z"
+        fill="none"
+        stroke="url(#sb-fb-bezel)"
+        strokeWidth="6.5"
+      />
+      <path d="M214 129.5 Q 233 132 235.4 152" fill="none" stroke="#FFFFFF" strokeOpacity="0.85" strokeWidth="2.6" strokeLinecap="round" />
 
       {/* THE EYES — two white circular dots, upper third, wide set */}
-      <circle cx="146" cy="122" r="26" fill="url(#sb-fb-eyeglow)" />
-      <circle cx="214" cy="122" r="26" fill="url(#sb-fb-eyeglow)" />
-      <circle cx="146" cy="122" r="10.5" fill="#FFFFFF" />
-      <circle cx="214" cy="122" r="10.5" fill="#FFFFFF" />
+      <circle cx="150" cy="158" r="21" fill="url(#sb-fb-eyeglow)" />
+      <circle cx="210" cy="158" r="21" fill="url(#sb-fb-eyeglow)" />
+      <circle cx="150" cy="158" r="10.5" fill="#FFFFFF" />
+      <circle cx="210" cy="158" r="10.5" fill="#FFFFFF" />
 
-      {/* the side ears — the blocky graphite datum pads */}
-      <rect x="74" y="120" width="12" height="40" rx="5" fill="#26282F" />
-      <rect x="274" y="120" width="12" height="40" rx="5" fill="#26282F" />
+      {/* the side ears — radius-matched rounded pods, angled forward */}
+      <g transform="rotate(-10 102.5 158)">
+        <rect x="94" y="132" width="17" height="52" rx="8.5" fill="#26282F" />
+        <line x1="98.5" y1="139" x2="98.5" y2="152" stroke="#FFFFFF" strokeOpacity="0.3" strokeWidth="2" strokeLinecap="round" />
+      </g>
+      <g transform="rotate(10 257.5 158)">
+        <rect x="249" y="132" width="17" height="52" rx="8.5" fill="#26282F" />
+        <line x1="261.5" y1="139" x2="261.5" y2="152" stroke="#FFFFFF" strokeOpacity="0.3" strokeWidth="2" strokeLinecap="round" />
+      </g>
     </svg>
   );
 }
@@ -789,14 +1123,16 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     scene.add(fill);
     const faceGlow = new PointLight(0xffffff, 0.12, 4.2, 2);
     /* P22: the bust is shorter — the glow sits at the head's screen
-     * line (skull center ≈ 0.68, screen center ≈ 0.71).
+     * line. P31-B (the molded dome re-seats it): the visor's center
+     * lands at world ≈ 0.565 after the normalize (headGroup 0.5 +
+     * visor center 0.14, ×0.879) — the glow rides that line.
      * P23-A (the audit: "a single harsh specular highlight on the
      * lower-center of the face — a flashlight effect, not
      * environmental"): the W5-C5 0.22 at 1.0 unit still concentrated
      * a hot BEAD on the OLED glass. The glow halves again and pulls
      * back to 1.5 — a broad soft sheen over the face surround (the
      * bezel + eyes keep the brightness), never a specular dot. */
-    faceGlow.position.set(0, 0.76, 1.5);
+    faceGlow.position.set(0, 0.58, 1.5);
     scene.add(faceGlow);
 
     /* ── registry for full disposal (scene-built) ── */
@@ -970,13 +1306,13 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       }
     };
 
-    /* ═══ THE CHARACTER — the ChainGPT reference machine, procedural
-     * build. One authored geometry pass, no loader, no external asset
-     * (the reference's silhouette reconstructed: filleted head + screen
-     * + two bar eyes + spectrum bezel + boxy ball-jointed body +
-     * pedestal). Vertex budget: 31.9k at W4 (the old "<6k" note had
-     * drifted), 34.1k after the W5-C5 modest rise (+7% — skull fillets
-     * + bezel ring segments). */
+    /* ═══ THE CHARACTER — the P31-B molded bust, procedural build. One
+     * authored geometry pass, no loader, no external asset (the swept-
+     * dome head field + wrap visor + spectrum tube + dot eyes + ear
+     * pods on the slim docking neck + the museum plinth). The W5-C5
+     * vertex budget is re-spent on the dome: the head surface (~9k
+     * verts) replaces the skull box, and the tube/crest/seam heirs of
+     * the deck+fins keep the total near the same grade. */
 
     /* the materials of record — matte shell / graphite / screen glass.
      * W5-C5: shell + graphite carry the authored MICRO-SURFACE maps
@@ -1176,105 +1512,150 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     deckRing.renderOrder = 2;
     character.add(deckRing);
 
-    /* THE NECK — P22: the bust's mount. Slightly longer, ending in a
-     * wider graphite collar disc — the deliberate mechanical
-     * termination of the levitating head (a docking interface, never
-     * a cut pipe). */
-    const neck = new Mesh(track(new CylinderGeometry(0.082, 0.1, 0.16, 28)), graphiteMat);
-    neck.position.y = 0.38;
+    /* THE NECK — P31-B: SLIMMED (the audit: the head must read as one
+     * molded object, never a fat pipe). A narrower taper column ending
+     * in the wider graphite collar disc (the deliberate docking
+     * termination — kept, slimmed), with the P23-A bearing race where
+     * the column enters the skull: collar → column → race → skull. */
+    const neck = new Mesh(track(new CylinderGeometry(0.05, 0.066, 0.19, 28)), graphiteMat);
+    neck.position.y = 0.335;
     character.add(neck);
-    const neckCollar = new Mesh(track(new CylinderGeometry(0.106, 0.112, 0.024, 28)), graphiteMat);
-    neckCollar.position.y = 0.305;
+    const neckCollar = new Mesh(track(new CylinderGeometry(0.082, 0.09, 0.02, 28)), graphiteMat);
+    neckCollar.position.y = 0.248;
     character.add(neckCollar);
-    /* P23-A — the upper BEARING RACE: a slim graphite ring where the
-     * neck column enters the skull (the audit's minor kill: "head/neck
-     * transition abrupt, lacks mechanical logic"). It rides the
-     * CHARACTER (below the headGroup pivot), so while the head YAWS
-     * above it the race stays with the column — the mount reads as a
-     * real bearing stack: collar → column → race → skull. */
-    const neckBearing = new Mesh(track(new CylinderGeometry(0.102, 0.102, 0.02, 28)), graphiteMat);
-    neckBearing.position.y = 0.366;
+    /* the bearing race — the VLM round-1 read ("a cylinder glued to the
+     * bottom of the sphere — a lollipop"): the thin 0.068×0.018 puck
+     * grows into a REAL seat (0.078×0.024) tucked UP under the head's
+     * under-jaw flare (the flare overhangs 0.09 > 0.078), so the head
+     * reads SEATED over a recessed race — the docking termination
+     * stays, the glued-puck read dies */
+    const neckBearing = new Mesh(track(new CylinderGeometry(0.078, 0.078, 0.024, 28)), graphiteMat);
+    neckBearing.position.y = 0.416;
     character.add(neckBearing);
 
-    /* THE HEAD GROUP — the filleted THICK cube (pivots at the neck for
-     * pointer/gaze aliveness). W3-A: near-square 1.11:1 skull with
-     * 0.16 fillets, the reference's vented TOP DECK + side ears. */
+    /* THE HEAD — P31-B: THE MOLDED DOME (see the HEAD FIELD block up
+     * top). One swept surface — a profile-curve dome revolve carrying a
+     * face-plate proudness field (brow ledge, cheek part-line, chin
+     * shelf), pivoting at the neck for pointer/gaze aliveness. The
+     * headShell's 0.9 z-flatten is the head's own depth proportion:
+     * every child (visor, tube, eyes, ears, seam, crest) follows the
+     * same ellipse, so the crown reads as ONE molded object. */
     const headGroup = new Group();
-    headGroup.position.y = 0.4;
+    headGroup.position.y = 0.5;
     character.add(headGroup);
-    /* W3-A iter3: TALLER + narrower — the reference's rectangular boxy
-     * skull (the iter2 0.62×0.56 read as a wide "TV" shape). W5-C5:
-     * fillet segments 5 → 6 — the crown/cheek specular rolloff
-     * smooths (the micro-surface axis's cheap geometry share; the
-     * whole build rises ~+7% vertices, moderately). P23-A: 6 → 8 —
-     * the ceramic clearcoat makes the crown's rolloff gradient visible
-     * at bust scale, so the fillet arcs smooth one rung further (the
-     * +vertices stay bounded to the fillet bands only). */
-    const skull = new Mesh(track(new RoundedBoxGeometry(0.6, 0.6, 0.56, 8, 0.09)), shellMat);
-    skull.position.y = 0.28;
-    headGroup.add(skull);
-    /* the top deck — the reference's dark vented crown: a wider
-     * graphite plate riding proud on the crown + three BEEFIER fins
-     * (iter3: the whisper fins didn't read at hero scale) */
-    const topDeck = new Mesh(track(new RoundedBoxGeometry(0.38, 0.036, 0.46, 2, 0.012)), graphiteMat);
-    topDeck.position.set(0, 0.575, 0);
-    headGroup.add(topDeck);
-    const finGeo = track(new RoundedBoxGeometry(0.036, 0.075, 0.42, 1, 0.014));
-    for (const fx of [-0.13, 0, 0.13]) {
-      const fin = new Mesh(finGeo, graphiteMat);
-      fin.position.set(fx, 0.585, 0);
-      headGroup.add(fin);
+    const headShell = new Group();
+    headShell.scale.z = 0.9;
+    headGroup.add(headShell);
+
+    const headSurface = new Mesh(track(makeHeadSurfaceGeometry(84)), shellMat);
+    headShell.add(headSurface);
+
+    /* the crown part-line — a hair-thin machined seam following the
+     * field just above the brow swell (a molded object's own part
+     * line; the flat deck's quiet, radius-matched heir) */
+    const crownSeam = new Mesh(track(makeHeadRingGeometry(0.46, 0.003, 0.0065)), graphiteMat);
+    headShell.add(crownSeam);
+
+    /* the sagittal crest — a graphite spine sweeping forehead → crown →
+     * back over the dome (the three box fins' one deliberate heir);
+     * its tails bury under the shell so it emerges molded, never
+     * stuck-on */
+    {
+      const sag = [0.44, 0.5, 0.56, 0.61, 0.645];
+      const pts: Vector3[] = [new Vector3(0, 0.415, headRadiusAt(0, 0.415) - 0.016)];
+      for (const y of sag) pts.push(new Vector3(0, y, headRadiusAt(0, y) + 0.001));
+      pts.push(new Vector3(0, 0.6602, 0.005));
+      for (let i = sag.length - 1; i >= 0; i--) pts.push(new Vector3(0, sag[i], -(headRadiusAt(0, sag[i]) + 0.001)));
+      pts.push(new Vector3(0, 0.415, -(headRadiusAt(0, 0.415) - 0.016)));
+      const crest = new Mesh(
+        track(new TubeGeometry(new CatmullRomCurve3(pts, false), 150, 0.0135, 10, false)),
+        graphiteMat,
+      );
+      headShell.add(crest);
     }
 
-    /* THE SCREEN — the recessed black-glass panel filling ~70% of the
-     * head's front. W3-A: pure black glass (the grid is retired),
-     * riding just proud of the skull front so the bezel TUBE (proud of
-     * both) creates the inset depth: tube front ≈ 0.337, screen front
-     * ≈ 0.315, skull front = 0.31. */
-    const screen = new Mesh(track(new RoundedBoxGeometry(0.46, 0.42, 0.05, 3, 0.03)), screenMat);
-    screen.position.set(0, 0.31, 0.262);
-    headGroup.add(screen);
+    /* THE WRAP VISOR — the OLED glass as a curved skin riding the face
+     * field (+0.010 proud everywhere, wrapping ±52° of face): tapered
+     * wide at the brow, rounding to the chin — the jawline the flat
+     * face plate never had. */
+    const faceBand = new Mesh(
+      track(makeBandGeometry(faceBandRadius, FACE_Y_BOT, FACE_Y_TOP, FACE_PHI_HALF, 30, 44)),
+      screenMat,
+    );
+    headShell.add(faceBand);
 
-    /* THE EYES — W3-A: TWO bright white circular DOTS on the screen
-     * (the reference's grammar measured: circles ≈ 15-18% of the
-     * screen width, upper-third, wide-set). The emissive circles +
-     * tight additive halos carry them at any scale. */
-    const eyeGeo = track(new CircleGeometry(0.036, 28));
-    const eyeL = new Mesh(eyeGeo, eyeMat);
-    eyeL.position.set(-0.104, 0.355, 0.295);
-    headGroup.add(eyeL);
-    const eyeR = new Mesh(eyeGeo, eyeMat);
-    eyeR.position.set(0.104, 0.355, 0.295);
-    headGroup.add(eyeR);
+    /* THE EYES — the same two-dot LED grammar (wide-set, upper third),
+     * each disc riding the band's curvature along the surface normal —
+     * the wrap read extends to the eyes. */
+    const eyeGeo = track(new CircleGeometry(0.04, 28));
     const eyeGlowGeo = track(new PlaneGeometry(0.13, 0.13));
+    const eyePhi = MathUtils.degToRad(19);
+    const eyeY = 0.218;
+    const eyeL = new Mesh(eyeGeo, eyeMat);
+    const eyeR = new Mesh(eyeGeo, eyeMat);
     const eyeGlowL = new Mesh(eyeGlowGeo, glowMat);
-    eyeGlowL.position.set(-0.104, 0.355, 0.298);
-    headGroup.add(eyeGlowL);
     const eyeGlowR = new Mesh(eyeGlowGeo, glowMat);
-    eyeGlowR.position.set(0.104, 0.355, 0.298);
-    headGroup.add(eyeGlowR);
+    for (const [eye, glow, sx] of [
+      [eyeL, eyeGlowL, -1],
+      [eyeR, eyeGlowR, 1],
+    ] as Array<[Mesh, Mesh, number]>) {
+      const phi = sx * eyePhi;
+      /* +0.020 proud of the shell field (+0.010 over the band glass):
+         the disc's slight up-tilt (see lookAt below) dips its lower
+         rim ~0.005 — the clearance keeps the whole disc riding the
+         glass, never a flat-bottomed eye clipped into it */
+      const R = headRadiusAt(phi, eyeY) + 0.02;
+      eye.position.set(Math.sin(phi) * R, eyeY, Math.cos(phi) * R);
+      eye.lookAt(eye.position.x * 2, eye.position.y + 0.04, eye.position.z * 2);
+      headShell.add(eye);
+      const RG = headRadiusAt(phi, eyeY) + 0.03;
+      glow.position.set(Math.sin(phi) * RG, eyeY, Math.cos(phi) * RG);
+      glow.lookAt(glow.position.x * 2, glow.position.y + 0.04, glow.position.z * 2);
+      headShell.add(glow);
+    }
 
-    /* THE BEZEL — W3-A: the spectrum rim is GEOMETRY now — a closed
-     * TubeGeometry tracing the face inset's rounded-rect perimeter
-     * (0.54×0.43 outer, fillets following the screen), each vertex
-     * colored by its clockwise angle (the rainbow ring). The tube's
-     * front (≈0.337) stands proud of the screen (0.315) and skull
-     * (0.31) — the reference's raised glowing rim around a recessed
-     * dark face. The old additive plane survives at low opacity and
-     * LARGER scale purely as the soft bloom halo (cheek spill). */
+    /* THE BEZEL — the spectrum tube (the head's own light, KEPT): a
+     * closed TubeGeometry tracing the wrap visor's 3D perimeter — over
+     * the top edge, around both wrap sides, under the chin — each
+     * vertex colored by its clockwise angle around the face (the same
+     * law the rounded-rect ring wore; the ring now follows the jaw). */
+    const bezelPts: Vector3[] = [];
+    {
+      const push = (phi: number, y: number) => {
+        const R = faceBandRadius(phi, y) + 0.004;
+        bezelPts.push(new Vector3(Math.sin(phi) * R, y, Math.cos(phi) * R));
+      };
+      const N = 30;
+      const M = 12;
+      for (let i = 0; i <= N; i++) push(-FACE_PHI_HALF + 2 * FACE_PHI_HALF * (i / N), FACE_Y_TOP);
+      for (let i = 1; i <= M; i++) push(FACE_PHI_HALF, FACE_Y_TOP + (FACE_Y_BOT - FACE_Y_TOP) * (i / M));
+      for (let i = 1; i <= N; i++) push(FACE_PHI_HALF - 2 * FACE_PHI_HALF * (i / N), FACE_Y_BOT);
+      for (let i = 1; i < M; i++) push(-FACE_PHI_HALF, FACE_Y_BOT + (FACE_Y_TOP - FACE_Y_BOT) * (i / M));
+    }
     const bezelTube = new Mesh(
-      track(makeBezelTubeGeometry(0.55, 0.49, 0.08, 0.05)),
+      track(makeSpectrumTubeGeometry(bezelPts, 0.024, (FACE_Y_TOP + FACE_Y_BOT) / 2)),
       bezelTubeMat,
     );
-    bezelTube.position.set(0, 0.31, 0.295);
-    headGroup.add(bezelTube);
+    headShell.add(bezelTube);
 
-    /* the side mechanical detail — the reference's SIDE EARS: BLOCKY
-     * graphite datum pads (iter5: the cylinder pucks read as dots) */
-    for (const sx of [-0.3, 0.3]) {
-      const pad = new Mesh(track(new RoundedBoxGeometry(0.05, 0.11, 0.13, 2, 0.018)), graphiteMat);
-      pad.position.set(sx, 0.29, 0);
-      headGroup.add(pad);
+    /* THE EARS — radius-matched rounded pods: capsules of the head's
+     * own fillet family hugging the cheekline, slightly angled forward
+     * (the extruded cubes retire at the source). */
+    const earGeo = track(new CapsuleGeometry(0.052, 0.062, 8, 24));
+    for (const sx of [-1, 1]) {
+      const pod = new Mesh(earGeo, graphiteMat);
+      /* x 0.30→0.284 + the fatter 0.78 profile: the pod seats ~0.057
+       * INTO the shell and stands only ~0.025 proud — the VLM round-1
+       * "stuck-on / floating too far out" read dies; the pod reads
+       * mounted INTO the cheek, the way the 2D family overlaps it */
+      pod.position.set(sx * 0.284, 0.23, 0.02);
+      pod.scale.set(0.78, 0.95, 0.9);
+      pod.rotation.y = -sx * 0.2;
+      /* the family cant: tops OUTWARD, the same lean the fallback SVG
+         and all four DayPanelArt pods draw (−sx: the right pod's top
+         swings to +x, the left's to −x) */
+      pod.rotation.z = -sx * 0.05;
+      headShell.add(pod);
     }
 
     /* normalize the figure to the composition contract — and pin the

@@ -141,7 +141,7 @@ jobs:
             # فئة إعادة المحاولة (أثبتته تشغيلتا d1d62c9/a28a271: sync+sleep
             # لم يكفا — الكتابة نواة-مباشرة تكفي). السجل يُعرض بعد النهاية.
             set +e
-            timeout -s ABRT 480 pytest -q --cov=fb_dashboard --cov-fail-under=60 > /tmp/pytest_run.log 2>&1
+            timeout -s ABRT 480 pytest -q --cov=fb_dashboard --cov-fail-under=66 > /tmp/pytest_run.log 2>&1
             local rc=$?
             set -e
             cat /tmp/pytest_run.log

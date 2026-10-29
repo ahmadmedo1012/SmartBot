@@ -100,7 +100,7 @@ echo "── [2/6] pytest (full suite) ──"
 # التشغيل العمياء: (أ) StaticPool «database is locked» — و(ب) للعكسي فقط
 # تفريغ faulthandler 120ث + توقيع anyio _deliver_cancellation (طريق مسدود
 # إلغاء sqlalchemy/greenlet — نفس فئة تجمدات CI الأربعة المفحوصة).
-if $PY -m pytest -q --cov=fb_dashboard --cov-fail-under=60; then
+if $PY -m pytest -q --cov=fb_dashboard --cov-fail-under=66; then
   echo "✅ pytest: all green"
   PASSED+=("pytest")
 else
@@ -111,7 +111,7 @@ else
   # docs/reports/v13-world-class-report.md §flakes). A second consecutive
   # failure still fails the gate.
   echo "⚠️  pytest failed once — retrying (known in-memory flake class, see v13 report)…"
-  if $PY -m pytest -q --cov=fb_dashboard --cov-fail-under=60; then
+  if $PY -m pytest -q --cov=fb_dashboard --cov-fail-under=66; then
     echo "✅ pytest: green on documented-flake retry"
     PASSED+=("pytest(retry)")
   else

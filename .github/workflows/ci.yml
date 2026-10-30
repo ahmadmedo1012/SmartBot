@@ -154,8 +154,19 @@ jobs:
             # phase8-fix: حاجز مهلة صغير للسلامة (الكتابة نواة-مباشرة أعلاه
             # تجعله احتياطيًا فقط).
             sleep 1
-            if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_run.log; then
-              echo "⚠️  pytest failed with the documented StaticPool stranded-transaction flake class — one transparent retry (v13 policy; same-order retry failed identically in the r133 run — if this retry also fails, the reverse-order pass below is the tiebreaker)…"
+            # r142 (الفئة 3 — عضو جديد في عائلة r140): «Could not refresh
+            # instance» من sqlalchemy على db.refresh() مباشرة بعد commit
+            # ناجح = بصمة flush greenlet أُلغي في اللحظة الخطأ: الصف INSERT
+            # تم لكن state.key لم يُعيَّن، فأول await تالٍ على الجلسة يرفع
+            # InvalidRequestError. أول ظهور: التشغيلة 41024085478 على
+            # 76b5671b (commit فني يلمس ملفي TSX فقط — صفر تغيير Python):
+            # الأمامي 1263 أخضر، العكسي فشل اختبار واحد في
+            # test_radical_v4.py:103. غير قابلة للاستنساخ محليًا على نفس
+            # SHA عبر أمامي/عكسي/عكسي+cov/عكسي+cov+نواتين — نفس صفات
+            # عائلة r140 الموثقة (لا تظهر محليًا ولا في الأمامي أبدًا).
+            # إعادة محاولة واحدة شفافة بنفس البصمة الضيقة.
+            if grep -qE "database is locked|cannot commit transaction|Could not refresh instance" /tmp/pytest_run.log; then
+              echo "⚠️  pytest failed with a documented environment-race flake class — one transparent retry (v13 policy; same-order retry failed identically in the r133 run — if this retry also fails, the reverse-order pass below is the tiebreaker)…"
               run_suite
             else
               echo "❌ pytest failed (non-flake) — no retry"; exit 1
@@ -177,7 +188,11 @@ jobs:
             # الحاسم — أثبتت d1d62c9/a28a271 أن sync لا يفرغ ذاكرة tee
             # الوسيطة المستخدمة في النسخة القديمة).
             sleep 1
-            if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_rev.log; then
+            # r142 (الفئة 3): «Could not refresh instance» — نفس العضو
+            # الجديد في عائلة r140 الموثقة أعلاه (flush greenlet ملغي جزئيًا
+            # يترك state.key=None). البصمة ضيقة على نص الخطأ الدقيق؛ أي
+            # فشل آخر يبقى أحمر فوريًا.
+            if grep -qE "database is locked|cannot commit transaction|Could not refresh instance" /tmp/pytest_rev.log; then
               echo "⚠️  reverse run hit the documented flake class — one transparent retry…"
               run_rev
             elif grep -q "Timeout (0:02:00)" /tmp/pytest_rev.log; then

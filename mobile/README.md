@@ -48,7 +48,14 @@ npx expo-doctor                 # 21/21
 npx expo lint                   # lint
 ```
 
-## البناء (EAS)
+## البناء (GitHub Actions — بلا حساب EAS)
+
+سير عمل `mobile-release.yml` جذر المستودع يبني عند الوسم `mobile-v*` أو
+تشغيلًا يدويًا — **APK أندرويد موقّعًا** (مفاتيح التوقيع في أسرار
+المستودع: `ANDROID_KEYSTORE_B64` وأخواتها) + **أرشيف iOS غير موقّع**
+(التوقيع لاحقًا بحساب Apple Developer) — والملفات على GitHub Releases.
+
+### المسار القديم (EAS — يحتاج حساب Expo فعّالًا)
 
 ```bash
 npm i -g eas-cli

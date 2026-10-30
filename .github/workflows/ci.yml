@@ -20,10 +20,13 @@ name: CI — quality gates
 # (6) coverage comment corrected (60, measured 61.77 at v15).
 
 on:
+  # r141 (widening): every push on ANY branch + every PR — supersedes the
+  # [main, develop] / [main] filters. Public repo (free Actions minutes);
+  # the per-ref concurrency group already collapses rapid pushes. All
+  # gates (ruff, hermetic pytest both orders, TS gates, builds, scans)
+  # run unchanged — a regression on any branch is caught at the push.
   push:
-    branches: [main, develop]
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}

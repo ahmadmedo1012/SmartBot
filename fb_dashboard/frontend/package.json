@@ -55,9 +55,7 @@
     "vitest": "^4.1.11"
   },
   "overrides": {
-    "sharp": "^0.35.5",
-    "source-map-js": "^1.2.2",
-    "brace-expansion@<2.0.0": "^1.1.12",
-    "brace-expansion@>=2.0.0": "^5.0.12"
+    "glob": "14.0.2",
+    "minimatch": "11.0.1"
   }
 }

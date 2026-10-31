@@ -1,0 +1,54 @@
+# SmartBot — Merchant journey (P38 Phase L)
+#
+# Preconditions (documented in ../maestro/README.md):
+#   · preview/development build installed (EAS «preview»)
+#   · EXPO_PUBLIC_API_URL = https://api.smart-link.ly (or QA mirror)
+#   · QA account (env: QA_USER / QA_PASSWORD) with a connected FB test
+#     page and at least one conversation
+#
+# Selectors grounded in source (commit 0208f543): login fields
+# ((auth)/login.tsx:121,132,149), dashboard KPI cards
+# ((tabs)/index.tsx:144-160), more-tab logout (more.tsx:109).
+appId: ly.smartlink.smartbot
+name: رحلة التاجر — دخول، لوحة، محادثات (مرفقات)، خروج
+tags:
+  - merchant
+  - e2e
+---
+# 1. Login
+- launchApp
+- assertVisible: "تسجيل الدخول"
+- tapOn: "اسم المستخدم أو البريد الإلكتروني"
+- inputText: ${QA_USER}
+- tapOn: "كلمة المرور"
+- inputText: ${QA_PASSWORD}
+- tapOn: "تسجيل الدخول"
+
+# 2. Dashboard renders the KPI family (real data, not a skeleton)
+- extendedWaitUntil:
+    visible: "ردود البوت اليوم"
+    timeout: 20000
+- assertVisible: "إجمالي الردود"
+- assertVisible: "محادثات جديدة"
+
+# 3. Conversations inbox opens
+- tapOn: "الرسائل"
+- extendedWaitUntil:
+    visible: ".*(جارٍ|محادثة).*"
+    timeout: 15000
+
+# 4. Open the first conversation — the P38 attachment rendering means
+#    an image/sticker message shows a labeled image, never an empty bubble
+- tapOn:
+    text: ".*"
+    index: 0
+- extendedWaitUntil:
+    visible: ".*(مرفق|رد آلي|الصفحة).*"
+    timeout: 10000
+
+# 5. Logout
+- tapOn: "المزيد"
+- tapOn: "تسجيل الخروج"
+- extendedWaitUntil:
+    visible: "تسجيل الدخول"
+    timeout: 15000

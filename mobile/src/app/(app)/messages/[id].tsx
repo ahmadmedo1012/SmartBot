@@ -238,7 +238,7 @@ export default function ConversationScreen() {
               <View accessible accessibilityLabel="جارٍ إرسال الرد…" style={{ alignSelf: 'flex-start' }}>
                 <TypingDots />
               </View>
-            ) : null
+            ) : undefined
           }
         />
       )}

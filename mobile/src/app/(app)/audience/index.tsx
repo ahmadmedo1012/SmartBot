@@ -84,7 +84,7 @@ export default function AudienceScreen() {
                   ))}
                 </View>
               </Card>
-            ) : null
+            ) : undefined
           }
           renderItem={({ item }) => {
             const name = item.name || item.first_name || 'مشترك'

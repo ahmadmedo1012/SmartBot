@@ -8,7 +8,7 @@
  * PressableScale. الخصائص الوصولية/التخطيطية تمر كما هي من الملاح.
  */
 import { Tabs } from 'expo-router'
-import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation/bottom-tabs'
+import type { BottomTabBarButtonProps } from 'expo-router/js-tabs'
 import type { ColorValue, StyleProp, ViewStyle } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
 import { press } from '@/constants/theme'

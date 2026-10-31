@@ -66,45 +66,21 @@
 #     (osv.dev shows withdrawn: 2026-10-23T12:53:02Z) — entry removed
 #     per its own removal clause. A future braces advisory fails loudly.
 
-# r137 (2026-10-10) — GHSA-w5hq-g745-h8pq: uuid 7.0.3 in mobile/package-lock.json
-# (transitive: expo-splash-screen → @expo/config-plugins → xcode@3.0.1, which
-# pins ^7.0.3 — uuid 11.1.1 is UNREACHABLE through the tree until xcode ships
-# a release accepting it). Reachability: xcode is iOS build-time tooling that
-# runs in EAS/local builds ONLY — never in the app runtime bundle, and never
-# in an Android build at all. The two sibling mobile advisories this round
-# (shell-quote GHSA-pqg4-j6r4-53mv 9.2, source-map-js GHSA-68fv-2mgg-jv7q)
-# were FIXED AT THE ROOT by npm update (shell-quote 1.12.0, source-map-js
-# 1.2.2) — fix-first policy held; this uuid entry is the only mobile
-# suppression. Remove the day xcode accepts uuid@^11.
-
-[[IgnoredVulns]]
-id = "GHSA-w5hq-g745-h8pq"
-reason = "uuid 7.0.3 transitive of xcode@3.0.1 (^7 pin — 11.x unreachable); iOS build-time tooling only, never in the app runtime bundle; re-verify at TTL"
-ignoreUntil = 2027-01-10T00:00:00Z
-
-# r137 (follow-up) — the mobile-lockfile npm update surfaced two more
-# transitive advisories with no in-place path:
-[[IgnoredVulns]]
-id = "GHSA-vcc3-ghjq-m6fr"
-reason = "decode-uri-component 0.2.2 transitive with a consumer semver range below 0.5.0 (major jump — override risks metro tooling); query-string parsing class, dev/build toolchain only; re-verify at TTL"
-ignoreUntil = 2027-01-10T00:00:00Z
-
-# 2026-10-29: OSV re-published the SAME decode-uri-component 0.2.2
-# finding under a NEW advisory id (GHSA-qr28-fpjm-wq7f, fix 0.5.1 —
-# the same ESM-only major the entry above already documents). Same
-# package, same version, same consumer-range wall, same dev/build
-# toolchain reachability: the standing rationale covers it verbatim.
-[[IgnoredVulns]]
-id = "GHSA-qr28-fpjm-wq7f"
-reason = "decode-uri-component 0.2.2 — re-published advisory id for the SAME finding as GHSA-vcc3-ghjq-m6fr above (fix is the 0.5.x major; consumer semver ranges below 0.5.0 — override risks metro tooling); query-string parsing class, dev/build toolchain only, never in the app runtime bundle; re-verify at TTL"
-ignoreUntil = 2027-01-10T00:00:00Z
-
-# node-forge 1.4.0: OSV lists NO fixed version at all (the '--' column) —
-# same class as the braces entry: nothing exists to bump to.
-[[IgnoredVulns]]
-id = "GHSA-86w9-cpqp-85rv"
-reason = "node-forge 1.4.0 has NO fixed version published (OSV fixed column empty — same class as braces); dev/build toolchain transitive only, never in the app runtime bundle; re-verify at TTL"
-ignoreUntil = 2027-01-10T00:00:00Z
+# P38 (2026-10-31) — the SDK-58 toolchain refresh made 4 of the 6
+# standing suppressions UNUSED against the committed tree (verified
+# locally with the CI-pinned osv-scanner v2.5.1 + the exact CI command;
+# `git status` clean — the scan ran on the committed lockfiles):
+#   · GHSA-w5hq-g745-h8pq (uuid): xcode moved 3.0.1 → 4.0.0 and uuid is
+#     no longer in mobile/package-lock.json at all → entry unused.
+#   · GHSA-vcc3-ghjq-m6fr + GHSA-qr28-fpjm-wq7f (decode-uri-component):
+#     package absent from the tree (query-string chain dropped by the
+#     toolchain refresh) → both entries unused.
+#   · GHSA-86w9-cpqp-85rv (node-forge): the P36 override landed
+#     node-forge 1.4.2 → advisory no longer matches → entry unused.
+# All four removed per the removal-clause policy (same class as the
+# P24 httpx2/braces cleanup): a recurrence resolves and FAILS LOUDLY.
+# REMAINING ACTIVE: deepmerge (below) and zod (below) — both still
+# filtered live findings with unexpired justifications.
 
 # P24 (2026-10-24) — GHSA-mrhx-c7xc-m3w5: zod (CVSS 8.2, availability-only:
 # memory exhaustion validating oversized constrained collections). The

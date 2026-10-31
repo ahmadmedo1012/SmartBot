@@ -83,8 +83,8 @@ async def generate_pdf_report(request: Request, db=Depends(get_db),
     if not 1 <= days <= 365:
         raise HTTPException(400, "days يجب أن يكون بين 1 و 365")
     # P21-W3-B: the has_reports plan gate (Basic+ in the canonical seed —
-    # «تقارير أسبوعية» is Basic's row, «تقارير PDF» Premium's; both carry
-    # has_reports=True). Entitlement precedes infrastructure state: a Free
+    # «تقارير PDF عند الطلب» is Basic's row, «تقارير PDF» Premium's; both
+    # carry has_reports=True). Entitlement precedes infrastructure state: a Free
     # user must hear «رقِّ خطتك», never a misleading 503 engine-down.
     # Reading existing schedules (GET) stays open for every tenant.
     await enforce_plan_feature(db, current_user._tenant_id, "has_reports")

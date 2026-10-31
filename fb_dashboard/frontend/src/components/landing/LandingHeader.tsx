@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Menu, X, ChevronDown, Route, Bot, LayoutDashboard, BarChart3 } from "lucide-react";
+import { Menu, X, ChevronDown, Route, Bot, LayoutDashboard, BarChart3, MessageCircle } from "lucide-react";
 import { DirectionalIcon } from "@/components/ui/directional-icon";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { useConfig } from "@/hooks/useConfig";
+import { toWaMe } from "@/lib/phone";
 
 /* v16-r142 «رفيق» — the landing header, now navigating the companion's
  * narrative (mind → day → platform) instead of the old chapter ladder.
@@ -34,6 +36,15 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 const SPY_SECTIONS = "#mind, #day, #platform, #trust";
 
+/* P40-5b (benchmark rank 2 / SL-7 — the hub's persistent secondary CTA,
+ * mirrored in the site's own design language): the landing had no visible
+ * WhatsApp support link. r134 opener convention (the hub's whatsappUrl): a
+ * source-identifying Arabic prefill so the chat opens with context; r140
+ * lesson: the number rides the config chain (toWaMe normalizes the local
+ * form) with the r144 truth as fallback. Honest hours framing (r144: 9ص–9م,
+ * never 24/7) rides the accessible name + title — the visible label stays
+ * the door, same as the hub's LandingHeader twin. */
+
 export function LandingHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [megamenuOpen, setMegamenuOpen] = useState(false);
@@ -42,6 +53,15 @@ export function LandingHeader() {
    * re-render per scroll event was the canonical round-3 regression. */
   const headerRef = useRef<HTMLElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  /* The support WhatsApp line — same config chain as Footer/FloatingWhatsApp
+   * (SystemConfig → env → the r144 fallback); the prefill follows the hub's
+   * r134 source-identifying opener convention. */
+  const { config } = useConfig();
+  const waNumber = toWaMe(String(config.support_whatsapp || config.whatsapp_number || "218910089975")) || "218910089975";
+  const whatsappUrl = (surface: string) =>
+    `https://wa.me/${waNumber}?text=${encodeURIComponent(
+      `مرحباً، أتواصل معكم من منصة سمارت بوت — ${surface}`,
+    )}`;
 
   /* Scroll-driven chrome with ZERO setState: coalesced to one rAF per frame
    * (pending-flag pattern, mirrors useSectionProgress) and written straight
@@ -208,6 +228,18 @@ export function LandingHeader() {
           </nav>
 
           <div className="landing-header-cta">
+            {/* P40-5b (SL-7 twin): WhatsApp secondary CTA — persistent beside
+             * the primary pair, honest hours in the accessible name + title. */}
+            <a
+              href={whatsappUrl("هيدر الصفحة الرئيسية")}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="تحدث معنا واتساب — نرد خلال أيام العمل (9 صباحاً — 9 مساءً)، رابط خارجي"
+              title="تحدث معنا واتساب — نرد خلال أيام العمل (9 صباحاً — 9 مساءً)"
+              className="ln-btn-ghost"
+            >
+              <MessageCircle size={14} aria-hidden="true" /> تحدث معنا واتساب
+            </a>
             <Link href="/demo" className="ln-btn-ghost">جرّب البوت</Link>
             <Link href="/subscribe" className="ln-btn-gold">
               ابدأ مجاناً
@@ -243,6 +275,19 @@ export function LandingHeader() {
             <a href="#day" className="ln-btn-ghost">يوم في الحياة</a>
             <a href="#platform" className="ln-btn-ghost">المنصّة الحقيقية</a>
             <a href="#trust" className="ln-btn-ghost">الأرقام</a>
+            {/* P40-5b (SL-7): the drawer twin — the header cluster folds at
+             * ≤1080px, so the persistent WhatsApp CTA needs the drawer slot
+             * too (same link, same honest-hours accessible name). */}
+            <a
+              href={whatsappUrl("قائمة الجوال")}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="تحدث معنا واتساب — نرد خلال أيام العمل (9 صباحاً — 9 مساءً)، رابط خارجي"
+              title="تحدث معنا واتساب — نرد خلال أيام العمل (9 صباحاً — 9 مساءً)"
+              className="ln-btn-ghost"
+            >
+              <MessageCircle size={16} aria-hidden="true" /> تحدث معنا واتساب
+            </a>
             <Link href="/demo" className="ln-btn-ghost">جرّب البوت</Link>
             <Link href="/subscribe" className="ln-btn-gold">
               ابدأ مجاناً

@@ -12,7 +12,7 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
  * transform-origin top: the day literally lights up as you read).
  *
  * Every panel maps to a shipped capability (welcome auto-replies, intent
- * understanding, 24/7 instant replies + human escalation, performance
+ * understanding, always-on instant replies + human escalation, performance
  * reports) — the same honest registry the rest of the landing documents.
  * The four renders are ONE character family (DayPanelArt): the hero
  * robot's own design language — the levitating BUST (P22: head +

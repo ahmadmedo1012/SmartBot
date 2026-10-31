@@ -86,7 +86,7 @@ SmartBot/
 | `TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED` | `true` **للاختبار المحلي فقط** — يتخطى فحص السر السابق |
 | `TELEGRAM_CHAT_ID` | معرف محادثة تلغرام بديل لإرسال الإشعارات (fallback لقاعدة البيانات — راجع `routers/telegram_config.py`) |
 | `SUPPORT_EMAIL` / `SUPPORT_PHONE` / `SUPPORT_WHATSAPP` | بيانات الدعم المعروضة في `/api/support/info` |
-| `SUPPORT_WORKING_HOURS` | ساعات العمل المعروضة في `/api/support/info` (الافتراضي `24/7`) |
+| `SUPPORT_WORKING_HOURS` | ساعات العمل المعروضة في `/api/support/info` (الافتراضي `9 صباحاً — 9 مساءً`) |
 
 ### الويبهوك والنطاق العام
 

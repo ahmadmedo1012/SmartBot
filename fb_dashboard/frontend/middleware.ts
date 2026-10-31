@@ -21,8 +21,17 @@ const publicPrefixes = [
  * family/weight/script), which busts the cache by construction — same
  * contract as the /_next/static chunks. next.config.ts carries the same
  * 1y-immutable rule for /fonts/* where middleware doesn't apply.
- * API responses keep no-store. */
+ * API responses keep no-store.
+ * P40-5b (P2-8): /fonts/fonts.css joins the exemption — the @font-face
+ * sheet (the audit's 89.8KB live transfer) was re-downloaded on EVERY
+ * visit (no-store fell through to it: .css matches neither FONT_FILE_RE
+ * nor any matcher exclusion, and middleware response headers override the
+ * next.config /fonts/:path* rule). Content-stable like the woff2 set it
+ * declares (changes only at deploy, same as the font filenames it pins);
+ * next.config.ts already declares this exact 1y ceiling for /fonts/*.
+ */
 const FONT_FILE_RE = /\.(?:woff2?|ttf|otf)$/i;
+const FONT_CSS_RE = /^\/fonts\/fonts\.css$/;
 const FONT_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 /* P16-A: the authored character GLB is a content-stable binary asset —
@@ -45,6 +54,23 @@ const IMMUTABLE_STATIC_RE =
   /^\/(?:opengraph-image\.png|favicon\.ico|apple-touch-icon\.png|brand-icon\.png|icon-[^/]+\.(?:png|ico)|manifest\.webmanifest)$/;
 const MANIFEST_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=86400";
 
+/* P40-5b (P2-8 — public HTML caching): the page-wide no-store exists to
+ * protect AUTHENTICATED content (dashboard/admin/connect render
+ * tenant-specific data server-side; /subscribe is the money path). The
+ * public marketing/auth routes render zero personalized content — every
+ * personalization on them happens client-side via API — so no-store was
+ * pure cold-TTFB cost (the audit measured ~1.1s cold + fonts.css
+ * re-fetched every visit). These routes now ride the Smart-Menu caching
+ * profile (60s fresh + 1d SWR — the fleet's best-practice policy):
+ * at most 60s of staleness on marketing copy, stale-while-revalidate
+ * keeps repeat visits instant, and deploys converge within a minute.
+ * SECURITY INTENT PRESERVED: everything NOT matched here keeps the full
+ * no-store default — /dashboard/*, /admin/*, /connect, /subscribe, all
+ * /api/*, and any unknown/unlisted route (fail-closed). */
+const PUBLIC_PAGE_RE =
+  /^(?:\/|\/pricing|\/demo|\/privacy|\/terms|\/login|\/register)$/;
+const PUBLIC_PAGE_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=86400";
+
 function setHeaders(resp: NextResponse, pathname: string) {
   resp.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   resp.headers.set("X-Content-Type-Options", "nosniff");
@@ -58,7 +84,7 @@ function setHeaders(resp: NextResponse, pathname: string) {
   resp.headers.set("Content-Security-Policy", `default-src 'self'; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'; manifest-src 'self' blob:`);
   resp.headers.set(
     "Cache-Control",
-    FONT_FILE_RE.test(pathname)
+    FONT_FILE_RE.test(pathname) || FONT_CSS_RE.test(pathname)
       ? FONT_CACHE_CONTROL
       : MODEL_FILE_RE.test(pathname)
         ? MODEL_CACHE_CONTROL
@@ -66,7 +92,9 @@ function setHeaders(resp: NextResponse, pathname: string) {
         ? "public, max-age=31536000, immutable"
         : pathname === "/manifest.webmanifest"
           ? MANIFEST_CACHE_CONTROL
-          : "no-store, no-cache, must-revalidate"
+          : PUBLIC_PAGE_RE.test(pathname)
+            ? PUBLIC_PAGE_CACHE_CONTROL
+            : "no-store, no-cache, must-revalidate"
   );
   resp.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 }

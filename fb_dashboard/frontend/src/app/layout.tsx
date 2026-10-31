@@ -14,8 +14,17 @@ import "./globals.css"
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
 export const metadata: Metadata = {
-  title: { default: "SmartBot - منصة إدارة فيسبوك", template: "%s | SmartBot" },
-  description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك - المنصة الأولى في ليبيا",
+  /* P40-5b (P3-9): title/og:title/twitter:title unified on one enriched,
+   * honest string (was the thin 28-char "SmartBot - منصة إدارة فيسبوك" with
+   * three variants across the surfaces).
+   * P40-5b (P3-17): "المنصة الأولى في ليبيا" retired from the description —
+   * an unverifiable superlative; the honest positioning replaces it. */
+  title: {
+    default: "سمارت بوت — بوت ردود ذكي وإدارة صفحات فيسبوك في ليبيا | SmartBot",
+    template: "%s | SmartBot",
+  },
+  description:
+    "منصة ليبية لإدارة صفحات فيسبوك — ردود آلية ذكية، تحليلات متقدمة، وجدولة منشورات",
   keywords: ["SmartBot", "فيسبوك بوت", "أتمتة الردود", "تحليلات فيسبوك", "إدارة صفحات", "ليبيا", "التجارة الإلكترونية"],
   authors: [{ name: "SmartBot Team" }],
   metadataBase: new URL(siteUrl),
@@ -32,8 +41,9 @@ export const metadata: Metadata = {
     /* r133 (A12 S13, R11): ar_AR — the only Arabic locale Facebook's
        scrapers recognize (SL seo.ts reference; ar_LY is dropped). */
     type: "website", locale: "ar_AR", siteName: "SmartBot", url: siteUrl,
-    title: "SmartBot - منصة إدارة فيسبوك الذكية",
-    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
+    title: "سمارت بوت — بوت ردود ذكي وإدارة صفحات فيسبوك في ليبيا | SmartBot",
+    description:
+      "منصة ليبية لإدارة صفحات فيسبوك — ردود آلية ذكية، تحليلات متقدمة، وجدولة منشورات",
     /* r134 (R134-W1-XC P2): the alt rides the family Arabic-prefix form
        «الربط الذكي — …» (Smart-Menu/Smart-Order/Smart-Link convention —
        e.g. «الربط الذكي — SmartLink»); was the Latin-brand-first
@@ -42,8 +52,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SmartBot - منصة إدارة فيسبوك",
-    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
+    title: "سمارت بوت — بوت ردود ذكي وإدارة صفحات فيسبوك في ليبيا | SmartBot",
+    description:
+      "منصة ليبية لإدارة صفحات فيسبوك — ردود آلية ذكية، تحليلات متقدمة، وجدولة منشورات",
     images: ["/opengraph-image.png"],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },

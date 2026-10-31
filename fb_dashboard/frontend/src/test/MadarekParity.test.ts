@@ -143,7 +143,7 @@ const ACCENT_DARK = {
   "--c-copper-bg": "#0D1E24", // Madarek --accent-soft (family copper ground)
 }
 const ACCENT_LIGHT = {
-  "--primary": "#0E7A8A",
+  "--primary": "#0D7484", // P40-5b (P3-10a): #0E7A8A → #0D7484 — AA fill-pair fix (4.49 → 4.87:1 under --accent-fg #F2F2F0)
   "--primary-foreground": "#F2F2F0",
   // Madarek --accent-ink #0B5A68 (copper-deep), oklch spelling
   "--accent-foreground": "oklch(0.4661 0.0782 211.8)",
@@ -245,7 +245,7 @@ describe("r125 Madarek parity — accent family", () => {
   it("dark: signal-teal #56E2F2 set (phase5 Circuit Petrol --accent; accent-ink in oklch spelling — was the gold #E9B44C Madarek heritage)", () => {
     pinAll(dark, "dark", ACCENT_DARK)
   })
-  it("light: deep petrol #0E7A8A set (phase5 Circuit Petrol --accent; accent-ink in oklch spelling — was the copper #B57438 Madarek heritage)", () => {
+  it("light: deep petrol #0D7484 set (phase5 Circuit Petrol --accent; P40-5b darkened from #0E7A8A for the 4.5:1 AA fill pair; accent-ink in oklch spelling — was the copper #B57438 Madarek heritage)", () => {
     pinAll(light, "light", ACCENT_LIGHT)
   })
 })
@@ -417,9 +417,9 @@ describe("r129 Madarek parity — the --accent-solid family (fleet six-token sta
       "--accent-fg": "#05171B",
     })
   })
-  it("light: deep petrol #0E7A8A / hover #0B6573 / soft #DCF1F4 (phase5 petrol — was the copper-era names)", () => {
+  it("light: deep petrol #0D7484 / hover #0B6573 / soft #DCF1F4 (phase5 petrol — was the copper-era names; P40-5b solid darkened for the AA fill pair)", () => {
     pinAll(light, "accent-family-light", {
-      "--accent-solid": "#0E7A8A",
+      "--accent-solid": "#0D7484",
       "--accent-hover": "#0B6573",
       "--accent-soft": "#DCF1F4",
       "--accent-strong": "#0B5A68",
@@ -430,7 +430,7 @@ describe("r129 Madarek parity — the --accent-solid family (fleet six-token sta
   it("the repointed consumers resolve to the same values (--primary/--primary-foreground chain to the family)", () => {
     pin(dark, "accent-consumers", "--primary", "#56E2F2")
     pin(dark, "accent-consumers", "--primary-foreground", "#05171B")
-    pin(light, "accent-consumers", "--primary", "#0E7A8A")
+    pin(light, "accent-consumers", "--primary", "#0D7484")
     pin(light, "accent-consumers", "--primary-foreground", "#F2F2F0")
   })
 })

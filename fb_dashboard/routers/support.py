@@ -91,9 +91,16 @@ async def support_info(db=Depends(get_db)):
     return ok({
         "email": merged("support_email", "SUPPORT_EMAIL", "support@smartbot.ly"),
         "phone": merged("support_phone", "SUPPORT_PHONE", "0920000000"),
+        # P40-5b (P1-2/r144 + P2-3): the WhatsApp fallback is the real support
+        # line now (the old 0920000000 was an obvious placeholder pattern), and
+        # working_hours default mirrors the honest 9ص–9م office hours the hub
+        # publishes — never 24/7. The dashboard no longer renders the email
+        # field at all (WhatsApp is the single support surface, W6-B2), so the
+        # email default here feeds no public claim.
         "whatsapp": merged("support_whatsapp", "SUPPORT_WHATSAPP",
-                           os.getenv("SUPPORT_PHONE", "0920000000")),
-        "working_hours": merged("support_working_hours", "SUPPORT_WORKING_HOURS", "24/7"),
+                           os.getenv("SUPPORT_PHONE", "218910089975")),
+        "working_hours": merged("support_working_hours", "SUPPORT_WORKING_HOURS",
+                                "9 صباحاً — 9 مساءً"),
     })
 
 

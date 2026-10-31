@@ -10,7 +10,10 @@ import type { MetadataRoute } from "next"
  * - "/_next/" removed from Disallow: blocking Googlebot from the JS/CSS
  *   assets breaks rendering of the client-rendered pages (Googlebot then
  *   indexes empty shells).
- * - "/onboarding" added: auth-gated, same class as /dashboard.
+ * - P40-5b (P3-1): "/onboarding" removed from Disallow — the route does
+ *   not exist (src/app/onboarding/ ships the OnboardingWizard component
+ *   only, mounted inside the dashboard; no page.tsx, no route). A stale
+ *   Disallow entry misrepresents the site map to crawlers.
  */
 const BASE = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
@@ -20,7 +23,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/dashboard", "/admin", "/connect", "/api", "/onboarding"],
+        disallow: ["/dashboard", "/admin", "/connect", "/api"],
       },
     ],
     sitemap: `${BASE}/sitemap.xml`,

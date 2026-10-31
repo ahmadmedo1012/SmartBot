@@ -51,6 +51,26 @@ describe("DEFAULT_PLANS — مرآة بذرة الخادم", () => {
     }
   })
 
+  /* P40-5b (P1-2/P2-2/P3-5 claims honesty): the seed strings moved to the
+   * honest wording — these pins hold the lockstep (mirror == seed ==
+   * /api/plans) and ban the retired claims from ever shipping again. */
+  it("P40: Basic تبيع «تقارير PDF عند الطلب» لا «تقارير أسبوعية» (لا مجدول تسليم موجود)", () => {
+    expect(DEFAULT_PLANS[1].features).toContain("تقارير PDF عند الطلب")
+  })
+
+  it("P40: Enterprise تحمل الصياغة الصادقة — بلا حد عملي ودعم أولوية خلال أيام العمل (r144: لا وعد 24/7)", () => {
+    expect(DEFAULT_PLANS[4].features).toContain("ردود بلا حد عملي (999,999 شهريًا)")
+    expect(DEFAULT_PLANS[4].features).toContain("دعم أولوية خلال أيام العمل")
+  })
+
+  it("P40: لا وعود محظورة في أي باقة — 24/7 · مدار الساعة · أسبوعية · غير محدود", () => {
+    for (const p of DEFAULT_PLANS) {
+      for (const f of p.features ?? []) {
+        expect(f).not.toMatch(/24\/7|مدار الساعة|أسبوعية|غير محدود/)
+      }
+    }
+  })
+
   it("max_pages = 1 في كل باقة (P14-P0A: مطابقة العقد المسلَّك للعمارة المفروضة)", () => {
     // P14-P0A regression: the wire contract must agree with the enforced
     // architecture and the rendered feature string. Before P14 the mirror

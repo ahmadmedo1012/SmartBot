@@ -250,7 +250,7 @@ pinAll(theme, 'theme', RADIUS);
 // ── §2 LIGHT (paper) ─────────────────────────────────────────────────────────
 pin(light, 'light', '--background', '#F2F2F0');
 pin(light, 'light', '--foreground', '#101115');
-pin(light, 'light', '--primary', '#0E7A8A');
+pin(light, 'light', '--primary', '#0D7484');
 pin(light, 'light', '--primary-foreground', '#F2F2F0');
 const famLight = {
   peach: ["#FFEDE3", "#E0825C", "#74301C"], mint: ["#D9F3E6", "#2E9E6F", "#0F4A33"],
@@ -664,14 +664,18 @@ for (const b of lightStageBlocks) Object.assign(lightLandingScope, parseDecls(b.
 const landingLightCascade = { ...light, ...landingScope, ...lightLandingScope };
 
 // (a-light) the §1 mirror at the product light grades — every pair
-//     pre-measured (mist #F2F2F0 ground): ink 14.62:1 · ink-dim 7.44:1 ·
-//     signal-as-text 5.10:1 · AI lime 4.51:1 · CTA mist-on-teal 5.10:1.
+//     pre-measured (mist #F2F2F0 ground; P40-5b re-measured — the old
+//     numbers were the phase-6 values, stale since the r152 sweep):
+//     ink 16.83:1 · ink-dim 8.80:1 · signal-as-text 4.87:1 ·
+//     AI violet 4.72:1 · CTA mist-on-teal 4.87:1 (hover #0B6573 6.00:1).
+//     --ln-lime darkened #0E7A8A → #0D7484 in lockstep with
+//     --accent-solid (P3-10a: the 4.49:1 text/fill pairs missed AA).
 pinAll(landingLightCascade, 'landing-light', {
   '--ln-ink': '#F2F2F0',
   '--ln-ink-2': '#E6E6E3',
   '--ln-cream': '#101115',
   '--ln-cream-dim': '#41434B',
-  '--ln-lime': '#0E7A8A',
+  '--ln-lime': '#0D7484',
   '--ln-lime-deep': '#0B6573',
   '--ln-violet': '#6B54E0',
   '--ln-violet-deep': '#2A2470',
@@ -779,7 +783,11 @@ pinAll(dark, 'accent-family-dark', {
   '--accent-fg': '#05171B',
 });
 pinAll(light, 'accent-family-light', {
-  '--accent-solid': '#0E7A8A',
+  // P40-5b (P3-10a): #0E7A8A → #0D7484 — the minimal petrol-hue darkening
+  // that lifts the --accent-fg #F2F2F0 fill pair from 4.49:1 (AA miss) to
+  // 4.87:1. Same commit re-measured every dependent pair (text on ground
+  // 4.87:1 / on card 5.46:1 — see globals.css .light BRAND SOLID note).
+  '--accent-solid': '#0D7484',
   '--accent-hover': '#0B6573',
   '--accent-soft': '#DCF1F4',
   '--accent-strong': '#0B5A68',

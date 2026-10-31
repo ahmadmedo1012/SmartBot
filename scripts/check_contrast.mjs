@@ -70,6 +70,15 @@ function parseBlock(selector) {
   for (const m of body.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)) {
     tokens[m[1]] = { hex: m[2] };
   }
+  // P40-5b (P3-10a): var(--token) spellings — --primary: var(--accent-solid)
+  // and --primary-foreground: var(--accent-fg) in BOTH theme blocks. The
+  // parser skipped them before, so the "primary-foreground / primary" pair
+  // below printed "missing token" and the shipped light pair #F2F2F0 on
+  // #0E7A8A (4.49:1, AA miss) was never measured by this gate. Refs resolve
+  // in resolve() below (with a cycle guard).
+  for (const m of body.matchAll(/--([\w-]+):\s*var\(\s*(--[\w-]+)\s*\)\s*;/g)) {
+    if (!tokens[m[1]]) tokens[m[1]] = { ref: m[2] };
+  }
   return tokens;
 }
 const dark = parseBlock(":root");
@@ -78,10 +87,15 @@ const light = parseBlock(".light");
 // (espresso, saffron's :root value if elided, …) inherits from :root.
 const lightAll = { ...dark, ...light };
 
-// resolve token -> sRGB triple (composited over a base when translucent)
-function resolve(tokens, name, baseName) {
+// resolve token -> sRGB triple (composited over a base when translucent;
+// var() references followed with a depth guard — P40-5b)
+function resolve(tokens, name, baseName, depth = 0) {
   const t = tokens[name];
   if (!t) throw new Error("missing token --" + name);
+  if (t.ref !== undefined) {
+    if (depth > 10) throw new Error("var() cycle at --" + name);
+    return resolve(tokens, t.ref.slice(2), baseName, depth + 1);
+  }
   let rgb = t.hex
     ? [0, 2, 4].map((i) => parseInt(t.hex.slice(1 + i, 3 + i), 16) / 255)
     : oklchToSrgb(t.L, t.C, t.h);

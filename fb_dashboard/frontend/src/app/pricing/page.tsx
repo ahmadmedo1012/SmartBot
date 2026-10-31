@@ -8,7 +8,7 @@ import { Footer } from "@/components/layout/Footer"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { Card, CardHeader, CardDescription, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { KineticText } from "@/components/ui/kinetic-text"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
@@ -263,7 +263,15 @@ export default function PricingPage() {
                     )}>
                       <Icon className="size-6 text-accent-foreground max-sm:size-5" />
                     </div>
-                    <CardTitle className="text-lg">{plan.name_ar || plan.name}</CardTitle>
+                    {/* P40-5b (P3-8 — WCAG 1.3.1): the tier name is a real
+                        h2 now — /pricing had a single h1 and the shared
+                        Footer's h3s, so the outline skipped h1→h3 and the
+                        plan tiers (the page's core sections) were not
+                        headings at all (CardTitle renders a div). Classes =
+                        CardTitle's own set + the text-lg override — pixel-
+                        identical rendering, semantics fixed: h1 → h2 (each
+                        tier) → h3 (footer). */}
+                    <h2 className="font-heading text-lg leading-snug font-medium">{plan.name_ar || plan.name}</h2>
                     <CardDescription className="text-sm text-muted-foreground">{getDescription(plan.id)}</CardDescription>
                   </CardHeader>
 
@@ -350,7 +358,10 @@ export default function PricingPage() {
           duration={0.6}
           className="text-center mt-12 text-xs text-muted-foreground"
         >
-          <p>جميع الخطط تشمل: تشفير SSL، دعم بريد إلكتروني، تحديثات مجانية مدى الحياة.</p>
+          {/* P40-5b (P2-3, hub W6-B2): «دعم بريد إلكتروني» dropped — WhatsApp
+           * is the single support surface, honestly framed with working hours
+           * (r144) like the rest of the fleet. */}
+          <p>جميع الخطط تشمل: تشفير SSL، دعم واتساب خلال أيام العمل، تحديثات مجانية مدى الحياة.</p>
         </ScrollReveal>
       </SectionContainer>
 
@@ -371,7 +382,8 @@ function getDescription(planId: number): string {
   // r144 (QA): the three paid plans above Basic all shared the one
   // copy-paste line «للشركات والوكالات الكبيرة» — three differentiated,
   // seed-accurate subtitles now (startup.py:Premium 10k رد/بث/فريق حتى 2 ·
-  // Pro 50k/تسلسلات/فريق حتى 5 · Enterprise غير محدود/24-7).
+  // Pro 50k/تسلسلات/فريق حتى 5 · Enterprise بلا حد عملي/دعم أولوية خلال
+  // أيام العمل — P40-5b honest seed wording).
   // P13-2c (honesty): Pro's «النشاطات متعددة الصفحات» subtitle retired —
   // the architecture binds ONE Facebook page per tenant (models.py
   // uq_botstate_tenant_key), so no tier is a multi-page pitch.

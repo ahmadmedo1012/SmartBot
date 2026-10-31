@@ -117,6 +117,15 @@ async def _seed_subscription_plans(db):
     honest feature strings (verified live: Premium max_pages=2, Pro=5,
     Enterprise=999). max_pages is now 1 on every tier, matching both
     the enforced architecture and the feature list the UI renders.
+
+    P40-5b (claims honesty, P1-2/P2-2/P3-5 — feature TEXT only, every
+    numeric column untouched): «دعم 24/7» → «دعم أولوية خلال أيام
+    العمل» (r144: the WhatsApp line 218910089975 keeps office hours
+    9ص–9م — never 24/7); «تقارير أسبوعية» → «تقارير PDF عند الطلب»
+    (the engine serves on-demand PDF/digest only — no scheduler or mail
+    stack exists, dec-dead-tables); «ردود/قواعد/فريق غير محدود» →
+    «بلا حد عملي» (the caps are 999,999/999/999) — the seed now equals
+    the honest mirror default-plans.ts verbatim (lockstep test).
     """
     canonical = [
         dict(
@@ -136,7 +145,7 @@ async def _seed_subscription_plans(db):
             has_offers=False, has_sequences=False, has_analytics_advanced=False,
             sort_order=2, is_active=True,
             features=["2,000 رد/شهر", "صفحة فيسبوك واحدة", "20 قاعدة رد", "رد خاص على التعليقات",
-                      "ردود ذكية بالذكاء الاصطناعي", "تقارير أسبوعية", "دعم فوري"],
+                      "ردود ذكية بالذكاء الاصطناعي", "تقارير PDF عند الطلب", "دعم فوري"],
         ),
         dict(
             name="Premium", name_ar="مميز", price=29, period_days=30,
@@ -166,8 +175,8 @@ async def _seed_subscription_plans(db):
             has_scheduling=True, has_reports=True, has_flows=True,
             has_offers=True, has_sequences=True, has_analytics_advanced=True,
             sort_order=5, is_active=True,
-            features=["ردود غير محدودة", "صفحة فيسبوك واحدة", "قواعد غير محدودة",
-                      "جميع الميزات بدون استثناء", "فريق غير محدود", "دعم 24/7"],
+            features=["ردود بلا حد عملي (999,999 شهريًا)", "صفحة فيسبوك واحدة", "قواعد بلا حد عملي",
+                      "جميع الميزات بدون استثناء", "فريق بلا حد عملي", "دعم أولوية خلال أيام العمل"],
         ),
     ]
     for p in canonical:

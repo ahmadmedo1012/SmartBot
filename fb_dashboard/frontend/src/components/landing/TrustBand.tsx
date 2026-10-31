@@ -33,10 +33,13 @@ import { usePublicStats } from "@/lib/usePublicStats";
 type Cell = { value?: string; unit?: string; label: string };
 
 /* Qualitative fallback — every claim traces to shipped copy (schema
- * contactPoint 24/7, FAQ "واجهة كاملة بالعربية", hero sub). */
+ * contactPoint hoursAvailable Mo-Su 09:00-21:00, FAQ "واجهة كاملة
+ * بالعربية", hero sub). P40-5b (P1-2): the middle cell was «دعم على
+ * مدار الساعة» — the WhatsApp line keeps working hours (r144), so the
+ * honest formulation lands here too. */
 const FALLBACK: Cell[] = [
   { label: "أتمتة ذكية لصفحات فيسبوك" },
-  { label: "دعم على مدار الساعة" },
+  { label: "دعم واتساب خلال أيام العمل" },
   { label: "واجهة عربية بالكامل" },
 ];
 

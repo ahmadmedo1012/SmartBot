@@ -91,7 +91,7 @@ function plansResponse(): Response {
     data: [
       { id: 1, name_ar: "المجانية", price: 0, features: ["ردود محدودة"] },
       { id: 2, name_ar: "الأساسية", price: 19, features: ["500 رد شهرياً"] },
-      { id: 3, name_ar: "المتقدمة", price: 49, features: ["ردود غير محدودة"] },
+      { id: 3, name_ar: "المتقدمة", price: 49, features: ["ردود بلا حد عملي"] },
     ],
   })
 }

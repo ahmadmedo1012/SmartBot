@@ -225,16 +225,18 @@
    !! BRAND ACCENT — SINGLE SOURCE OF TRUTH (Circuit Petrol, phase5) !!
    The --accent family ships under the fleet port names — --accent-solid
    is THE authoritative solid brand token (#56E2F2 SIGNAL TEAL dark /
-   #0E7A8A teal-deep light); --primary aliases it for the
+   #0D7484 teal-deep light); --primary aliases it for the
    shadcn/Tailwind bridge; --ring/--state-focus-ring-color point at the
    solid accent (dark) / --accent-strong (light). --accent stays the
    faint 12–15% wash hint for soft hovers/tints (product semantics — 72
    accent-foreground consumers untouched), and --accent-foreground keeps
    its oklch spelling (= --accent-ink, the AA-tuned accent for TEXT:
-   teal 7.96:1 on petrol dark / teal-deep 7.36:1 on mist light) so the
-   measured-contrast gate can composite the badge tints. One token per
-   role, never a duplicate value. LIME is NOT part of this family — it
-   lives on --c-lime-* (AI/automation signal only).
+   P40-5b re-measured — signal teal 13.15:1 on the night ground
+   #050506 (12.70:1 on card) / teal-deep 6.00:1 on mist light; the old
+   "7.96:1 / 7.36:1" were phase-6 values, stale since the r152 sweep)
+   so the measured-contrast gate can composite the badge tints. One
+   token per role, never a duplicate value. LIME is NOT part of this
+   family — it lives on --c-lime-* (AI/automation signal only).
    ═══════════════════════════════════════════════════════ */
 :root {
   /* v7 §B — native UA rendering follows the active theme: scrollbars,
@@ -465,19 +467,22 @@
   /* r130 (W1-H FLEET-1 decision — true-parity option): dark --ring = the
      CANONICAL cascade var(--accent-solid) — SmartBot's dark focus
      contract resolves through the SOLID accent, one vocabulary with
-     --primary. The signal-teal ring measures 7.96:1 on the petrol night
-     ground — the AA contract holds. SmartBot spells the solid as
-     --accent-solid (product-semantics bridge). */
+     --primary. The signal-teal ring measures 13.15:1 on the night
+     ground #050506 (P40-5b re-measured; the old "7.96:1" was a phase-6
+     value, stale since the r152 sweep) — the AA contract holds.
+     SmartBot spells the solid as --accent-solid (product-semantics
+     bridge). */
   --ring: var(--accent-solid);
 
   /* ── ACCENT — faint 15% signal-teal hint for soft hovers/tints (oklch of
        #56E2F2 so the measured-contrast gate can parse/composite it). ── */
   --accent: oklch(0.8437 0.1205 205.8 / 0.15);
   /* --accent-foreground = --accent-ink dark (= --accent-solid
-     #56E2F2), oklch spelling: signal teal as TEXT (7.96:1 on the petrol
-     night — AA with margin on every real composite: accent tint, 15%
-     tint, card, background). oklch form so the measured-contrast gate can
-     composite the badge-tint pairs. */
+     #56E2F2), oklch spelling: signal teal as TEXT (13.15:1 on the
+     night ground, 12.70:1 on card — P40-5b re-measured, the old
+     "7.96:1" was the phase-6 value — AA with margin on every real
+     composite: accent tint, 15% tint, card, background). oklch form so
+     the measured-contrast gate can composite the badge-tint pairs. */
   --accent-foreground: oklch(0.8437 0.1205 205.8);
 
   --secondary: #101115;
@@ -701,11 +706,14 @@
   --neutral-900: #101115;
 
   /* ── BRAND SOLID — the light half of the --accent family, Circuit
-       Petrol values (phase5 r152): solid = deep teal #0E7A8A (5.10:1 on
-       the mint ground, 5.61:1 on card — measured); hover = the deeper
-       teal #0B6573; text on teal = --accent-fg #F2F2F0 (5.40:1,
-       measured). ── */
-  --accent-solid: #0E7A8A;
+       Petrol values (phase5 r152). P40-5b (P3-10a — AA contrast fix): solid
+       = deep teal #0D7484 — the r152 value #0E7A8A measured 4.49:1 under
+       --accent-fg #F2F2F0 (AA miss by 0.01; the old comment's "5.40:1"
+       was never real). #0D7484 is the minimal darkening of the same
+       petrol hue: 4.87:1 as a fill under #F2F2F0 · 4.87:1 as text on the
+       mist ground · 5.46:1 on card (measured, WCAG 2.1); hover keeps the
+       deeper #0B6573 (6.00:1 — the hover step stays clear). ── */
+  --accent-solid: #0D7484;
   --accent-hover: #0B6573;
   --accent-soft: #DCF1F4;      /* cyan wash — the soft-hover/tint ground (same value as the legacy-named --c-copper-bg) */
   --accent-strong: #0B5A68;    /* cyan ink — focus metal */
@@ -719,11 +727,13 @@
      canonical.) */
   --ring: var(--accent-strong);
 
-  /* ── ACCENT — faint 12% deep-teal hint (oklch of #0E7A8A). ── */
+  /* ── ACCENT — faint 12% deep-teal hint (oklch of #0B6573 — P40-5b: the
+       old "oklch of #0E7A8A" note mis-attributed the encoded hex; the
+       channels below resolve to #0B6573). ── */
   --accent: oklch(0.4661 0.0782 211.8 / 0.12);
-  /* --accent-ink light = the deep teal #0B5A68 (oklch form — the
+  /* --accent-ink light = the deep teal #0B6573 (oklch form — the
      contrast gate composites the badge tints from these channels):
-     7.31:1 on the mint ground, 8.04:1 on card — AA with margin. */
+     6.00:1 on the mist ground, 6.73:1 on card — AA with margin. */
   --accent-foreground: oklch(0.4661 0.0782 211.8);
 
   --secondary: #E9E9E6;

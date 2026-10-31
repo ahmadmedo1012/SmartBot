@@ -92,8 +92,10 @@ export function Footer({ className }: FooterProps) {
           <div>
             <h3 className="text-sm font-medium mb-3">تواصل معنا</h3>
             <div className="space-y-2.5 text-sm text-muted-foreground">
+              {/* P40-5b (P1-2, r144): «دعم فني 24/7» retired — the WhatsApp
+               * line above keeps working hours (9ص–9م), same as the hub. */}
               <a href={`https://wa.me/${waNumber}`} className="flex w-fit items-center gap-2 py-3 hover:text-foreground transition-colors"><MessageCircle className="size-4" /> واتساب</a>
-              <span className="block">دعم فني 24/7</span>
+              <span className="block">دعم خلال ساعات العمل (9ص – 9م)</span>
             </div>
           </div>
         </div>

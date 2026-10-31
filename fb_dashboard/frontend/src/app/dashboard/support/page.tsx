@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
 import {
   HelpCircle,
-  Mail,
   MessageCircle,
   Phone,
   ChevronLeft,
@@ -204,9 +203,13 @@ export default function SupportPage() {
   }
 
   // Config-driven contact info with SANE fallbacks (the old fallback produced
-  // wa.me/0920000000 — invalid, no country code — and an email on a domain we
-  // don't control; real values come from /admin/settings via /api/support/info).
-  const email = info?.email || "support@smart-link.ly"
+  // wa.me/0920000000 — invalid, no country code; real values come from
+  // /admin/settings via /api/support/info).
+  // P40-5b (P2-3, hub W6-B2): the email row is GONE — WhatsApp is the single
+  // support surface. The two conflicting fallback identities
+  // (support@smart-link.ly here vs support@smartbot.ly in the API default)
+  // died with the display; /api/support/info keeps serving the
+  // admin-configured value for any future consumer.
   const whatsappRaw = info?.whatsapp || info?.phone || "218910089975"
   // (r140 — درس SL r138 «بوابة wa.me»): التطبيع الجزئي القديم (المحمول
   // الطويل 0(9\d{8}) فقط) استُبدل بعقد toWaMe الكامل في بيت العقد
@@ -218,7 +221,9 @@ export default function SupportPage() {
   // الأرضي/الغريب يُعرض نصًا خامًا أسفل السطر فلا يولد رابطًا ميتًا.
   const whatsappLinkable = isWaMeNumber(whatsappRaw)
   const phone = info?.phone || "—"
-  const hours = info?.working_hours || "24/7"
+  // P40-5b (P1-2, r144): «24/7» retired — the WhatsApp line keeps working
+  // hours 9ص–9م (mirrors the backend default in routers/support.py).
+  const hours = info?.working_hours || "9 صباحاً — 9 مساءً"
 
   return (
     <div className="flex-1 flex flex-col">
@@ -251,13 +256,6 @@ export default function SupportPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <a
-                  href={`mailto:${email}`}
-                  className="flex items-center gap-3 text-sm hover:text-accent-foreground transition-colors"
-                >
-                  <Mail className="size-4 text-muted-foreground shrink-0" />
-                  <span>{email}</span>
-                </a>
                 {/* (r140) المحمول → رابط wa.me صالح (toWaMe قلبه للدولي)؛
                     غير المحمول → نص خام قابل للقراءة، لا رابط ميت. */}
                 {whatsappLinkable ? (

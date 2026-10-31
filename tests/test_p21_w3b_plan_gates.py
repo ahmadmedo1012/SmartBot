@@ -219,7 +219,7 @@ async def test_reports_gate_free_403_generate_and_schedule(v10_seed):
 
 
 async def test_reports_gate_basic_200_schedule(v10_seed):
-    """Basic يبيع «تقارير أسبوعية» (has_reports=True) — الجدولة تنشأ: 200."""
+    """Basic يبيع «تقارير PDF عند الطلب» (has_reports=True) — الجدولة تنشأ: 200."""
     ids = await _seed_plans(v10_seed.world.sf)
     ua, tid = await _tenant_on_plan(v10_seed, "W3B-REP-BASIC", ids["Basic"])
     v10_seed.auth(ua, tid)

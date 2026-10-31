@@ -621,7 +621,10 @@ function samplePalette(): Palette {
       shell: 0xd9d7d2,
       graphite: 0x2a2c33,
       screen: 0x090b0f,
-      lime: 0x0e7a8a,
+      /* P40-5b (P3-10a lockstep): the light ink grade follows --ln-lime
+       * #0E7A8A → #0D7484 (landing.css §16a) so the 3D rim stays in
+       * lockstep with the UI teal — same one-token nudge, 3D spelling. */
+      lime: 0x0d7484,
       eyeIntensity: 1.6,
       glowOpacity: 0.5,
       shadowStrength: 0.34,
@@ -1676,7 +1679,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      * the landing's --ln-lime token (the phase-9 lockstep contract). */
     const repaint = () => {
       palette = samplePalette();
-      faceGlow.color.setHex(palette.dark ? 0xffffff : 0x0e7a8a);
+      faceGlow.color.setHex(palette.dark ? 0xffffff : 0x0d7484);
       rim.color.setHex(palette.lime);
       fog.color.copy(palette.fogColor);
       shellMat.color.setHex(palette.shell);

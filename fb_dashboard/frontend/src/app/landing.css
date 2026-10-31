@@ -7,7 +7,7 @@
  * body + white dot eyes (§18/CharacterScene). The petrol/teal/lime
  * identity of phases 5–16 is RETIRED. §16 mirrors the contract at the
  * PORCELAIN DAY light grades (ground #F2F2F0, ink #101115, cyan ink
- * #0E7A8A, violet #6B54E0); the CharacterScene re-samples via its
+ * #0D7484, violet #6B54E0); the CharacterScene re-samples via its
  * MutationObserver. Accent discipline: cyan = the machine's voice;
  * violet = AI moments ONLY (the transferred lime reservation); amber
  * #FF9A69 = the human/handoff register; --sb-ramp on 2px hairlines only.
@@ -2061,19 +2061,29 @@ html.light .landing .ln-day {
      ground  --ln-ink        #F2F2F0  (porcelain day)
      stage-2 --ln-ink-2      #E6E6E3  (soft separation)
      ink     --ln-cream      #101115  (charcoal ink)
-     ink-dim --ln-cream-dim  #3A5450  (product --muted-foreground)
-     signal  --ln-lime       #0E7A8A  (cyan ink grade — 4.58:1)
-     hover   --ln-lime-deep  #0A6656  (product --accent-hover — darkens on
+     ink-dim --ln-cream-dim  #41434B  (product --muted-foreground)
+     signal  --ln-lime       #0D7484  (cyan ink grade — 4.87:1 on porcelain;
+                                      P40-5b P3-10a: darkened from #0E7A8A
+                                      in lockstep with --accent-solid — the
+                                      old 4.49:1 text/fill pairs missed AA)
+     hover   --ln-lime-deep  #0B6573  (product --accent-hover — darkens on
                                        light ground, mirroring the dark
                                        stage's brighten)
-     AI      --ln-violet     #6B54E0  (violet light tier — 6.0:1)
-     deep    --ln-violet-deep #37490C (lime family light deep)
-   Measured text pairs (WCAG 2.1, porcelain #F2F2F0 ground unless noted):
-     ink 14.62:1 · ink-dim 7.44:1 · ink on stage-2 12.95:1 ·
-     signal-as-text 5.10:1 · signal on stage-2 4.56:1 ·
-     AI lime 4.51:1 · AI lime on white 4.96:1 ·
-     CTA fill: mist-on-deep-teal 5.10:1 (hover #0A6656 6.26:1) — the
-     product light primary pair.
+     AI      --ln-violet     #6B54E0  (violet light tier — 4.72:1)
+     deep    --ln-violet-deep #2A2470 (violet family light deep)
+   Measured text pairs (WCAG 2.1, porcelain #F2F2F0 ground unless noted;
+   P40-5b re-measured — the old numbers were the phase-6 values, stale
+   since the r152 token sweep):
+     ink 16.83:1 · ink-dim 8.80:1 · ink on stage-2 15.09:1 ·
+     signal-as-text 4.87:1 · signal on stage-2 4.36:1 (AA-large only) ·
+     AI violet 4.72:1 · AI violet on white 5.29:1 ·
+     CTA fill: mist-on-teal 4.87:1 (hover #0B6573 6.00:1) — the
+     product light primary pair, AA in lockstep.
+   Known deferred (P40-5b measured, out of P3-10a scope): the light
+     amber handoff #C25E33 reads 3.79:1 on porcelain (AA-large only at
+     its 11px labels) — the old "4.9:1" claim was never real; the
+     .ln-pp-avatar initial on its 16% tint reads 3.92:1 (decorative
+     initial, adjacent .ln-pp-msg carries the content at 8.80:1).
    Discipline unchanged: teal is the voice of the machine; lime stays
    SPARSE (AI moments only); grounds stay flat — the light grain tile
    flips to ink-noise at a gentler 0.06 (white noise on mist is
@@ -2090,17 +2100,17 @@ html.light .landing {
   --ln-ink:        #F2F2F0;   /* porcelain day ground (product light) */
   --ln-ink-2:      #E6E6E3;   /* soft stage separation (surface-2) */
   --ln-cream:      #101115;   /* charcoal ink — 16.8:1 on porcelain */
-  --ln-cream-dim:  #41434B;   /* secondary — 8.5:1 on porcelain */
-  --ln-lime:       #0E7A8A;   /* cyan ink grade — the machine's voice, 4.58:1 */
+  --ln-cream-dim:  #41434B;   /* secondary — 8.80:1 on porcelain */
+  --ln-lime:       #0D7484;   /* cyan ink grade — the machine's voice, 4.87:1 on porcelain (P40-5b P3-10a lockstep with --accent-solid) */
   --ln-lime-deep:  #0B6573;   /* hover/active — darkens (light convention) */
-  --ln-violet:     #6B54E0;   /* violet light tier — 6.0:1 */
+  --ln-violet:     #6B54E0;   /* violet light tier — 4.72:1 on porcelain (P40-5b measured; the old 6.0:1 was stale) */
   --ln-violet-deep:#2A2470;   /* decorative depth fills only — 10.8:1 */
   --ln-line:       rgba(16, 17, 21, 0.20);
   --ln-line-soft:  rgba(16, 17, 21, 0.10);
   --ln-grain-op:   0.06;      /* ink-noise grain, gentler on mist */
   /* §2-b bot register — light twins */
   --ln-bot-glow: rgb(107 84 224 / 0.16);       /* AI halo, violet tier */
-  --ln-bot-amber: #C25E33;                     /* the human/handoff warm register — 4.9:1 on porcelain */
+  --ln-bot-amber: #C25E33;                     /* the human/handoff warm register — 3.79:1 on porcelain (P40-5b measured; AA-large only — the old "4.9:1" was never real; token change deferred, out of P3-10a scope) */
   --ln-bot-bubble-in: rgb(255 255 255 / 0.94); /* incoming bubble = white card */
   --ln-bot-bubble-in-line: rgb(16 17 21 / 0.14);
   --ln-bot-frame: rgb(16 17 21 / 0.04);        /* portrait plate wash */
@@ -3166,9 +3176,11 @@ html.light .landing .ln-ticker-msg { color: var(--ln-cream); }
    (near-invisible). The message body is PRIMARY text: the deep petrol
    ink --ln-cream (#101115) = 16.5:1 on that card. The transcript's
    voices (W4-a) ride the §2-b token pair — the light stage re-twins
-   them for free: cyan rule --ln-lime #0E7A8A (4.58:1), violet chip
-   #6B54E0 (6.0:1), amber handoff --ln-bot-amber #C25E33 (4.9:1), the
-   dim reset line --ln-cream-dim #41434B (8.5:1). */
+   them for free: cyan rule --ln-lime #0D7484 (5.28:1 on the light
+   card — P40-5b lockstep), violet chip
+   #6B54E0 (5.11:1 on the card), amber handoff --ln-bot-amber #C25E33
+   (4.11:1 on the card — AA-large), the
+   dim reset line --ln-cream-dim #41434B (9.54:1). */
 html.light .landing .ln-ticker-msg-meta { color: rgb(16 17 21 / 0.6); }
 html.light .landing .ln-typing i { background: rgb(16 17 21 / 0.7); }
 html.light .landing .ln-ticker-badge.auto { color: var(--ln-lime-deep); border-color: rgb(14 122 138 / 0.45); }

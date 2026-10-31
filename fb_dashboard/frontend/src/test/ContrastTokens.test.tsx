@@ -13,6 +13,13 @@
  *      — ember end was 2.24:1 (dark) / 2.91:1 (light)
  *   4. landing metric-badge composite: accent-foreground (full opacity)
  *      over its own 10% tint over card ≥ 4.5:1 — was 4.28:1 at /90 text
+ *   5. P40-5b (P3-10a): the primary FILL pair --accent-fg over
+ *      --accent-solid ≥ 4.5:1 in both themes — the light pair shipped
+ *      #F2F2F0 on #0E7A8A = 4.49:1 (AA miss by 0.01, missed by every
+ *      gate because --primary/--primary-foreground are var() spellings
+ *      the parsers never resolved); fixed by darkening the solid to
+ *      #0D7484 (4.87:1). Pinned here on the hex-literal family tokens
+ *      (--accent-solid/--accent-fg) so the pair stays measured.
  *
  * Plus a manifest pin: no `orientation` lock (WCAG 1.3.4) and a behavioral
  * pin that the shared gold Badge keeps the full-opacity text class (a `/90`
@@ -107,6 +114,14 @@ describe("v24-C6 — globals.css contrast tokens (B4 failing pairs, pinned)", ()
       expect(vsEmber).toBeGreaterThanOrEqual(4.5)
       expect(vsSaffron).toBeGreaterThanOrEqual(4.5)
       expect(min(vsEmber, vsSaffron)).toBeGreaterThan(4.7) // regression headroom
+    }
+  })
+
+  it("primary fill pair: --accent-fg on --accent-solid ≥ 4.5:1 both themes (P40-5b P3-10a; light #F2F2F0-on-#0E7A8A was 4.49:1)", () => {
+    for (const [_mode, toks] of [["dark", dark], ["light", light]] as const) {
+      const ratio = contrast(toks["accent-fg"]!.rgb, toks["accent-solid"]!.rgb)
+      expect(ratio).toBeGreaterThanOrEqual(4.5)
+      expect(ratio).toBeGreaterThan(4.7) // regression headroom (fleet convention)
     }
   })
 

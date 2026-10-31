@@ -57,7 +57,11 @@ const organizationSchema = {
     "@type": "ContactPoint",
     contactType: "customer support",
     availableLanguage: ["Arabic", "English"],
-    hoursAvailable: "Mo-Su 00:00-24:00",
+    /* P40-5b (P1-2): the old "Mo-Su 00:00-24:00" promised round-the-clock
+     * support on the same WhatsApp line the hub honestly advertises as
+     * 9ص–9م (r144 truth ruling). Mirrors the hub's JSON-LD hours
+     * (smart-link site.ts schemaOpens/schemaCloses) exactly. */
+    hoursAvailable: "Mo-Su 09:00-21:00",
   },
 };
 
@@ -100,7 +104,7 @@ const productSchema = {
       { "@type": "Offer", name: "أساسي", price: "19", priceCurrency: "LYD", description: "2,000 رد/شهر + ذكاء اصطناعي" },
       { "@type": "Offer", name: "مميز", price: "29", priceCurrency: "LYD", description: "10,000 رد/شهر + بث وجدولة" },
       { "@type": "Offer", name: "احترافي", price: "129", priceCurrency: "LYD", description: "50,000 رد/شهر + حملات تسلسلية" },
-      { "@type": "Offer", name: "مؤسسي", price: "299", priceCurrency: "LYD", description: "غير محدود + دعم 24/7" },
+      { "@type": "Offer", name: "مؤسسي", price: "299", priceCurrency: "LYD", description: "بلا حد عملي + دعم أولوية خلال أيام العمل" },
     ],
   },
 };
@@ -281,9 +285,14 @@ export default function HomePage() {
             </h1>
 
             <p className="ln-hero-sub">
+              {/* P40-5b (SB-1 light + P2-2): the closing clause was «وتقارير
+               * النمو تصلك جاهزة» — a scheduled-delivery implication the
+               * engine cannot honor (on-demand PDF only, no scheduler).
+               * The Intercom-style outcome close «بدون موظف إضافي» replaces
+               * it: concrete, verifiable, and true of the automation. */}
               SmartBot رفيق صفحتك على فيسبوك: يصنّف نية كل عميل لحظة وصوله،
               يردّ فوراً بلغته، ويحوّل اللي يحتاج قراراً لفريقك —{" "}
-              <strong>وتقارير النمو تصلك جاهزة.</strong>
+              <strong>بدون موظف إضافي.</strong>
             </p>
           </div>
 
@@ -307,7 +316,9 @@ export default function HomePage() {
             <RevealCssClass as="ul" className="ln-hero-meta" delay={4}>
               <li><Check size={13} aria-hidden="true" /> خطة مجانية — 100 رد شهرياً</li>
               <li aria-hidden="true" className="ln-hero-meta-dot" />
-              <li><MessageCircle size={13} aria-hidden="true" /> دعم على مدار الساعة</li>
+              {/* P1-2 (r144): «دعم على مدار الساعة» retired — the WhatsApp
+               * line keeps working hours (9ص–9م), same as the hub. */}
+              <li><MessageCircle size={13} aria-hidden="true" /> دعم واتساب خلال أيام العمل</li>
               <li aria-hidden="true" className="ln-hero-meta-dot" />
               <li><Languages size={13} aria-hidden="true" /> واجهة عربية بالكامل</li>
             </RevealCssClass>

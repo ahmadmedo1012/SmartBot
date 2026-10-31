@@ -33,7 +33,7 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono'
 import * as SplashScreen from 'expo-splash-screen'
 import { dark } from '@/constants/theme'
-import { queryClient } from '@/lib/query-client'
+import { queryClient, ensureReactQueryNativeWiring } from '@/lib/query-client'
 import { ensureRTL } from '@/lib/ensure-rtl'
 import { AuthProvider, useAuth } from '@/state/auth'
 import { LoadingState } from '@/components/state-views'
@@ -71,6 +71,11 @@ function AppShell() {
     return () => {
       alive = false
     }
+  }, [])
+  // P38 (C1 P0-2): ربط AppState بـ focusManager مرة عند الجذر — العودة
+  // إلى الأمام تجلب البيانات الفانية (مرآة usePollingWhenVisible الويب).
+  useEffect(() => {
+    ensureReactQueryNativeWiring()
   }, [])
 
   useEffect(() => {

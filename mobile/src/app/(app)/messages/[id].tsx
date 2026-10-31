@@ -25,6 +25,7 @@ import {
   View,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
+import { Image as ExpoImage } from 'expo-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
@@ -46,6 +47,60 @@ interface ThreadMessage {
   from: { id: string; name: string }
   is_from_page: boolean
   created_time: string | null
+  /* P38 (C1 audit P0-1): المرفقات/الملصقات/الأزرار — الخادم يخدمها
+     (inbox.py:445-447) لكن التوأم القديم أسقطها ففقاعتت الصور
+     الملصقات تُرسم فقاعة نصية فارغة. مرآة v4 §4.11 الويب. */
+  attachment_type?: string
+  attachment_url?: string
+  postback_payload?: string
+}
+
+/** P38 (C1 P0-1 — مرآة الويب v4 §4.11): جسم الرسالة — صورة (بحد أقصى
+ * 220 داخل الفقاعة) / ملصق مربّع 96 / شريحة «اختيار: …» للأزرار /
+ * النص (dir=auto غير متاح في RN — اتجاه النص يُحسم داخل AppText) /
+ * «مرفق غير مدعوم» لما عدا ذلك — لا فقاعة فارغة أبدًا. */
+function MessageBody({ item, textColor }: { item: ThreadMessage; textColor: string }) {
+  const hasImage = !!item.attachment_url && item.attachment_type === 'image'
+  const isSticker = !!item.attachment_url && item.attachment_type === 'sticker'
+  return (
+    <>
+      {hasImage && item.attachment_url ? (
+        <ExpoImage
+          source={{ uri: item.attachment_url }}
+          style={styles.attachmentImage}
+          contentFit="cover"
+          transition={180}
+          accessibilityLabel="مرفق"
+          cachePolicy="memory-disk"
+        />
+      ) : null}
+      {isSticker && item.attachment_url ? (
+        <ExpoImage
+          source={{ uri: item.attachment_url }}
+          style={styles.stickerImage}
+          contentFit="cover"
+          transition={180}
+          accessibilityLabel="ملصق"
+          cachePolicy="memory-disk"
+        />
+      ) : null}
+      {item.postback_payload && !item.message ? (
+        <AppText variant="caption" style={{ color: textColor, marginBottom: 2 }}>
+          اختيار: {item.postback_payload}
+        </AppText>
+      ) : null}
+      {item.message ? (
+        <AppText variant="small" style={{ color: textColor }}>
+          {item.message}
+        </AppText>
+      ) : null}
+      {!item.message && !hasImage && !isSticker && !item.postback_payload ? (
+        <AppText variant="small" style={{ color: textColor }}>
+          مرفق غير مدعوم
+        </AppText>
+      ) : null}
+    </>
+  )
 }
 
 export default function ConversationScreen() {
@@ -118,9 +173,7 @@ export default function ConversationScreen() {
           ) : null}
           {!fromPage ? (
             <View style={[styles.bubble, { backgroundColor: colors.primary, borderTopLeftRadius: radius.sm }]}>
-              <AppText variant="small" style={{ color: colors.primaryFg }}>
-                {item.message}
-              </AppText>
+              <MessageBody item={item} textColor={colors.primaryFg} />
               {/* r154: الختم الزمني mono HH:MM (LTR مثبت) — التاريخ
                   العربي الكامل في تسمية الوصول (مرآة title الويب) */}
               <MonoStamp
@@ -134,9 +187,7 @@ export default function ConversationScreen() {
             </View>
           ) : (
             <View style={[styles.bubble, { backgroundColor: colors.muted, borderTopRightRadius: radius.sm }]}>
-              <AppText variant="small" style={{ color: colors.foreground }}>
-                {item.message}
-              </AppText>
+              <MessageBody item={item} textColor={colors.foreground} />
               <Row style={{ alignSelf: 'flex-start', marginTop: 2, gap: 6 }}>
                 <MonoStamp
                   value={formatTime(item.created_time)}
@@ -314,6 +365,23 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   bubble: { maxWidth: '80%', borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  /* P38 (C1 P0-1): مرفقات الصور/الملصقات — نفس نِسَب الويب (صورة
+     480×360 بحد أقصى داخل الفقاعة، ملصق 96 مربع) مع انحدار زوايا
+     العائلة. */
+  attachmentImage: {
+    width: 220,
+    height: 165,
+    borderRadius: radius.md,
+    marginBottom: spacing.xs,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+  stickerImage: {
+    width: 96,
+    height: 96,
+    borderRadius: radius.md,
+    marginBottom: spacing.xs,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
   composer: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   input: {
     flex: 1,

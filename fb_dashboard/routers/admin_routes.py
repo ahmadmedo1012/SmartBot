@@ -9,6 +9,9 @@ from _utils import iso_z
 from database import AsyncSessionLocal, engine, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException
 from models import (
+    AdAccount,
+    AdCampaign,
+    AdItem,
     AISuggestion,
     AnalyticsEvent,
     AuditLog,
@@ -35,6 +38,7 @@ from models import (
     Offer,
     OfferClaim,
     PaymentRequest,
+    Post,
     Reply,
     ReplyTemplate,
     ReportSchedule,
@@ -366,6 +370,13 @@ async def delete_tenant(tenant_id: int, db=Depends(get_db), current_user: User =
     # Notification/SupportTicket(+replies)/MarketingCampaign/
     # NotificationPreference/ConversationTag/ReportSchedule rows SURVIVED a
     # "complete" tenant deletion (PII retained indefinitely = GDPR breach).
+    # P42-W6 (6-a تدقيق): أربع جداول محورية إضافية كانت تنجو من الكنس —
+    # fb_posts/ad_accounts/ad_campaigns/ad_items (جداول v19 Step 2 التي
+    # أضافت «DB-first» للمنشورات والإعلانات). كلها تحمل tenant_id ولا
+    # يشير إليها أي جدول آخر، فلا يتأثر ترتيب الكنس. قبل الإصلاح كانت
+    # منشورات المستأجر المحذوف وأسماء حملاته الإعلانية وحمولاتها
+    # (payload_json يضم بيانات الإعلان الخام) تبقى إلى الأبد بعد «حذف
+    # كامل» — نفس فئة تسريب v12-E2.6 بالضبط.
     # SupportTicketReply has no tenant_id — its rows are deleted via the
     # tenant's ticket ids (subquery) BEFORE the tickets themselves.
     ticket_ids = select(SupportTicket.id).where(SupportTicket.tenant_id == tenant_id)
@@ -381,6 +392,7 @@ async def delete_tenant(tenant_id: int, db=Depends(get_db), current_user: User =
         AISuggestion, ReplyTemplate, Reply, BotLog, BotState, BrandConfig, Rule,
         ReportSchedule, Notification, NotificationPreference, SupportTicket,
         AuditLog, AnalyticsEvent, BotAlert,
+        AdItem, AdCampaign, AdAccount, Post,
     ]
     for table in tables:
         await db.execute(table.__table__.delete().where(table.tenant_id == tenant_id))

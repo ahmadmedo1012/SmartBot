@@ -502,12 +502,21 @@ async def admin_reset_password(body: dict = Body(None), request: Request = None,
         raise HTTPException(400, "user_id و new_password مطلوبان")
     user_id = body["user_id"]
     new_password = body["new_password"]
+    # P42-W6 (6-a): آخر بقايا عائلة D1-H1 — ``int(user_id)`` الخام كان يرفع
+    # ValueError → 500 + إنذار CRITICAL (تليجرام/Sentry) على خطأ كتابة من
+    # أدمن. نفس عقود _as_int في المدفوعات: 422 عربية نظيفة، لا 500 خام.
+    if isinstance(user_id, bool) or not isinstance(user_id, (int, float, str)):
+        raise HTTPException(422, "قيمة غير صالحة: user_id يجب أن يكون رقماً صحيحاً")
+    try:
+        uid = int(user_id)
+    except (TypeError, ValueError, OverflowError):
+        raise HTTPException(422, "قيمة غير صالحة: user_id يجب أن يكون رقماً صحيحاً") from None
     # S-06 (P21-W7-F): سياسة العرض الموحدة — تحصين isinstance القديم صار
     # داخل المدقق نفسه (قيمة غير نصية = 400 عربي، لا TypeError خام)
     err = password_policy_error(new_password)
     if err:
         raise HTTPException(400, err)
-    stmt = select(User).where(User.id == int(user_id)).limit(1)
+    stmt = select(User).where(User.id == uid).limit(1)
     if not is_platform_admin(current_user):
         stmt = stmt.where(User.tenant_id == current_user._tenant_id)
     user = (await db.execute(stmt)).scalars().first()

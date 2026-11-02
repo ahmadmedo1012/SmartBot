@@ -52,11 +52,16 @@ const organizationSchema = {
   logo: `${SITE_URL}/brand-icon.png`,
   description: "منصة إدارة صفحات فيسبوك الذكية — أتمتة الردود والتحليلات لصفحات فيسبوك في ليبيا",
   areaServed: { "@type": "Country", name: "Libya" },
-  knowsLanguage: ["ar", "en"],
+  /* P42-W7 (SEO audit): knowsLanguage trimmed to Arabic — the r144 truth
+   * ruling (QA P3) established "the product is Arabic-only at every
+   * surface" (the marquee's «دعم متعدد اللغات» was retired with zero
+   * backing); the JSON-LD ar+en pair survived that wave untouched and
+   * claims the same unbacked bilingual capability. */
+  knowsLanguage: ["ar"],
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer support",
-    availableLanguage: ["Arabic", "English"],
+    availableLanguage: ["Arabic"],
     /* P40-5b (P1-2): the old "Mo-Su 00:00-24:00" promised round-the-clock
      * support on the same WhatsApp line the hub honestly advertises as
      * 9ص–9م (r144 truth ruling). Mirrors the hub's JSON-LD hours
@@ -114,7 +119,7 @@ const faqSchema = {
   "@type": "FAQPage",
   mainEntity: [
     { "@type": "Question", name: "هل أحتاج صلاحيات خاصة لربط الصفحة؟", acceptedAnswer: { "@type": "Answer", text: "تحتاج صلاحية إدارة الصفحة فقط. نطلب أقل الصلاحيات اللازمة للعمل." } },
-    { "@type": "Question", name: "هل بياناتي آمنة؟", acceptedAnswer: { "@type": "Answer", text: "جميع البيانات مشفرة. لا نشارك معلومات صفحاتك مع أي جهة خارجية." } },
+    { "@type": "Question", name: "هل بياناتي آمنة؟", acceptedAnswer: { "@type": "Answer", text: "اتصالك بالمنصة مشفّر بالكامل (SSL)، والأسرار الحساسة تُخزّن مشفّرة على خوادمنا. لا نشارك معلومات صفحاتك مع أي جهة خارجية." } },
     { "@type": "Question", name: "كم صفحة يمكنني ربطها؟", acceptedAnswer: { "@type": "Answer", text: "يمكنك ربط صفحة فيسبوك واحدة لكل حساب في جميع الخطط." } },
     { "@type": "Question", name: "هل تدعم اللغة العربية كاملاً؟", acceptedAnswer: { "@type": "Answer", text: "نعم، الواجهة كاملة بالعربية مع دعم كامل للردود والتعليقات العربية." } },
     { "@type": "Question", name: "ماذا يحدث إذا تجاوزت حد الردود الشهري؟", acceptedAnswer: { "@type": "Answer", text: "في الخطة المجانية، يقتصر الرد على 100 رد شهرياً. للردود بلا حد عملي (حتى 999,999 رد شهريًا)، اختر الخطة المؤسسية." } },

@@ -6,12 +6,21 @@
  *
  * GAP-BOT-1 (P42-5a): هذه المجموعة هي التوأم الجوّالي لبوابة AuthGuard
  * الويب — إيقاف المنظمة يعرض هنا الحالة الكاملة الصادقة (SuspendedState).
+ *
+ * GAP-X2 (P42-5b): لافتة انقطاع الاتصال تُركّب هنا — فوق المتنقل فترثها
+ * كل شاشات الدخول (توأم شريط role="status" في messages الويب، لكنه هنا
+ * على مستوى الغلاف لا شاشة واحدة). الإيقاف الكامل يسبقها بعقد GAP-BOT-1:
+ * حالة كاملة تحل محل الشجرة ولا تُزاح؛ استطلاعها /api/me يتوقف عند
+ * الانقطاع ويتجدد تلقائيًا عبر سلك NetInfo←onlineManager
+ * (lib/query-client.ts) فلا حاجة للافتة داخل عقدها.
  */
 import { Redirect, Stack, usePathname } from 'expo-router'
+import { View } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
 import { useAuth } from '@/state/auth'
 import { LoadingState } from '@/components/state-views'
 import { SuspendedState } from '@/components/suspended-state'
+import { ConnectivityBanner } from '@/components/connectivity-banner'
 
 export default function AppLayout() {
   const { colors } = useTheme()
@@ -35,14 +44,19 @@ export default function AppLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    >
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="onboarding" />
-    </Stack>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* GAP-X2: لافتة الانقطاع أعلى المتنقل — كل شاشة موثّقة ترثها.
+          الغلاف شفاف حين الاتصال سليم (اللافتة ترسم null داخلها). */}
+      <ConnectivityBanner />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" />
+      </Stack>
+    </View>
   )
 }

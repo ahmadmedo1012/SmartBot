@@ -20,6 +20,10 @@
  *   §4 انتشار القفل: المجدول والبث (إنشاءً وإرسالًا) والتقويم والتاب
  *      الدفاعي — أزرار الإنشاء تختفي عند القفل (عقيدة 3ce58c3).
  *   §5 مسارات lucide الحرفية للتاج والدرع (نفس مجموعة الويب).
+ *   §7 (P42-5b) لافتة الانقطاع (GAP-X2): التركيب في الغلاف الموثَّق،
+ *      نسخة الويب الحرفية، عائلة التحذير، مسند الشبكة المشترك، وسلك
+ *      NetInfo←onlineManager الذي يجعل وعد «إعادة المحاولة تلقائيًا»
+ *      صادقًا (سلوك المسند نفسه مُثبَّت سلوكيًا في lib/connectivity.test.ts).
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -208,5 +212,78 @@ describe('P42-5a · حدود العقيدة', () => {
 
   it('لاحقة العائلة موثّقة من الجهتين (الجوال يقرأ عقد الخادم نفسه)', () => {
     expect(GATE_FAMILY_SUFFIX).toBe('رقِّ خطتك')
+  })
+})
+
+/* ── §7 لافتة الانقطاع + سلك NetInfo←onlineManager (GAP-X2 · P42-5b) ── */
+
+describe('P42-5b · لافتة الانقطاع (GAP-X2)', () => {
+  it('الغلاف الموثَّق يركّب اللافتة فوق المتنقل — كل شاشات الدخول ترثها', () => {
+    const src = read('../app/(app)/_layout.tsx')
+    expect(src).toContain('<ConnectivityBanner />')
+    // اللافتة قبل المتنقل (أعلى الشاشة — توأم sticky تحت الترويسة في الويب)
+    expect(src.indexOf('<ConnectivityBanner />')).toBeLessThan(src.indexOf('<Stack'))
+  })
+
+  it('النسخة الحرفية لشريط الويب (messages/page.tsx:810) — لا صياغة جوّالية خاصة', () => {
+    const src = read('../components/connectivity-banner.tsx')
+    expect(src).toContain('انقطع الاتصال بالإنترنت — سيتم إعادة المحاولة تلقائياً')
+  })
+
+  it('عائلة التحذير الويب (warning-soft + warning ink + WifiOff) لا عائلة الدمار', () => {
+    const src = read('../components/connectivity-banner.tsx')
+    expect(src).toContain('colors.warningSoft')
+    expect(src).toContain('colors.warning')
+    expect(src).toContain('"wifi-off"')
+  })
+
+  it('تعلن التغيير بلا سرقة التركيز — مرآة role="status" (alert + polite)', () => {
+    const src = read('../components/connectivity-banner.tsx')
+    expect(src).toContain('accessibilityRole="alert"')
+    expect(src).toContain('accessibilityLiveRegion="polite"')
+  })
+
+  it('تختفي عند الاتصال (null) وتظهر عند انقطاع مؤكد فقط (مسند الشبكة المشترك)', () => {
+    const src = read('../components/connectivity-banner.tsx')
+    expect(src).toContain('if (online) return null')
+    expect(src).toContain('isNetReachable(state)')
+    expect(src).toContain('NetInfo.addEventListener')
+  })
+
+  it('الحالة الابتدائية «متصل» — لا وميض لافتة عند كل فتح', () => {
+    const src = read('../components/connectivity-banner.tsx')
+    expect(src).toContain('useState(true)')
+  })
+})
+
+describe('P42-5b · سلك NetInfo←onlineManager (وعد «إعادة المحاولة تلقائيًا» صادق)', () => {
+  it('query-client يشبك onlineManager بـNetInfo — عقد المكتبة الموثق (لا وعد معلّق بلا سلك)', () => {
+    const src = read('../lib/query-client.ts')
+    expect(src).toContain('onlineManager.setEventListener')
+    expect(src).toContain('NetInfo.addEventListener')
+    expect(src).toContain('setOnline(isNetReachable(state))')
+  })
+
+  it('لا مجموعة window الافتراضية على الويب — مستمع window هو عقد الويب هناك', () => {
+    const src = read('../lib/query-client.ts')
+    expect(src).toContain("if (Platform.OS === 'web') return // الويب: مستمع window الافتراضي (نفس تطبيق الويب)")
+  })
+
+  it('مسند واحد للحقيقة — اللافتة والسلك يشتركان في isNetReachable لا نسختين تنحرفان', () => {
+    const banner = read('../components/connectivity-banner.tsx')
+    const qc = read('../lib/query-client.ts')
+    const lib = read('../lib/connectivity.ts')
+    expect(banner).toContain("from '@/lib/connectivity'")
+    expect(qc).toContain("from '@/lib/connectivity'")
+    // المسند نفسه: isConnected + isInternetReachable !== false
+    expect(lib).toContain('state.isConnected && state.isInternetReachable !== false')
+  })
+
+  it('لافتة الانقطاع لا تصنّف أخطاء الخادم — الفشل الخادمي يبقى ErrorState بإعادة محاولة', () => {
+    const src = read('../components/connectivity-banner.tsx')
+    expect(src).not.toContain('apiFetch')
+    expect(src).not.toContain('apiGet')
+    expect(src).not.toContain('isPlanLocked')
+    expect(src).not.toContain('isTenantSuspended')
   })
 })

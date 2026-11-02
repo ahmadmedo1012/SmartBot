@@ -74,13 +74,15 @@ import type { Conversation, Message } from "@/lib/types"
 const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
+  /* W2-BOT-6: مساعدة الذكاء داخل الخيط تعلن الجاهزية عبر info */
+  toastInfo: vi.fn(),
 }))
 
 vi.mock("@/lib/premium-toast", () => ({
   brandedToast: {
     success: mocks.toastSuccess,
     error: mocks.toastError,
-    info: vi.fn(),
+    info: mocks.toastInfo,
     warning: vi.fn(),
   },
 }))
@@ -227,6 +229,7 @@ let scrollIntoView: ReturnType<typeof vi.fn>
 beforeEach(() => {
   mocks.toastSuccess.mockClear()
   mocks.toastError.mockClear()
+  mocks.toastInfo.mockClear()
   installMatchMedia(false) // motion allowed by default, like most visitors
   /* v24-C2: reset the URL (tests below push ?c= entries — jsdom's history is
      shared across cases in a file) and the persisted per-conversation drafts
@@ -966,5 +969,78 @@ describe("v24-R1 — offline banner (task 4)", () => {
     // connectivity returns → auto-dismiss
     fireEvent(window, new Event("online"))
     await waitFor(() => expect(screen.queryByText(/انقطع الاتصال بالإنترنت/)).toBeNull())
+  })
+})
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * W2-BOT-6 (P42-W3، تدقيق 3a) — مساعدة الذكاء داخل الخيط.
+ * أول مستهلك لـ POST /api/ai/generate-reply (بلا واجهة منذ v23):
+ *   - السياق = آخر رسالة عميل في الخيط (لا الأولى) + هوية المحادثة
+ *   - الناتج يُزرع في حقل الرد كمسوّدة — زر الإرسال بيد الإنسان (لا
+ *     إرسال آلي أبدًا؛ عقيدة اللمسة البشرية)
+ *   - الرد الفارغ يحمل السبب من الخادم (عقد v23: data.error) → توست خطأ
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe("AI in-thread assist (W2-BOT-6)", () => {
+  const THREAD: Message[] = [
+    { id: "c1-m1", message: "السلام عليكم", is_from_page: false, created_time: null },
+    { id: "c1-m2", message: "أهلاً! كيف نساعدك؟", is_from_page: true, created_time: null },
+    { id: "c1-m3", message: "كم سعر التوصيل لوسط البلد؟", is_from_page: false, created_time: null },
+  ]
+
+  it("suggests from the LAST customer message and plants the reply as a DRAFT (human sends)", async () => {
+    const api = stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: THREAD }),
+      "POST /api/ai/generate-reply": () =>
+        jsonRes({ success: true, data: { reply: "التوصيل لوسط البلد 5 دنانير خلال ساعة 🚚" } }),
+    })
+    renderMessages()
+    await openConversationAt(0)
+
+    /* الزر معطّل حتى يكتمل تحميل الخيط (لا اقتراح من فراغ) — ننتظر
+     * محتوى الخيط ثم تفعّل الزر (نفس سباق تفعيل زر تأكيد البث في
+     * PlanLockRollout: نقرة على زر disabled = صمت). */
+    expect(await screen.findByText("كم سعر التوصيل لوسط البلد؟")).toBeInTheDocument()
+    const suggestBtn = await screen.findByRole("button", { name: "اقتراح رد بالذكاء الاصطناعي" })
+    await waitFor(() => expect(suggestBtn).toBeEnabled())
+    fireEvent.click(suggestBtn)
+
+    await waitFor(() => expect(api.callsFor("/api/ai/generate-reply")).toHaveLength(1), { timeout: 5000 })
+    /* السياق = آخر رسالة عميل (m3) لا الأولى + هوية المحادثة —
+     * يُفكّ ترميز الجسم بدل مقارنة الترميز الحرفي (+ مقابل %20) */
+    const sent = new URLSearchParams(api.callsFor("/api/ai/generate-reply")[0]!.body ?? "")
+    expect(sent.get("comment_text")).toBe("كم سعر التوصيل لوسط البلد؟")
+    expect(sent.get("commenter_name")).toBe("أحمد")
+    /* الناتج مسوّدة في الحقل — جاهزة للمراجعة، لم تُرسل */
+    await waitFor(() =>
+      expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe(
+        "التوصيل لوسط البلد 5 دنانير خلال ساعة 🚚",
+      ),
+    )
+    expect(mocks.toastInfo).toHaveBeenCalledWith("اقتراح جاهز — راجعه ثم أرسله")
+    /* لا إرسال آلي: لا طلب رد إطلاق */
+    expect(api.calls.filter((c) => c.url.includes("/reply"))).toHaveLength(0)
+  })
+
+  it("an empty reply surfaces the server's WHY (v23 contract) — no silent no-op", async () => {
+    const api = stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: THREAD }),
+      "POST /api/ai/generate-reply": () =>
+        jsonRes({ success: true, data: { reply: "", error: "حصة الذكاء اليومية انتهت" } }),
+    })
+    renderMessages()
+    await openConversationAt(0)
+
+    /* بانتظار الخيط — الزر معطّل قبل اكتمال التحميل */
+    expect(await screen.findByText("كم سعر التوصيل لوسط البلد؟")).toBeInTheDocument()
+    const suggestBtn = await screen.findByRole("button", { name: "اقتراح رد بالذكاء الاصطناعي" })
+    await waitFor(() => expect(suggestBtn).toBeEnabled())
+    fireEvent.click(suggestBtn)
+
+    await waitFor(() => expect(api.callsFor("/api/ai/generate-reply")).toHaveLength(1), { timeout: 5000 })
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith("حصة الذكاء اليومية انتهت"))
+    /* الحقل بقي كما كان — لا زرع لنص فارغ */
+    expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("")
   })
 })

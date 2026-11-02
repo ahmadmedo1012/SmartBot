@@ -437,9 +437,22 @@ export default function SupportPage() {
           </h2>
 
           {ticketsQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+            /* W2-BOT-8 (P42-W3، تدقيق 3a): سبينر عارٍ → شرائح skeleton
+               مطابقة لشكل صف التذكرة (عنوان + شارتان + سطر تاريخ —
+               قانون r131-F8). */
+            <div className="space-y-2" role="status" aria-live="polite">
               <span className="sr-only">جارٍ التحميل…</span>
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              {[1, 2, 3].map(i => (
+                <Card key={i}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="skeleton h-4 w-2/3" />
+                    <div className="flex gap-2">
+                      <div className="skeleton h-5 w-14 rounded-full" />
+                      <div className="skeleton h-5 w-16 rounded-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           ) : ticketsQuery.isError ? (
             <Card>

@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
-import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp, ChevronDown, WifiOff, AlertCircle } from "lucide-react"
+import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp, ChevronDown, WifiOff, AlertCircle, Sparkles } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -727,6 +727,34 @@ function MessagesView() {
     }
   }
 
+  /* W2-BOT-6 (P42-W3، تدقيق 3a): مساعدة ذكية داخل المحادثة — أول مستهلك
+   * لـ POST /api/ai/generate-reply (كان بلا واجهة منذ v23). سياق التوليد
+   * = آخر رسالة عميل في هذا الخيط + اسمه؛ الناتج يُزرع في حقل الرد
+   * كمسوّدة يراجعها الإنسان ويعدّلها قبل الإرسال — لا إرسال آلي أبدًا
+   * (عقيد اللمسة البشرية). عقد الخادم v23: الرد الفارغ يحمل السبب
+   * (data.error) — يُعرض كما هو (منطقة/حصة/مزوّد). */
+  const aiAssistMut = useMutation({
+    mutationFn: async () => {
+      const lastCustomer = [...messages].reverse().find(m => m.is_from_page !== true)
+      if (!lastCustomer?.message?.trim()) throw new Error("لا توجد رسالة عميل في المحادثة لاقتراح رد عليها")
+      const res = await apiFetch("/api/ai/generate-reply", {
+        method: "POST",
+        body: new URLSearchParams({
+          comment_text: lastCustomer.message,
+          commenter_name: threadIdentity,
+        }),
+      })
+      const data = await unwrapApi<{ reply: string; error?: string }>(res)
+      if (!data.reply) throw new Error(data.error || "المزوّد لم يرجع ردًا")
+      return data.reply
+    },
+    onSuccess: (reply) => {
+      updateDraft(reply)
+      brandedToast.info("اقتراح جاهز — راجعه ثم أرسله")
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر توليد الرد"),
+  })
+
   return (
     <div className="flex-1 flex flex-col">
       {/* v24-C2 (task 6 / A3-M3): scoped style for the immersive thread —
@@ -1279,6 +1307,24 @@ function MessagesView() {
 
               <div className="border-t border-border/60 p-3 bg-card/80 backdrop-blur-sm">
                 <div className="flex gap-2 items-end">
+                  {/* W2-BOT-6: اقتراح رد بالذكاء داخل الخيط — يحل محل حقل
+                      فارغ أمام رسالة غاضبة؛ الناتج مسوّدة للمراجعة لا إرسالًا
+                      آليًا (زر الإرسال يبقى بيد الإنسان دائمًا). */}
+                  <Button
+                    variant="outline"
+                    onClick={() => aiAssistMut.mutate()}
+                    loading={aiAssistMut.isPending}
+                    disabled={sendMut.isPending || msgLoading || messages.length === 0}
+                    className="shrink-0"
+                    aria-label="اقتراح رد بالذكاء الاصطناعي"
+                    title={
+                      messages.length === 0
+                        ? "بانتظار تحميل المحادثة…"
+                        : "اقتراح رد بالذكاء الاصطناعي — يُزرع كمسوّدة للمراجعة"
+                    }
+                  >
+                    <Sparkles className="size-4" aria-hidden="true" />
+                  </Button>
                   {/* r131-F8 (A4 P1-3/P2-4): pending state rides the Button
                       loading prop (spinner + aria-busy, 700ms register) and
                       the accent glow shadow is dropped — the gold variant

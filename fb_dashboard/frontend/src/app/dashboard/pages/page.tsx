@@ -110,9 +110,18 @@ export default function PagesPage() {
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (
-          <Card><CardContent className="p-6 flex items-center gap-4">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">جارٍ التحميل…</span>
+          /* W2-BOT-8 (P42-W3، تدقيق 3a): سبينر Loader2 عارٍ → شرائح
+             skeleton مطابقة للشكل (قانون r131-F8 — هيكل الحالة المحمّلة
+             نفسه بلا محتوى، لا مؤشر دوران بلا شكل). */
+          <Card><CardContent className="p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="skeleton size-10 rounded-lg" />
+              <div className="space-y-1.5 flex-1">
+                <div className="skeleton h-4 w-1/3" />
+                <div className="skeleton h-3 w-1/2" />
+              </div>
+            </div>
+            <div className="skeleton h-9 w-full" />
           </CardContent></Card>
         ) : (
           <>

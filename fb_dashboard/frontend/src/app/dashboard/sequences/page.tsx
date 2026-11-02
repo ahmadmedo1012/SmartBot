@@ -10,7 +10,11 @@
  * خريطة العقد المقروءة من routers/sequences.py (غلاف _responses.ok):
  *   GET    /api/sequences                       → list_sequences: صفوف {id,name,
  *          description,status,total_subscribers,total_sent,subscriber_count,
- *          created_at,updated_at} — بلا عدد خطوات (تُجلب تفاصيلًا).
+ *          created_at,updated_at, step_count} — عدد الخطوات يصل في صف
+ *          القائمة نفسه منذ v24-C4 (استعلام COUNT مجمّع واحد في الموجّه؛
+ *          W2-BOT-7: كان التعليق يقول «بلا عدد خطوات» والصفحة تجلب
+ *          تفاصيل كل حملة على حدة — N+1 طلبات لعقد صار يوفرها الاست
+ *          الواحد).
  *   POST   /api/sequences {name,description?}   → {id} (editor role)
  *   GET    /api/sequences/{id}                  → كائن + steps[] مفصّلة
  *   PUT    /api/sequences/{id} {name?,description?,status?} → {ok} (editor)
@@ -65,6 +69,9 @@ interface SequenceRow {
   total_subscribers?: number
   total_sent?: number
   subscriber_count?: number
+  /** عدد الخطوات من صف القائمة نفسه (v24-C4 — استعلام COUNT مجمّع
+   *  في الموجّه؛ W2-BOT-7: كان يُجلب بتفاصيل متوازية N+1 قبل ذلك). */
+  step_count?: number
   created_at?: string | null
   updated_at?: string | null
 }
@@ -123,10 +130,10 @@ function delayCode(days: number, hours: number): string {
   return `+${days}d ${String(hours).padStart(2, "0")}h`
 }
 
-/* v24-C1: tolerant step-count read for the list cards — the enrichment
- * (parallel detail fetch) owns step_count today (-1 = fetch failed → «—»),
- * but the list contract may later ship step_count or inline steps straight
- * from the backend; fall back instead of rendering «—» for a healthy row. */
+/* v24-C1: tolerant step-count read for the list cards — the backend ships
+ * step_count directly on the rows since v24-C4 (W2-BOT-7: the parallel
+ * detail fetch is retired); the reader stays tolerant for older caches /
+ * inline-steps variants, falling back instead of rendering «—». */
 function stepCountOf(s: SequenceCardRow): number {
   return s.step_count ?? s.steps?.length ?? 0
 }
@@ -676,23 +683,11 @@ export default function SequencesPage() {
 
   const { data: sequences = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["sequences"],
-    queryFn: async () => {
-      const list = await apiFetch("/api/sequences").then(unwrapApi<SequenceRow[]>)
-      /* عقد القائمة لا يشمل عدد الخطوات — جلب تفاصيل متوازٍ (قوائم إدارية
-       * صغيرة؛ فشل تفصيل يتدرّج إلى «—» دون إسقاط القائمة). */
-      const counts = await Promise.all(
-        (list ?? []).map(async (s) => {
-          try {
-            const d = await apiFetch(`/api/sequences/${s.id}`).then(unwrapApi<SequenceDetail>)
-            return [s.id, d?.steps?.length ?? 0] as const
-          } catch {
-            return [s.id, -1] as const
-          }
-        }),
-      )
-      const stepCounts = new Map(counts)
-      return (list ?? []).map((s) => ({ ...s, step_count: stepCounts.get(s.id) ?? -1 }))
-    },
+    /* W2-BOT-7 (P42-W3، تدقيق 3ا): عقد القائمة يوفر step_count منذ
+     * v24-C4 (COUNT مجمّع واحد في الموجّه) — كان هذا الاستعلام يجلب
+     * تفاصيل كل حملة على حدة (N+1 طلبات) ليعدّ الخطوات نفسها. طلب
+     * واحد الآن؛ stepCountOf يظل متسامحًا مع الصفوف بلا الحقل. */
+    queryFn: () => apiFetch("/api/sequences").then(unwrapApi<SequenceRow[]>),
     retry: 1,
   })
 

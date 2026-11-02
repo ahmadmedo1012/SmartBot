@@ -95,6 +95,9 @@ const ACTIVE_SEQ = {
   total_subscribers: 3,
   total_sent: 12,
   subscriber_count: 2,
+  /* W2-BOT-7: عدد الخطوات من صف القائمة نفسه (عقد v24-C4 — COUNT
+   * مجمّع في الموجّه)؛ جلب التفاصيل المتوازي تقاعد. */
+  step_count: 2,
   created_at: "2026-09-01T10:00:00Z",
   updated_at: "2026-09-05T10:00:00Z",
 }
@@ -106,6 +109,7 @@ const DRAFT_SEQ = {
   total_subscribers: 0,
   total_sent: 0,
   subscriber_count: 0,
+  step_count: 0,
   created_at: "2026-09-02T10:00:00Z",
   updated_at: "2026-09-02T10:00:00Z",
 }
@@ -133,19 +137,12 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe("list cards (contract: statuses + joined step counts)", () => {
-  it("renders names, REAL statuses, step counts and subscriber stats from the list + detail endpoints", async () => {
+describe("list cards (contract: statuses + step counts from the LIST rows)", () => {
+  it("renders names, REAL statuses, step counts and subscriber stats — step_count rides the list row (v24-C4; no N+1 detail fetch)", async () => {
+    /* W2-BOT-7: عقد القائمة الجديد — step_count في الصف نفسه. كان
+     * الاختبار يزيّف تفاصيل متوازية لكل حملة؛ الآن طلب واحد. */
     stubFetch({
       "GET /api/sequences": () => jsonRes({ success: true, data: [ACTIVE_SEQ, DRAFT_SEQ] }),
-      "GET /api/sequences/1": () =>
-        jsonRes({
-          success: true,
-          data: detailOf(ACTIVE_SEQ, [
-            { id: 11, step_order: 0, delay_days: 0, delay_hours: 0, message_template: "أهلاً" },
-            { id: 12, step_order: 1, delay_days: 2, delay_hours: 0, message_template: "كيف تجد المنتج؟" },
-          ]),
-        }),
-      "GET /api/sequences/2": () => jsonRes({ success: true, data: detailOf(DRAFT_SEQ, []) }),
     })
     renderPage()
 
@@ -154,7 +151,7 @@ describe("list cards (contract: statuses + joined step counts)", () => {
     /* real backend statuses — NOT the task-brief's pending/completed guesses */
     expect(screen.getByText("نشطة")).toBeInTheDocument()
     expect(screen.getByText("مسودة")).toBeInTheDocument()
-    /* step count enriched from the detail fetch: "خطوتين" for seq 1 */
+    /* step count from the LIST row's own step_count: "خطوتين" for seq 1 */
     expect(screen.getByText(/خطوتين/)).toBeInTheDocument()
   })
 })

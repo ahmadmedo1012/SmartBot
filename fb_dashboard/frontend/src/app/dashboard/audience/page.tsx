@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
-import { Users, Activity, AlertCircle, RefreshCw, Tags, TagPlus, Loader2 } from "lucide-react"
+import { Users, Activity, AlertCircle, RefreshCw, Tags, TagPlus, Loader2, BellOff, BellRing } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { KpiCard, KpiCardSkeleton } from "@/components/shared/KpiCard"
@@ -48,6 +48,31 @@ export default function AudiencePage() {
   /* v25 (W-05): صفحة المشتركين الحالية — تتبع مفتاح الاستعلام فتُجلب
    * النافذة المطلوبة من الخلفية. */
   const [subsPage, setSubsPage] = useState(1)
+  /* W2-BOT-9 (P42-W3، تدقيق 3ا): إلغاء/إعادة اشتراك المشترِك — الخطوة
+   * الأولى تسلّح التأكيد (لا إلغاء بلمسة أيقونة واحدة — عائلة v25 W-03)
+   * والثانية تنفّذ. عقد الخادم: POST /api/subscribers/{id}/unsubscribe
+   * (400 إن لم يكن نشطًا) و /resubscribe؛ إبطال مفتاح الاشتراكات يجدّد
+   * القائمة والعدادات — ومحرك التوزيع يستقبل status=="active" حصراً
+   * فالإلغاء يسقطه من كل بث لاحق فعلياً لا شكلياً. */
+  const [confirmUnsub, setConfirmUnsub] = useState<Subscriber | null>(null)
+  const queryClient = useQueryClient()
+  const unsubMut = useMutation({
+    mutationFn: (id: number) => apiFetch(`/api/subscribers/${id}/unsubscribe`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subscribers"] })
+      setConfirmUnsub(null)
+      brandedToast.success("أُلغي الاشتراك — لن يصله البث الجماعي بعد الآن")
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إلغاء الاشتراك"),
+  })
+  const resubMut = useMutation({
+    mutationFn: (id: number) => apiFetch(`/api/subscribers/${id}/resubscribe`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subscribers"] })
+      brandedToast.success("أُعيد الاشتراك — سيصله البث الجماعي من جديد")
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّرت إعادة الاشتراك"),
+  })
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
     queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi<AnalyticsOverview>),
@@ -252,6 +277,56 @@ export default function AudiencePage() {
                       >
                         <TagPlus className="size-4" />
                       </Button>
+                      {/* W2-BOT-9: مخرج اشتراك البث — التفعيل أولًا ثم تأكيد
+                          تدميري ثانٍ (الإلغاء يوقف وصول البث فعلياً)، وإعادة
+                          الاشتراك بلمسة واحدة (استرجاع لا حذف). */}
+                      {s.status === "active" ? (
+                        confirmUnsub?.id === s.id ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => unsubMut.mutate(s.id)}
+                              disabled={unsubMut.isPending && unsubMut.variables === s.id}
+                              loading={unsubMut.isPending && unsubMut.variables === s.id}
+                            >
+                              <BellOff className="size-3.5" aria-hidden="true" /> تأكيد إلغاء الاشتراك
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setConfirmUnsub(null)}
+                              aria-label="التراجع عن إلغاء اشتراك المشترِك"
+                            >
+                              إلغاء
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="size-11 p-0"
+                            onClick={() => setConfirmUnsub(s)}
+                            aria-label={`إلغاء اشتراك ${s.name || `#${s.id}`} من البث الجماعي`}
+                            title="إلغاء الاشتراك — يتوقف وصول البث الجماعي إليه"
+                          >
+                            <BellOff className="size-4" aria-hidden="true" />
+                          </Button>
+                        )
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="size-11 p-0"
+                          onClick={() => resubMut.mutate(s.id)}
+                          disabled={resubMut.isPending && resubMut.variables === s.id}
+                          loading={resubMut.isPending && resubMut.variables === s.id}
+                          aria-label={`إعادة اشتراك ${s.name || `#${s.id}`} في البث الجماعي`}
+                          title="إعادة الاشتراك — يعود البث الجماعي للوصول إليه"
+                        >
+                          <BellRing className="size-4" aria-hidden="true" />
+                        </Button>
+                      )}
                       <Badge variant={s.status === "active" ? "success" : "secondary"}>
                         {s.status === "active" ? "نشط" : "غير نشط"}
                       </Badge>

@@ -4,7 +4,7 @@ from _responses import ok
 from _services import subscriber_engine, tag_engine
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from models import User
+from models import Subscriber, User
 
 from routers.auth import get_current_user, require_role
 from routers.broadcasts import _json_body, _required_key
@@ -79,3 +79,34 @@ async def delete_tag(tag_id: int, db=Depends(get_db), current_user: User = Depen
     if not done:
         raise HTTPException(404, "الوسم غير موجود")
     return ok({"ok": True})
+
+
+# ── W2-BOT-9 (P42-W3، تدقيق 3a): إلغاء الاشتراك من البث الجماعي ──────────────
+# الفجوة: محرك التوزيع يستقبل status=="active" حصرًا (broadcast_engine.py
+# fan-out + estimate) لكن لم يكن للمشترك مخرج من لوحة التاجر — زبون طلب
+# التوقف كان يبقى «active» ويستمر البث يصله. العقد: إلغاء الاشتراك =
+# status=inactive (يسقط من كل بث وتقدير لاحق — نفس معاملة الزبون الذي
+# انسحب عبر البوت)، وإعادة الاشتراك تعيده. محصور بالمستأجر (نفس بوابة
+# get_detail) وبصلاحيات editor (عائلة الكتابة في هذا الملف).
+@router.post("/api/subscribers/{sub_id}/unsubscribe")
+async def unsubscribe_subscriber(sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    sub = await db.get(Subscriber, sub_id)
+    if not sub or sub.tenant_id != current_user._tenant_id:
+        raise HTTPException(404, "المشترك غير موجود")
+    if sub.status != "active":
+        raise HTTPException(400, "المشترك ليس نشطاً أصلاً")
+    sub.status = "inactive"
+    await db.commit()
+    return ok({"status": sub.status})
+
+
+@router.post("/api/subscribers/{sub_id}/resubscribe")
+async def resubscribe_subscriber(sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    sub = await db.get(Subscriber, sub_id)
+    if not sub or sub.tenant_id != current_user._tenant_id:
+        raise HTTPException(404, "المشترك غير موجود")
+    if sub.status == "active":
+        raise HTTPException(400, "المشترك نشط بالفعل")
+    sub.status = "active"
+    await db.commit()
+    return ok({"status": sub.status})

@@ -12,6 +12,10 @@ export const metadata: Metadata = {
     description: "لوحة تحكم تفاعلية ببيانات تجريبية — بدون تسجيل.",
     url: `${BASE}/demo`,
     type: "website",
+    // P42-W7 (SEO audit): og:locale re-declared — the child openGraph
+    // object REPLACES the root one, so the r133 ar_AR ruling was live on
+    // the landing page only (see the pricing layout twin for the full note).
+    locale: "ar_AR",
     // v9-E2: a child openGraph object REPLACES the root one (shallow merge)
     // — without this images[] the route loses its og:image card entirely.
     // r134: og:image alt rides the family form «الربط الذكي — SmartBot» (root layout twin).

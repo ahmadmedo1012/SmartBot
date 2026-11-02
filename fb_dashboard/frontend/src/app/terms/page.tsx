@@ -18,6 +18,10 @@ export const metadata: Metadata = {
     // v9-E2: child openGraph replaces the root object (shallow merge) —
     // re-declare url + images or the route loses its og:image card.
     url: `${siteUrl}/terms`,
+    // P42-W7 (SEO audit): og:locale re-declared — the child openGraph
+    // object REPLACES the root one, so the r133 ar_AR ruling was live on
+    // the landing page only (see the pricing layout twin for the full note).
+    locale: "ar_AR",
     // r134: og:image alt rides the family form «الربط الذكي — SmartBot» (root layout twin).
     images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "الربط الذكي — SmartBot" }],
   },

@@ -51,10 +51,15 @@ export const metadata: Metadata = {
     images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "الربط الذكي — SmartBot" }],
   },
   twitter: {
+    /* P42-W7 (SEO audit): title/description REMOVED — a root-level
+     * twitter.title survives on every child route (children don't
+     * override twitter), so an X card for e.g. /pricing showed the HOME
+     * title while its og:title said «خطط وأسعار SmartBot» — the
+     * P40-5b one-honest-string-per-page doctrine broken across surfaces.
+     * X/Discord fall back to og:title/og:description when twitter:title
+     * is absent, so the card type + image here are enough: every route
+     * renders its own og strings on X, identical output on /. */
     card: "summary_large_image",
-    title: "سمارت بوت — بوت ردود ذكي وإدارة صفحات فيسبوك في ليبيا | SmartBot",
-    description:
-      "منصة ليبية لإدارة صفحات فيسبوك — ردود آلية ذكية، تحليلات متقدمة، وجدولة منشورات",
     images: ["/opengraph-image.png"],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },

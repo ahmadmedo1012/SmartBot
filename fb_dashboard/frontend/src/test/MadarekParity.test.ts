@@ -882,3 +882,80 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(mob).toMatch(/\.ln-ticker-msg\s*\{[^}]*white-space:\s*nowrap/) // the ONE-line console
   })
 })
+
+describe("P42-W7 SEO — og:locale family · og:image completeness · twitter per-route fallback · JSON-LD truth sync · robots/sitemap contract", () => {
+  const nc = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, " ")
+  const read = (p: string) => nc(readFileSync(p, "utf8"))
+
+  /* The full public OG surface inventory: root + every route whose
+     openGraph object REPLACES the root one (v9-E2 shallow-merge doctrine).
+     Adding a public route that declares openGraph = add it here. */
+  const ogSurfaces = [
+    "src/app/layout.tsx", "src/app/pricing/layout.tsx", "src/app/register/layout.tsx",
+    "src/app/demo/layout.tsx", "src/app/subscribe/layout.tsx", "src/app/privacy/page.tsx",
+    "src/app/terms/page.tsx", "src/app/login/layout.tsx", "src/app/connect/layout.tsx",
+  ]
+
+  it("og:locale = ar_AR on EVERY public OG surface (r133 A12-S13/R11 — the child object replaces the root, so each route must re-state it)", () => {
+    for (const f of ogSurfaces) {
+      expect(read(f), f).toContain('locale: "ar_AR"')
+    }
+  })
+
+  it("og:image completeness: login + connect re-declare the card (v9-E2 — no public route ships an imageless OG object)", () => {
+    // login was the one PUBLIC cacheable route with no og:image (its card
+    // rendered imageless on WhatsApp, the market's dominant share channel);
+    // connect joins for family consistency (middleware 307s anonymous
+    // crawlers, so its card is defense-in-depth like its noindex).
+    for (const f of ["src/app/login/layout.tsx", "src/app/connect/layout.tsx"]) {
+      expect(read(f), f).toContain('images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "الربط الذكي — SmartBot" }]')
+      expect(read(f), f).toContain('type: "website"')
+    }
+  })
+
+  it("root twitter carries card + images ONLY — title/description ride the per-route og fallback (P40-5b unification, per page)", () => {
+    const twitterBlock = read("src/app/layout.tsx").match(/twitter:\s*\{([^}]*)\}/)?.[1] ?? ""
+    expect(twitterBlock).toContain('card: "summary_large_image"')
+    expect(twitterBlock).toContain('images: ["/opengraph-image.png"]')
+    expect(twitterBlock, "a root twitter.title pins the HOME title onto every route's X card").not.toMatch(/\btitle\s*:/)
+    expect(twitterBlock, "a root twitter.description pins the HOME description onto every route's X card").not.toMatch(/\bdescription\s*:/)
+  })
+
+  it("FAQ JSON-LD truth sync: the structured answer equals the visible FAQ copy (the honest encryption scope, W2-C3)", () => {
+    // The W2-C3 encryption-scope fix (c5800ea2) rewrote the VISIBLE FAQ
+    // answer; the FAQPage schema twin kept the retired broad claim
+    // «جميع البيانات مشفرة». Google's structured-data policy requires the
+    // marked-up content to match the page — and the old string was the
+    // over-broad claim the visible copy no longer makes.
+    const rawPage = read("src/app/page.tsx")
+    const honest = "اتصالك بالمنصة مشفّر بالكامل (SSL)، والأسرار الحساسة تُخزّن مشفّرة على خوادمنا. لا نشارك معلومات صفحاتك مع أي جهة خارجية."
+    expect(rawPage).toContain(honest)
+    expect(read("src/components/landing/landing-data.ts"), "the visible FAQ twin (LandingFaq renders FAQS verbatim)").toContain(honest)
+    expect(rawPage).not.toContain("جميع البيانات مشفرة")
+  })
+
+  it("Organization JSON-LD language claims: Arabic only (r144 — the product is Arabic-only at every surface; ar+en had zero backing)", () => {
+    const rawPage = read("src/app/page.tsx")
+    expect(rawPage).toContain('knowsLanguage: ["ar"]')
+    expect(rawPage).toContain('availableLanguage: ["Arabic"]')
+    expect(rawPage).not.toContain('knowsLanguage: ["ar", "en"]')
+    expect(rawPage).not.toContain('availableLanguage: ["Arabic", "English"]')
+  })
+
+  it("robots/sitemap contract: private areas disallowed + absent from the sitemap, the indexable public routes listed", () => {
+    const rawRobots = read("src/app/robots.ts")
+    const rawSitemap = read("src/app/sitemap.ts")
+    // robots.txt: the auth-gated areas stay out of the crawl (and the
+    // onboarding entry already retired in P40-5b stays retired).
+    expect(rawRobots).toContain('disallow: ["/dashboard", "/admin", "/connect", "/api"]')
+    expect(rawRobots).not.toContain('"/onboarding"')
+    // sitemap: exactly the INDEXABLE public routes — /login (noindex) and
+    // /connect (noindex + disallowed) must never be listed.
+    for (const pub of ['path: ""', '"/pricing"', '"/register"', '"/demo"', '"/subscribe"', '"/privacy"', '"/terms"']) {
+      expect(rawSitemap, pub).toContain(pub)
+    }
+    for (const priv of ["/dashboard", "/admin", "/connect", "/login", "/onboarding"]) {
+      expect(rawSitemap, priv).not.toContain(`"${priv}"`)
+    }
+  })
+})

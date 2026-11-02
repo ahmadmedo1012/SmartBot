@@ -2974,6 +2974,82 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('W21-B rail geometry: 80px rail + 52px slots unchanged (the separators group, they do not widen)');
 }
 
+// ── §P42-W7 — SEO discoverability pins (the W7 audit's regression wall) ─────
+{
+  /* Self-contained block (own comment-stripping reader — the vitest twin is
+     src/test/MadarekParity.test.ts's P42-W7 describe). Pins the shallow-merge
+     OG doctrine (v9-E2) at its full surface count, the per-route twitter
+     fallback (P40-5b unification per page), the JSON-LD truth sync (FAQPage
+     answer == the visible FAQ copy; Arabic-only language claims per r144),
+     and the robots/sitemap public-route contract. */
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const read = (p) => nc(readFileSync(new URL(p, import.meta.url), 'utf8'));
+
+  // (1) og:locale = ar_AR on EVERY public OG surface — the child openGraph
+  //     object REPLACES the root one (v9-E2), so the r133 ar_AR ruling
+  //     must be re-stated per route (it was live on the landing only).
+  const ogSurfaces = [
+    '../src/app/layout.tsx', '../src/app/pricing/layout.tsx', '../src/app/register/layout.tsx',
+    '../src/app/demo/layout.tsx', '../src/app/subscribe/layout.tsx', '../src/app/privacy/page.tsx',
+    '../src/app/terms/page.tsx', '../src/app/login/layout.tsx', '../src/app/connect/layout.tsx',
+  ];
+  const localeOk = ogSurfaces.every((f) => read(f).includes('locale: "ar_AR"'));
+  if (localeOk) pass += 1;
+  else fails.push('P42-W7 og:locale: every public OG surface must re-declare locale "ar_AR" (child openGraph replaces the root — r133 A12-S13/R11)');
+
+  // (2) og:image completeness — /login (public, cacheable, WhatsApp-shared)
+  //     and /connect (family consistency; middleware 307s anonymous
+  //     crawlers) re-declare the full card, never an imageless OG object.
+  const ogImageOk = ['../src/app/login/layout.tsx', '../src/app/connect/layout.tsx']
+    .every((f) => read(f).includes('images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "الربط الذكي — SmartBot" }]'));
+  if (ogImageOk) pass += 1;
+  else fails.push('P42-W7 og:image: login + connect must re-declare the og:image card (v9-E2 — no public route ships an imageless OG object)');
+
+  // (3) root twitter = card + images ONLY — a root-level twitter.title
+  //     survives on every child route and pins the HOME title onto their
+  //     X cards; title/description ride the per-route og fallback.
+  const twitterBlock = read('../src/app/layout.tsx').match(/twitter:\s*\{([^}]*)\}/)?.[1] ?? '';
+  const twitterOk = twitterBlock.includes('card: "summary_large_image"')
+    && twitterBlock.includes('images: ["/opengraph-image.png"]')
+    && !/\btitle\s*:/.test(twitterBlock) && !/\bdescription\s*:/.test(twitterBlock);
+  if (twitterOk) pass += 1;
+  else fails.push('P42-W7 twitter: root carries card + images only (per-route titles ride the og fallback — P40-5b unification per page)');
+
+  // (4) FAQ JSON-LD truth sync — the FAQPage answer equals the visible FAQ
+  //     copy (the W2-C3 honest encryption scope); the retired broad claim
+  //     «جميع البيانات مشفرة» must never return to the schema.
+  const rawW7Page = read('../src/app/page.tsx');
+  const honestW7 = 'اتصالك بالمنصة مشفّر بالكامل (SSL)، والأسرار الحساسة تُخزّن مشفّرة على خوادمنا. لا نشارك معلومات صفحاتك مع أي جهة خارجية.';
+  const faqSyncOk = rawW7Page.includes(honestW7)
+    && read('../src/components/landing/landing-data.ts').includes(honestW7)
+    && !rawW7Page.includes('جميع البيانات مشفرة');
+  if (faqSyncOk) pass += 1;
+  else fails.push('P42-W7 FAQ schema: the structured answer must equal the visible FAQ copy (honest encryption scope) — zero «جميع البيانات مشفرة»');
+
+  // (5) Organization JSON-LD language claims — Arabic only (r144: the
+  //     product is Arabic-only at every surface; ar+en had zero backing).
+  const langOk = rawW7Page.includes('knowsLanguage: ["ar"]')
+    && rawW7Page.includes('availableLanguage: ["Arabic"]')
+    && !rawW7Page.includes('knowsLanguage: ["ar", "en"]')
+    && !rawW7Page.includes('availableLanguage: ["Arabic", "English"]');
+  if (langOk) pass += 1;
+  else fails.push('P42-W7 org schema: knowsLanguage/availableLanguage Arabic-only (r144 Arabic-only doctrine)');
+
+  // (6) robots/sitemap contract — the auth-gated areas stay disallowed and
+  //     out of the sitemap; the sitemap lists exactly the indexable public
+  //     routes (/login + /connect are noindex by contract, never listed).
+  const rawW7Robots = read('../src/app/robots.ts');
+  const rawW7Sitemap = read('../src/app/sitemap.ts');
+  const robotsOk = rawW7Robots.includes('disallow: ["/dashboard", "/admin", "/connect", "/api"]')
+    && !rawW7Robots.includes('"/onboarding"');
+  const sitemapOk = ['path: ""', '"/pricing"', '"/register"', '"/demo"', '"/subscribe"', '"/privacy"', '"/terms"']
+    .every((s) => rawW7Sitemap.includes(s))
+    && !['"/dashboard"', '"/admin"', '"/connect"', '"/login"', '"/onboarding"']
+      .some((s) => rawW7Sitemap.includes(s));
+  if (robotsOk && sitemapOk) pass += 1;
+  else fails.push('P42-W7 robots/sitemap: private areas disallowed + unlisted; the sitemap carries exactly the indexable public routes');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Machine Instrument parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css instrument layer == the phase17 contract + the character-led cinematic hero composition)`

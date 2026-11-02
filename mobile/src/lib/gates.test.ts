@@ -24,7 +24,15 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, apiFetch, setAuthToken, setSuspendedHandler, setUnauthorizedHandler } from '@/services/api'
-import { isPlanLocked, isTenantSuspended, planLockedMessage, GATE_FAMILY_SUFFIX } from '@/lib/gates'
+import {
+  isPlanLocked,
+  isSeatLimit,
+  isTenantSuspended,
+  planLockedMessage,
+  seatLimitMessage,
+  GATE_FAMILY_SUFFIX,
+  SEAT_LIMIT_PREFIX,
+} from '@/lib/gates'
 
 /** GATE_MESSAGES — حرفيًا من fb_dashboard/_plan_gates.py (العائلة الخمس). */
 const GATE_FAMILY = [
@@ -48,6 +56,17 @@ const RULES_LIMIT_MSG = 'حد قواعد الرد لخطتك هو 25 — رقِ�
 
 /** auth.py:115 — رسالة الإيقاف الحرفية. */
 const SUSPENDED_MSG = 'حساب المنظمة موقوف أو محذوف — تواصل مع الدعم'
+
+/* ── GAP-BOT-3 (P42-5b): عائلة كوطة مقاعد الفريق (users.py:22) ─────── */
+
+/** قالب _TEAM_LIMIT_MSG حرفيًا بعد التنسيق ({} ← n) — نسخ من
+ *  fb_dashboard/routers/users.py:22. الفارق المقصود عن عائلة البوابات:
+ *  ينتهي بـ«لإضافة المزيد» لا بـ«رقِّ خطتك»، و«رقّ» هنا بلا كسرة. */
+const TEAM_LIMIT_MSG_N3 = 'حد أعضاء الفريق لخطتك هو 3 — رقّ خطتك لإضافة المزيد'
+const TEAM_LIMIT_MSG_N10 = 'حد أعضاء الفريق لخطتك هو 10 — رقّ خطتك لإضافة المزيد'
+
+/** users.py:27 — حارس منح دور مدير المنصة (403 عربي يبقى خطأً حقيقيًا). */
+const ADMIN_ROLE_MSG = 'تعيين دور «مدير» متاح لمدير المنصة فقط — يمكنك تعيين «محرر» أو «مشاهد»'
 
 describe('isPlanLocked — عائلة بوابات الخطة (GAP-X1 · توأم P21-W5-C1)', () => {
   it.each(GATE_FAMILY)('رسالة البوابة «%s» تُقرّ قفلًا', (message) => {
@@ -96,6 +115,58 @@ describe('isPlanLocked — عائلة بوابات الخطة (GAP-X1 · توأ�
 
   it('لاحقة العائلة نفسها لا تنحرف عن عقد «رقِّ خطتك»', () => {
     expect(GATE_FAMILY_SUFFIX).toBe('رقِّ خطتك')
+  })
+})
+
+describe('isSeatLimit — عائلة كوطة مقاعد الفريق (GAP-BOT-3 · توأم v17-E-B2)', () => {
+  it.each([
+    ['حد أعضاء الفريق لخطتك هو 3', TEAM_LIMIT_MSG_N3],
+    ['حد أعضاء الفريق لخطتك هو 10', TEAM_LIMIT_MSG_N10],
+  ])('رسالة الكوطة المنسّقة (%s…) تُقرّ كوطة', (_label, message) => {
+    expect(isSeatLimit(new ApiError(403, { detail: message }))).toBe(true)
+  })
+
+  it('سابقة العائلة حرفية من رأس قالب users.py:22', () => {
+    expect(SEAT_LIMIT_PREFIX).toBe('حد أعضاء الفريق لخطتك هو')
+  })
+
+  it('الكوطة ليست قفل خطة — لاحقتها «لإضافة المزيد» لا «رقِّ خطتك» (فصل العائلتين)', () => {
+    expect(isPlanLocked(new ApiError(403, { detail: TEAM_LIMIT_MSG_N3 }))).toBe(false)
+  })
+
+  it('الكوطة ليست إيقاف منظمة', () => {
+    expect(isTenantSuspended(new ApiError(403, { detail: TEAM_LIMIT_MSG_N3 }))).toBe(false)
+  })
+
+  it('بوابة الخطة (لاحقة «رقِّ خطتك») ليست كوطة مقاعد', () => {
+    expect(isSeatLimit(new ApiError(403, { detail: GATE_FAMILY[0] }))).toBe(false)
+    expect(isSeatLimit(new ApiError(403, { detail: ROLLOUT_GATES[0] }))).toBe(false)
+  })
+
+  it('حد القواعد (rules.py) ليس كوطة مقاعد — ينهي بـ«رقِّ خطتك» فيُقرّ قفلًا (عائلته الأصلية)', () => {
+    expect(isSeatLimit(new ApiError(403, { detail: RULES_LIMIT_MSG }))).toBe(false)
+    expect(isPlanLocked(new ApiError(403, { detail: RULES_LIMIT_MSG }))).toBe(true)
+  })
+
+  it('حارس دور مدير المنصة (users.py:27) يبقى خطأً حقيقيًا — لا كوطة ولا قفلًا', () => {
+    expect(isSeatLimit(new ApiError(403, { detail: ADMIN_ROLE_MSG }))).toBe(false)
+    expect(isPlanLocked(new ApiError(403, { detail: ADMIN_ROLE_MSG }))).toBe(false)
+  })
+
+  it('«صلاحيات غير كافية» ليست كوطة', () => {
+    expect(isSeatLimit(new ApiError(403, { detail: 'صلاحيات غير كافية' }))).toBe(false)
+  })
+
+  it('نص الكوطة بحالة غير 403 لا يُقرّ كوطة (لا نُخمّن من نص فقط)', () => {
+    expect(isSeatLimit(new ApiError(400, { detail: TEAM_LIMIT_MSG_N3 }))).toBe(false)
+    expect(isSeatLimit(new Error(TEAM_LIMIT_MSG_N3))).toBe(false)
+    expect(isSeatLimit(undefined)).toBe(false)
+  })
+
+  it('seatLimitMessage يعيد نص الخادم الحرفي للكوطة وnull لغيرها', () => {
+    expect(seatLimitMessage(new ApiError(403, { detail: TEAM_LIMIT_MSG_N3 }))).toBe(TEAM_LIMIT_MSG_N3)
+    expect(seatLimitMessage(new ApiError(403, { detail: GATE_FAMILY[0] }))).toBeNull()
+    expect(seatLimitMessage(new Error('x'))).toBeNull()
   })
 })
 
@@ -202,6 +273,14 @@ describe('apiFetch — 403 الإيقاف يرفع المعالج المركزي
     setSuspendedHandler(handler)
     globalThis.fetch = mockFetchOnce(403, { detail: 'صلاحيات غير كافية' })
     await expect(apiFetch('/api/team/members')).rejects.toBeInstanceOf(ApiError)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('كوطة مقاعد الفريق (GAP-BOT-3) لا ترفع معالج الإيقاف — رحلتها عند موضع الطفرة', async () => {
+    const handler = vi.fn()
+    setSuspendedHandler(handler)
+    globalThis.fetch = mockFetchOnce(403, { detail: TEAM_LIMIT_MSG_N3 })
+    await expect(apiFetch('/api/users', { method: 'POST', form: {} })).rejects.toBeInstanceOf(ApiError)
     expect(handler).not.toHaveBeenCalled()
   })
 

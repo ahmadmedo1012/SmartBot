@@ -24,6 +24,10 @@
  *      نسخة الويب الحرفية، عائلة التحذير، مسند الشبكة المشترك، وسلك
  *      NetInfo←onlineManager الذي يجعل وعد «إعادة المحاولة تلقائيًا»
  *      صادقًا (سلوك المسند نفسه مُثبَّت سلوكيًا في lib/connectivity.test.ts).
+ *   §8 (P42-5b) إدارة مقاعد الفريق (GAP-BOT-3): عقود الطفرات الثلاث
+ *      (إضافة/دور/حذف) بعقد الويب الحرفي، وكوطة المقاعد عبر عائلة
+ *      gates (نص حرفي + باب ترقية، لا بطاقة PremiumLock على كوطة)،
+ *      والمصنِّف نفسه مُثبَّت سلوكيًا في lib/gates.test.ts.
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -285,5 +289,66 @@ describe('P42-5b · سلك NetInfo←onlineManager (وعد «إعادة المح
     expect(src).not.toContain('apiGet')
     expect(src).not.toContain('isPlanLocked')
     expect(src).not.toContain('isTenantSuspended')
+  })
+})
+
+/* ── §8 إدارة مقاعد الفريق تصل الجوال (GAP-BOT-3 · P42-5b) ──────────── */
+
+describe('P42-5b · شاشة الفريق — عقد الطفرات (GAP-BOT-3)', () => {
+  const src = read('../app/(app)/team/index.tsx')
+
+  it('إضافة عضو: POST /api/users بجسم Form-encoded — عقد الويب الحرفي (team/page.tsx:54)', () => {
+    expect(src).toContain("apiPostForm<{ id: number }>('/api/users'")
+    expect(src).toContain('username: newUsername.trim()')
+    expect(src).toContain('password: newPassword')
+    expect(src).toContain('role: newRole')
+  })
+
+  it('تغيير الدور: PUT /api/users/{id} بجسم Form-encoded (role)', () => {
+    expect(src).toContain('apiPutForm<{ ok: boolean }>(`/api/users/${id}`, { role })')
+  })
+
+  it('الحذف: DELETE /api/users/{id} بتأكيد بلمسة ثانية (قواعد الأسطول)', () => {
+    expect(src).toContain('apiDelete(`/api/users/${m.id}`)')
+    expect(src).toContain('confirmAction({')
+    expect(src).toContain("confirmText: 'حذف نهائي'")
+  })
+
+  it('كوطة المقاعد تصنَّف عبر عائلة gates وتعرض نص الخادم الحرفي + باب الترقية', () => {
+    expect(src).toContain('seatLimitMessage(e)')
+    expect(src).toContain('title="ترقية الخطة"')
+    expect(src).toContain("pathname: '/(app)/subscribe'")
+  })
+
+  it('الكوطة لا تُعرض بطاقة PremiumLock («متاحة في Premium» ليست صادقة على كوطة) ولا تخفي زر الإنشاء', () => {
+    expect(src).not.toContain('PremiumLock')
+    expect(src).toContain('title="عضو جديد"')
+  })
+
+  it('زر الإضافة معطَّل قبل عتبات العقد (اسم 3+، كلمة مرور 8+) وأثناء الطيران — لا إرسال مزدوج', () => {
+    expect(src).toContain('newUsername.trim().length < 3 || newPassword.length < 8 || addMember.isPending')
+    expect(src).toContain('loading={addMember.isPending}')
+  })
+
+  it('حارس دور مدير المنصة موثَّق مقدمًا — تلميح الويب الحرفي داخل النموذج', () => {
+    expect(src).toContain(
+      'تعيين دور «مدير» متاح لمدير المنصة فقط — سيظهر خطأ عربيًا إن لم تكن مدير المنصة',
+    )
+  })
+
+  it('المالك بلا تحكم — شارة «مالك» فقط (عقد الويب v17-E-F8)', () => {
+    expect(src).toContain("item.role === 'owner' ? (")
+    expect(src).toContain("text={ROLE_LABELS[item.role] ?? 'مالك'}")
+  })
+
+  it('تغيير الدور لكل عضو يطفل بلمسة دور مختلف، ويُعطَّل صف أدواره أثناء طفرته فقط', () => {
+    expect(src).toContain('disabled={changingThis || item.role === r}')
+    expect(src).toContain('changeRole.isPending && changeRole.variables?.id === item.id')
+  })
+
+  it('حالة الفراغ: النص الحرفي للويب — لا تلميح لوحة الويب الميتة', () => {
+    expect(src).toContain('لا يوجد أعضاء فريق بعد')
+    expect(src).toContain('أضف أعضاء فريقك من زر «عضو جديد» ليشاركوك إدارة الردود والتقارير.')
+    expect(src).not.toContain('أضف أعضاء فريقك من لوحة الويب')
   })
 })

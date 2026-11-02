@@ -231,3 +231,9 @@ export function apiDelete<T = unknown>(path: string, opts: Omit<ApiOptions, 'met
 export function apiPostForm<T = unknown>(path: string, form: Record<string, string>, opts: Omit<ApiOptions, 'method' | 'body' | 'form'> = {}) {
   return apiFetch<T>(path, { ...opts, method: 'POST', form })
 }
+
+/** تعديل بجسم form-urlencoded — عقد PUT /api/users/{id} (GAP-BOT-3):
+ *  Form(role) مثل POST لكن للتحديث؛ نفس نداءات تبديل الأدوار في الويب. */
+export function apiPutForm<T = unknown>(path: string, form: Record<string, string>, opts: Omit<ApiOptions, 'method' | 'body' | 'form'> = {}) {
+  return apiFetch<T>(path, { ...opts, method: 'PUT', form })
+}

@@ -5,7 +5,9 @@ import { usePathname, useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import { apiFetch } from "@/lib/csrf-client"
 import { premiumToast } from "@/lib/premium-toast"
+import { isTenantSuspended } from "@/lib/tenant-suspended"
 import { useMe } from "@/hooks/useMe"
+import { ShieldAlert, LogOut } from "lucide-react"
 
 /* v9-E5: react-joyride (~116KB) was statically imported here → it landed in
  * EVERY dashboard route bundle (26 routes) even though the tour only runs
@@ -61,12 +63,21 @@ export default function AuthGuard({
    * mount once a real (cached or freshly fetched) user passed the role
    * checks; 401/network failure still lands on /login?redirect=<pathname>.
    * Transient failures retry exactly once (react-query retry: 1). */
-  const { data, isLoading, isError } = useMe()
+  const { data, isLoading, isError, error } = useMe()
   const user = data?.user
+  /* W2-BOT-4 (P42-2، تدقيق 3a): إيقاف المنظمة ليس مشكلة جلسة — كل نداء
+   * للتاجر الموقوف يرفعه حارس الجلسة (auth.py:115) بـ403. الرحلة
+   * القديمة (isError → إعادة توجيه للدخول) كانت حلقة: الدخول ينجح ثم
+   * كل /api/me يفشل من جديد. الحالة الصادقة: صفحة كاملة داخل الغلاف
+   * تشرح الإيقاف وتنقض «أعد المحاولة»، وبقناة الدعم كطريق وحيد. */
+  const suspended = isError && isTenantSuspended(error)
 
   useEffect(() => {
     if (isLoading) return
     if (isError) {
+      /* W2-BOT-4: الإيقاف يُعرض حالةً كاملة (أدناه) — لا إعادة توجيه.
+       * بقية الأخطاء (401 انتهاء جلسة/شبكة) تبقى رحلة الدخول كما كانت. */
+      if (suspended) return
       /* v12-E4.10: carry the current path — /login's safeRedirect
        * (login/page.tsx) validates it and lands the user back here
        * after re-authenticating instead of the bare /dashboard. */
@@ -97,7 +108,9 @@ export default function AuthGuard({
       onboardingChecked.current = true
       setShowOnboarding(true)
     }
-  }, [isLoading, isError, user, requiredRole, requirePlatformAdmin, router, pathname])
+    // W2-BOT-4: suspended في المصفوفة — مشتقة من isError/error فتتزامن
+    // مع أي إعادة جلب للجلسة (60s refetchInterval).
+  }, [isLoading, isError, suspended, user, requiredRole, requirePlatformAdmin, router, pathname])
 
   // v24-C3: same authorized contract as the old setAuthorized gate — the
   // spinner shows ONLY while the session is genuinely unresolved (cold
@@ -108,6 +121,45 @@ export default function AuthGuard({
     !!user &&
     (!requiredRole || user.role === requiredRole) &&
     (!requirePlatformAdmin || user.is_platform_admin === true)
+
+  if (suspended) {
+    /* الحالة الصادقة للإيقاف — نفس قواعد عائلة .state لكن صفحةً كاملة:
+     * الإيقاف يمنع كل مسارات اللوحة فلا معنى لعرضها. */
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="max-w-md w-full rounded-xl border border-border/70 bg-card/60 p-6 text-center space-y-4" role="alert">
+          <div className="mx-auto size-12 rounded-full bg-destructive/10 flex items-center justify-center">
+            <ShieldAlert className="size-6 text-destructive" aria-hidden="true" />
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="text-lg font-bold">حساب منظمتك موقوف</h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              لا يمكنك استخدام لوحة التحكم حتى يُرفع الإيقاف. بياناتك محفوظة
+              كما هي — تواصل مع الدعم لمعرفة السبب وخطوات استعادة الحساب.
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground/70 leading-relaxed">
+            إعادة المحاولة لن تنجح — الإيقاف حالة على الخادم تُرفع من جانب
+            الدعم فقط.
+          </p>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            {/* نفس عقد تسجيل الخروج في DashboardShell: CSRF POST ثم انتقال */}
+            <button
+              type="button"
+              onClick={() => {
+                apiFetch("/api/logout", { method: "POST" })
+                  .catch(() => {})
+                  .finally(() => { window.location.href = "/login" })
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3.5 py-2 text-sm font-medium hover:bg-accent transition-colors"
+            >
+              <LogOut className="size-3.5" aria-hidden="true" /> تسجيل الخروج
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!authorized) {
     return (

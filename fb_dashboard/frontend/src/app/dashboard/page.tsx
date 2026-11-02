@@ -17,6 +17,7 @@ import { KpiCard } from "@/components/shared/KpiCard"
 import { ChartCard } from "@/components/shared/ChartCard"
 import { CircuitTrace } from "@/components/shared/CircuitTrace"
 import { RobotMark, type RobotState } from "@/components/shared/RobotMark"
+import { PlanUsageCard } from "@/components/shared/PlanUsageCard"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SortableTh, useTableSort } from "@/components/ui/SortableTh"
@@ -370,6 +371,12 @@ export default function DashboardPage() {
                 status/alert (visual mirror of the admin CronHeartbeatCard). */}
             <div className="sb-fade-up mb-6">
               <BotHealthCard />
+            </div>
+
+            {/* W2-BOT-3 (P42-2): عدّاد ردود الشهر الحالي — السقف كان يُطبّق
+                صامتًا؛ البطاقة تعرض قراءة المحرك نفسها للخطط المسقوفة فقط. */}
+            <div className="sb-fade-up mb-6">
+              <PlanUsageCard />
             </div>
 
             {/* Stats grid — Smart-Menu KpiCard (animated counter + stagger + stretched links).

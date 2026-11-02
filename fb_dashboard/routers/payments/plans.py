@@ -251,6 +251,37 @@ async def subscription_status(payment_id: int = Query(...), db=Depends(get_db), 
     return ok({"id": sp.id, "status": sp.status, "plan_id": sp.plan_id, "plan_name": sp.plan_name})
 
 
+@router.get("/api/subscriptions/usage")
+async def subscription_usage(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """W2-BOT-3 (P42-2، تدقيق 3a): عدّاد استخدام الشهر الحالي — كان سقف
+    الـ100 رد (Free) يُطبَّق صامتًا في محرك البوت (pipeline gate) بلا أي
+    سطح قراءة للتاجر: الرفض يصل كرسالة غامضة عند النفاد فقط. هذا المسار
+    يعرض نفس قراءة المحرك الحرفية (get_plan_limits — نقطة القراءة الوحيدة)
+    كي يظهر العدّاد في لوحة التحكم قبل النفاد، لا بعده.
+
+    الفشل الصادق: خطة غير قابلة للتحديد (بذرة غائبة) تعيد unlimited=null
+    (نفس عقيدة fail-open في get_plan_limits) — لا نختلق رقمًا.
+    """
+    tenant_id = current_user._tenant_id
+    if not tenant_id:
+        # زائر بلا مستأجر (حساب بلا صفحة مربوطة): لا استخدام قابل للقياس.
+        return ok({"plan_name_ar": None, "replies_used": 0, "max_replies": None,
+                   "period_start": None, "unlimited": True})
+    from bot_engine.pipeline import get_plan_limits
+    limits = await get_plan_limits(db, tenant_id)
+    if limits is None:
+        return ok({"plan_name_ar": None, "replies_used": 0, "max_replies": None,
+                   "period_start": None, "unlimited": True})
+    return ok({
+        "plan_name_ar": limits.get("plan_name_ar") or None,
+        "replies_used": limits.get("replies_used", 0),
+        "max_replies": limits.get("max_replies"),
+        "period_start": iso_z(limits["period_start"]) if limits.get("period_start") else None,
+        # None في max_replies = غير محدودة (الخطط المدفوعة) — تُعرض كذلك.
+        "unlimited": limits.get("max_replies") is None,
+    })
+
+
 @router.get("/api/subscriptions/pending")
 async def subscription_pending(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Latest PENDING payment of the current user (v18 1-b — dialog pre-open probe).

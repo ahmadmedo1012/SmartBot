@@ -30,7 +30,7 @@
  * effect (see AuthGuard) still wins the race to /login?redirect=<path>.
  */
 import { useQuery } from "@tanstack/react-query"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import type { ApiUser } from "@/lib/types"
 
@@ -54,7 +54,19 @@ export interface MePayload {
 const meQueryFn = async ({ signal }: { signal?: AbortSignal }): Promise<MePayload> => {
   // P13-2c: thread react-query's cancellation signal — see the module note.
   const res = await apiFetch("/api/me", { signal })
-  if (!res.ok) throw new Error(`تعذّر تحميل الحساب (${res.status})`)
+  if (!res.ok) {
+    /* W2-BOT-4 (P42-2): الخطأ يحمل حالته وتفاصيله الخلفية (ApiError)
+    * بدل النص المصطنع — بوابة الجلسة تصنّف الآن إيقاف المنظمة
+    * (403 «حساب المنظمة موقوف…») وتعرض الحالة الصادقة بدل حلقة إعادة
+    * التوجيه إلى الدخول؛ 401 يمر عبر رحلة apiFetch العالمية كما كان. */
+    let body: unknown = null
+    try {
+      body = await res.clone().json()
+    } catch {
+      /* هيئات غير-JSON (51x خام) — fall through إلى النص العام */
+    }
+    throw new ApiError(res.status, body ?? {})
+  }
   return unwrapApi<MePayload>(res)
 }
 

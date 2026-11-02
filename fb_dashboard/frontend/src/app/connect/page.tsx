@@ -54,6 +54,23 @@ export default function ConnectPage() {
   const [existing, setExisting] = useState<{ page_id: string; connected: boolean; page_name?: string; token_check?: FacebookTokenCheck | null; token_ok?: boolean } | null>(null)
   const [loadingExisting, setLoadingExisting] = useState(true)
   const [wh, setWh] = useState<WebhookCheck | null>(null)
+  /* W2-BOT-1 (P42-2: تدقيق 3a): «أضفه من إعدادات المنصة» كان يحمل التاجر
+   * إلى /admin/settings — بوابة مسؤول المنصة حصراً (is_platform_admin)؛
+   * التاجر يصطدم بإعادة توجيه + توست «لوحة الإدارة متاحة لمسؤول المنصة
+   * فقط» = طريق مسدود مُضلِّل. سر توقيع الويبهوك إعداد منصة لا إعداد
+   * تاجر، فالرابط الصادق: لمسؤول المنصة فقط؛ وللتاجر نسخة تواصل-الدعم
+   * (قناة واتساب الدعم العائمة موجودة على الصفحة أصلًا). */
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
+
+  useEffect(() => {
+    /* W2-BOT-1: معرفة ما إذا كان الزائر مسؤول منصة — جلسة عرض لا أكثر:
+     * 401 (زائر/تاجر) تُبقي النسخة التجارية الآمنة، وكل أخطاء الشبكة كذلك
+     * — لا حالة تحميل تُعلّق القائمة. */
+    apiFetch("/api/me")
+      .then(unwrapApi<{ user?: { is_platform_admin?: boolean } }>)
+      .then((d) => setIsPlatformAdmin(d?.user?.is_platform_admin === true))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     apiFetch("/api/facebook/settings")
@@ -237,10 +254,16 @@ export default function ConnectPage() {
                   <span className="flex items-center gap-2 text-muted-foreground"><Shield className="size-3.5" /> سر التطبيق (توقيع الأحداث)</span>
                   {secretOk ? (
                     <span className="flex items-center gap-1 text-success-ink text-xs"><Check className="size-3.5" /> مُفعّل {wh.secret_source === "db" ? "(من الإعدادات)" : ""}</span>
-                  ) : (
+                  ) : isPlatformAdmin ? (
                     <Link href="/admin/settings" className="flex items-center gap-1 text-warning-ink text-xs underline underline-offset-2 hover:text-foreground">
                       <AlertTriangle className="size-3.5" /> غير مضبوط — أضفه من إعدادات المنصة
                     </Link>
+                  ) : (
+                    /* W2-BOT-1: نسخة التاجر — بلا رابط مسدود: سر التطبيق
+                     * إعداد منصة؛ قناة الدعم (العائمة أسفل الصفحة) هي طريقه. */
+                    <span className="flex items-center gap-1 text-warning-ink text-xs">
+                      <AlertTriangle className="size-3.5" /> غير مضبوط — تواصل مع الدعم لإعداده (إعداد على مستوى المنصة)
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">

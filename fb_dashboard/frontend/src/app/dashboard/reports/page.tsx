@@ -102,6 +102,37 @@ export default function ReportsPage() {
     onError: (e: Error) => brandedToast.error(e.message || "تعذّر توليد التقرير"),
   })
 
+  /* W2-BOT-2 (P42-2: تدقيق 3a): GET /api/analytics/export كان بلا مستهلك
+   * أمامي إطلاقًا — قدرة موجودة (CSV بحقن-صيغ محروس وتصدير JSON) لا سبيل
+   * لاستخدامها من المنتج. نفس باترون blob للـPDF، ونفس مندوب المدة
+   * (reportDays) أعلاه — حاجة مستخدم واحدة "صدّر بياناتك" لا صورتان. */
+  const csvMut = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/api/analytics/export?format=csv&days=${reportDays}`)
+      if (!res.ok) throw new Error(`تعذّر التصدير (${res.status})`)
+      const blob = await res.blob()
+      const disposition = res.headers.get("Content-Disposition") || ""
+      const match = /filename="?([^";]+)"?/.exec(disposition)
+      const filename = match?.[1] || `replies-export-${reportDays}d.csv`
+      const url = URL.createObjectURL(blob)
+      try {
+        const a = document.createElement("a")
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      } finally {
+        URL.revokeObjectURL(url)
+      }
+      return { size: blob.size }
+    },
+    onSuccess: () => {
+      brandedToast.success("تم تنزيل ملف CSV", "كل ردود البوت في الفترة المحددة — يفتح في Excel وSheets")
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر التصدير"),
+  })
+
   const loading = dbLoad || tcLoad
   const anyError = dbErr || tcErr
 
@@ -205,6 +236,32 @@ export default function ReportsPage() {
                       <Download className="size-3.5" /> {downloadMut.isPending ? "جارٍ التوليد…" : "تنزيل تقرير PDF"}
                     </Button>
                   </div>
+                </div>
+
+                {/* W2-BOT-2: صف تصدير CSV — المسار كان حاضرًا بلا واجهة؛
+                    نفس المدة المختارة أعلاه، وباترون التنزيل نفسه. */}
+                <div className="flex items-center justify-between gap-3 flex-wrap border-t border-border/60 pt-3">
+                  <div className="flex items-center gap-3">
+                    <div className="size-9 rounded-lg bg-muted/50 flex items-center justify-center">
+                      <MessageSquare className="size-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold">تصدير ردود البوت (CSV)</p>
+                      <p className="text-xs text-muted-foreground">
+                        كل التعليقات والردود التلقائية في {REPORT_PERIODS.find(p => p.days === reportDays)?.label || `${reportDays} يوم`} — ملف واحد يفتح في Excel وGoogle Sheets
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    loading={csvMut.isPending}
+                    disabled={csvMut.isPending}
+                    onClick={() => csvMut.mutate()}
+                    className="w-full sm:w-auto shrink-0"
+                  >
+                    <Download className="size-3.5" /> تنزيل CSV
+                  </Button>
                 </div>
               </CardContent>
             </Card>

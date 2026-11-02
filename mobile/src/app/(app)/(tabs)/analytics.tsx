@@ -18,7 +18,8 @@ import { PressableScale } from '@/components/pressable-scale'
 import { apiGet } from '@/services/api'
 import { isPlanLocked } from '@/lib/gates'
 import { PremiumLock } from '@/components/premium-lock'
-import { describeError, ErrorState, LoadingState, PullToRefresh } from '@/components/state-views'
+import { describeError, ErrorState, PullToRefresh } from '@/components/state-views'
+import { DashboardSkeleton } from '@/components/skeleton'
 import { formatNumber } from '@/lib/format'
 import type { AnalyticsOverview, TrendPoint } from '@/types/api'
 
@@ -73,7 +74,10 @@ export default function AnalyticsScreen() {
   const sentiment = data?.sentiment_distribution ?? {}
   const sentimentTotal = (sentiment.positive ?? 0) + (sentiment.negative ?? 0) + (sentiment.neutral ?? 0)
 
-  if (isLoading) return <LoadingState label="جارٍ تحميل التحليلات…" />
+  /* عقيدة الهياكل العظمية (W5): بلا دوار مجرد — DashboardSkeleton بنفس
+   * شكل الشاشة المحمّلة (شبكة KPI 2×2 + بطاقة الرسم + بطاقة القائمة)،
+   * مثل تاب لوحة التحكم index.tsx:115. */
+  if (isLoading) return <DashboardSkeleton label="جارٍ تحميل التحليلات…" />
 
   /* GAP-X1 (P42-5a): دفاعيّة عائلية — هذا التاب لا يستهلك اليوم سوى
    * الأسطح المفتوحة عن قصد (overview وtop-commenters — موثّق في

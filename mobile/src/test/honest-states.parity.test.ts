@@ -181,6 +181,12 @@ describe('P42-5a · انتشار القفل (عقيدة 3ce58c3 على الجو�
     expect(src).toContain('isPlanLocked(error)')
     expect(src).toContain('<PremiumLock title="التحليلات"')
   })
+
+  it('تاب التحليلات: عقيدة الهياكل العظمية (W5) — لا دوار مجرد', () => {
+    const src = read('../app/(app)/(tabs)/analytics.tsx')
+    expect(src).toContain('<DashboardSkeleton label="جارٍ تحميل التحليلات…" />')
+    expect(src).not.toContain('<LoadingState')
+  })
 })
 
 /* ── §5 مسارات lucide الحرفية — نفس مجموعة الويب ───────────────────── */

@@ -4,6 +4,8 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
+import { isPlanLocked } from "@/app/dashboard/analytics/plan-lock"
+import { PremiumLockCard } from "@/components/shared/PremiumLockCard"
 import { Radio, AlertCircle, AlertTriangle, RefreshCw, Plus, Send, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -84,6 +86,13 @@ export default function BroadcastPage() {
      the id of the draft being confirmed drives the dialog below; the send
      mutation fires ONLY from its explicit destructive confirm button. */
   const [confirmSendId, setConfirmSendId] = useState<number | null>(null)
+  /* W2-BOT-5 (P42-W3): 403 بوابة الخطة من الإنشاء أو الإرسال (has_broadcast
+   * — BROADCAST_PLAN_REQUIRED_MSG، انضمت لعائلة GATE_MESSAGES الحرفية
+   * «رقِّ خطتك») كانت توستًا عابرًا فقط؛ الآن الحالة الصادقة: بطاقة القفل
+   * مكان النموذج وزر «بث جديد» يختفي (لا زر ميت يعيد الضرب في البوابة).
+   * قائمة البثوث السابقة تبقى — عقيدة بوابة الإنشاء: التخفيض لا يقتل
+   * المحتوى القائم، والإلغاء مفتوح كما هو.) */
+  const [planLocked, setPlanLocked] = useState<string | null>(null)
 
   /* v25 (W-14): 30s → استطلاع مرئي — المؤقّت يتوقف تماماً في تبويب الخلفية
    * (false) ويعود فور العودة مع تجديد فوري متى تقادمت البيانات. */
@@ -132,7 +141,16 @@ export default function BroadcastPage() {
       setShowForm(false)
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إنشاء البث"),
+    onError: (e: Error) => {
+      /* W2-BOT-5: بوابة الخطة (الإنشاء) → القفل الصادق لا التوست،
+       * والنموذج يُغلق — لا نموذج مفتوحًا بلا مخرج. */
+      if (isPlanLocked(e)) {
+        setPlanLocked(e.message)
+        setShowForm(false)
+        return
+      }
+      brandedToast.error(e.message || "تعذّر إنشاء البث")
+    },
   })
 
   const sendMut = useMutation({
@@ -150,7 +168,17 @@ export default function BroadcastPage() {
       /* v24-C2: the queue succeeded — close the confirmation dialog */
       setConfirmSendId(null)
     },
-    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الإرسال — تحقق من ربط الصفحة"),
+    onError: (e: Error) => {
+      /* W2-BOT-5: بوابة الخطة عند الإرسال (مسار التخفيض — مسودة سبق
+       * إنشاؤها ثم نزلت الباقة) → نفس القفل الصادق + إغلاق حوار
+       * التأكيد. */
+      if (isPlanLocked(e)) {
+        setPlanLocked(e.message)
+        setConfirmSendId(null)
+        return
+      }
+      brandedToast.error(e.message || "تعذّر الإرسال — تحقق من ربط الصفحة")
+    },
   })
 
   /* v24-C2 (task 2 / A3-B1): the dialog's payload — broadcast detail (message
@@ -225,17 +253,28 @@ export default function BroadcastPage() {
             عبر خيار PageHeader المدمج (r154). */
         trace
         actions={
-          /* r131-F7b (A4 P2-4): the gold-tinted shadow override is retired. */
-          <Button size="sm" onClick={() => setShowForm(v => !v)}>
-            <Plus className="size-3.5" /> {showForm ? "إلغاء" : "بث جديد"}
-          </Button>
+          /* r131-F7b (A4 P2-4): the gold-tinted shadow override is retired.
+             W2-BOT-5: مخفية عند القفل — فتح النموذج لن ينتج إلا نفس الـ403. */
+          !planLocked && (
+            <Button size="sm" onClick={() => setShowForm(v => !v)}>
+              <Plus className="size-3.5" /> {showForm ? "إلغاء" : "بث جديد"}
+            </Button>
+          )
         }
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
           1200 token (was max-w-5xl 1024). */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-(--marketing-max-w) mx-auto w-full">
-        {showForm && (
+        {planLocked ? (
+          /* W2-BOT-5: باقة بلا بث جماعي — القفل الصادق بنص الخادم الحرفي
+           * (عائلة GATE_MESSAGES) + دعوة /subscribe، مكان النموذج. */
+          <Card>
+            <CardContent className="p-4">
+              <PremiumLockCard title="البث الجماعي" message={planLocked} />
+            </CardContent>
+          </Card>
+        ) : showForm && (
           <Card
             /* v10-B7 (G2-05): Escape closes the inline form (same as the
                «إلغاء» toggle) — the first field is focused on open so the
@@ -356,11 +395,17 @@ export default function BroadcastPage() {
         ) : broadcasts.length === 0 ? (
           <EmptyState
             /* phase6 r154 — الروبوت يستضيف البئر: RobotMark في حالة
-               idle (البوت في الخدمة، ينتظر أول بث) — بديل أيقونة الراديو. */
+               idle (البوت في الخدمة، ينتظر أول بث) — بديل أيقونة الراديو.
+               W2-BOT-5: بلا CTA «بث جديد» عند القفل — لا دعوة ميتة
+               إلى نموذج محكوم بالـ403. */
             robot
             title="لا توجد رسائل بث جماعي"
-            description="أنشئ أول بث جماعي لإرسال رسالة لمشتركي صفحتك دفعة واحدة."
-            action={{ label: "بث جديد", icon: Plus, onClick: () => setShowForm(true) }}
+            description={
+              planLocked
+                ? "بث الرسائل الجماعية متاح في خطط أعلى — رقِّ خطتك من صفحة الاشتراك."
+                : "أنشئ أول بث جماعي لإرسال رسالة لمشتركي صفحتك دفعة واحدة."
+            }
+            {...(planLocked ? {} : { action: { label: "بث جديد", icon: Plus, onClick: () => setShowForm(true) } })}
           />
         ) : (
           broadcasts.map((b) => (

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
+import { isPlanLocked } from "@/app/dashboard/analytics/plan-lock"
+import { PremiumLockCard } from "@/components/shared/PremiumLockCard"
 import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import { Clock, CalendarDays, Send, Trash2 , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -33,6 +35,13 @@ function timeStamp(t: string | null | undefined): string {
 export default function ScheduledPage() {
   const [message, setMessage] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
+  /* W2-BOT-5 (P42-W3): 403 بوابة الخطة من إنشاء المجدولة (has_scheduling —
+   * «جدولة المنشورات متاحة في خطة مميز أو أعلى — رقِّ خطتك») كانت توستًا
+   * عابرًا فقط؛ الآن تُعرض الحالة الصادقة (PremiumLockCard) مكان المؤلّف.
+   * قائمة المنشورات المجدولة سابقًا تبقى ظاهرة — عقيدة بوابة الإنشاء
+   * فقط: التخفيض لا يقتل محتوى سبق جدولته (scheduled_posts_routes.py
+   * P21-W3-B). النشر/الحذف للموجود مفتوحان كما هما. */
+  const [planLocked, setPlanLocked] = useState<string | null>(null)
   /* v25 (W-03 — نمط posts/sequences المؤسسي): النشر يدفع للصفحة الحية على
    * فيسبوك والحذف لا رجعة فيه — الضغط الأول يكشف «تأكيد النشر/الحذف +
    * إلغاء» (أزرار 44px)، والثاني فقط ينفّذ. لا تنفيذ بلمسة أيقونة واحدة. */
@@ -81,7 +90,14 @@ export default function ScheduledPage() {
       setMessage(""); setScheduledAt("")
       brandedToast.success("تمت الجدولة")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الجدولة"),
+    onError: (e: Error) => {
+      /* W2-BOT-5: بوابة الخطة (الإنشاء فقط) → القفل الصادق لا التوست */
+      if (isPlanLocked(e)) {
+        setPlanLocked(e.message)
+        return
+      }
+      brandedToast.error(e.message || "تعذّر الجدولة")
+    },
   })
 
   const publishMut = useMutation({
@@ -125,6 +141,15 @@ export default function ScheduledPage() {
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
           1200 token (was max-w-5xl 1024). */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full">
+        {planLocked ? (
+          /* W2-BOT-5: باقة بلا جدولة — القفل الصادق مكان المؤلّف؛ النسخة
+           * نص الخادم الحرفي (عائلة GATE_MESSAGES) + دعوة /subscribe. */
+          <Card>
+            <CardContent className="p-4">
+              <PremiumLockCard title="جدولة المنشورات" message={planLocked} />
+            </CardContent>
+          </Card>
+        ) : (
         <Card>
           <CardContent className="p-4 space-y-3">
             {/* r131-F8 (A4 P1-1c): the raw composer textarea rides the shared
@@ -167,6 +192,7 @@ export default function ScheduledPage() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {isLoading ? (
           /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */

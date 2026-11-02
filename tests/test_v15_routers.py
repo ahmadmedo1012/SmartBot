@@ -224,6 +224,11 @@ async def test_broadcast_plan_feature_gate(v10_seed):
     r = await c.post("/api/broadcasts", json={"name": "ممنوعة", "message_template": "م"})
     assert r.status_code == 403, r.text
     assert "البث" in r.json()["detail"], r.text
+    # P42-W3 (W2-BOT-5): the refusal joins the canonical plan-gate family
+    # (_plan_gates.py GATE_MESSAGES) so the frontend classifier
+    # (isPlanLocked: endsWith «رقِّ خطتك») can render the honest Premium
+    # lock instead of a transient toast — the family suffix is the contract.
+    assert r.json()["detail"].endswith("رقِّ خطتك"), r.text
 
     async with v10_seed.world.sf() as db:
         t = await db.get(Tenant, tid)
@@ -241,7 +246,7 @@ async def test_broadcast_plan_feature_gate(v10_seed):
         await db.commit()
     r = await c.post(f"/api/broadcasts/{bid}/send")
     assert r.status_code == 403, r.text
-    assert "الترقية" in r.json()["detail"], r.text
+    assert r.json()["detail"].endswith("رقِّ خطتك"), r.text
 
 
 # ═══════════════════════════════════════════════════════════════════════════

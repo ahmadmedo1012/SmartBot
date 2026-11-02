@@ -39,7 +39,15 @@ log = logging.getLogger("fb-broadcast")
 
 # v15-E3 (D2-H1): the Arabic refusal a tenant sees when their plan lacks the
 # broadcast feature — one message everywhere (router 403 + engine failure log).
-BROADCAST_PLAN_REQUIRED_MSG = "ميزة البث الجماعي غير متاحة في باقتك الحالية — قم بالترقية لاستخدامها"
+# P42-W3 (W2-BOT-5): the wording joins the canonical plan-gate FAMILY
+# (_plan_gates.py GATE_MESSAGES — every gate ends with «رقِّ خطتك»). The
+# pre-family wording («قم بالترقية لاستخدامها») was invisible to the frontend
+# classifier (analytics/plan-lock.ts isPlanLocked: status 403 + message
+# endsWith «رقِّ خطتك»), so the broadcast page could only toast the refusal
+# instead of rendering the honest Premium lock like analytics/flows do.
+# has_broadcast ships first at Premium (مميز) in the canonical seed — the
+# tier is named like its siblings (has_scheduling: «خطة مميز أو أعلى»).
+BROADCAST_PLAN_REQUIRED_MSG = "ميزة البث الجماعي متاحة في خطة مميز أو أعلى — رقِّ خطتك"
 
 # v15-E3 (C-BCAST1): bound the per-beat fan-out work so one consumer pass
 # cannot monopolize a cron invocation (each claim commits its own progress).

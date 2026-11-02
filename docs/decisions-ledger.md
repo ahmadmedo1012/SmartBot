@@ -261,3 +261,12 @@
 - **dec-envelope-prune العائل** — slop_scan.py (بوابة 1.5 تشخيصية) يعدّ الحراس المزدوجين (0 حاليًا بعد إزالة اثنين جددين اصطادهما D7 في admin/telegram) — الترند في round-metrics.jsonl
 - **dec-cron-restore** — بقي مفتوحًا (إجراء مالك) مع تصعيد: `?token=` أُزيل فالاستعادة **Bearer حصرًا**
 - **قرارات المنتج** (wallet-spend/leads/trial/agent-stack) — بلا تغيير
+
+## dec-deepmerge-unpatched — استثناء أمني موثّق: deepmerge ≤4.3.1 (P42-2)
+
+`gstack-shortcut(dec-deepmerge-unpatched): سقف GHSA-gcqx-w48m-w2h4 (منخفض 5.3 — prototype poisoning) بلا إصدار مُرقّع وجوده, upgrade when deepmerge >4.3.1 يُنشر على npm`
+
+- **الحالة:** مقبول موثّقًا (2026-11-02) — التحويم عبر react-joyride@2.9.3/react-floater@0.7.9 (fb_dashboard/frontend) و@expo/config@58.0.9 (mobile): كلاهما مدخلات بناء/أداة مؤلفة داخل المستودع، لا يصل إليها مدخل خارجي في الإنتاج؛ لا يوجد إصدار مُرقّع (4.3.1 هو الأحدث وهو نفسه المتضرر)
+- **السقف/الكلفة:** سلامة سلام-فقط (integrity) بأثر منخفض؛ غير قابل للاستغلال عبر أي مسار إنتاجي موثّق
+- **محفز الترقية:** نشر deepmerge >4.3.1 على npm ← عندها يُضاف override فورًا في كلا الملفّين
+- **المالك:** فريق الأمن/الاعتماديات · **الأصل:** P42 مواصلة (P42-2d — تدقيق Dependabot)

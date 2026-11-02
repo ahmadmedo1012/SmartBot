@@ -126,6 +126,15 @@ async def _seed_subscription_plans(db):
     stack exists, dec-dead-tables); «ردود/قواعد/فريق غير محدود» →
     «بلا حد عملي» (the caps are 999,999/999/999) — the seed now equals
     the honest mirror default-plans.ts verbatim (lockstep test).
+
+    P42-2c (claims honesty, F2 — the last two superlatives): Basic
+    «دعم فوري» → «دعم واتساب خلال أيام العمل»; Pro «دعم فني ممتاز» →
+    «دعم أولوية عبر واتساب». The only support surface is the WhatsApp
+    line (routers/support.py: working days 9ص–9م, r144) — no tier may
+    promise instant or superlative support. Same wording family as
+    the live pricing microcopy and TrustBand; the mirror
+    default-plans.ts moves in lockstep (its P42 pins ban both retired
+    strings from every tier).
     """
     canonical = [
         dict(
@@ -145,7 +154,7 @@ async def _seed_subscription_plans(db):
             has_offers=False, has_sequences=False, has_analytics_advanced=False,
             sort_order=2, is_active=True,
             features=["2,000 رد/شهر", "صفحة فيسبوك واحدة", "20 قاعدة رد", "رد خاص على التعليقات",
-                      "ردود ذكية بالذكاء الاصطناعي", "تقارير PDF عند الطلب", "دعم فوري"],
+                      "ردود ذكية بالذكاء الاصطناعي", "تقارير PDF عند الطلب", "دعم واتساب خلال أيام العمل"],
         ),
         dict(
             name="Premium", name_ar="مميز", price=29, period_days=30,
@@ -166,7 +175,7 @@ async def _seed_subscription_plans(db):
             has_offers=True, has_sequences=True, has_analytics_advanced=True,
             sort_order=4, is_active=True,
             features=["50,000 رد/شهر", "صفحة فيسبوك واحدة", "100 قاعدة رد", "جميع الميزات المتقدمة",
-                      "حملات تسلسلية", "فريق حتى 5 أعضاء", "دعم فني ممتاز"],
+                      "حملات تسلسلية", "فريق حتى 5 أعضاء", "دعم أولوية عبر واتساب"],
         ),
         dict(
             name="Enterprise", name_ar="مؤسسي", price=299, period_days=30,

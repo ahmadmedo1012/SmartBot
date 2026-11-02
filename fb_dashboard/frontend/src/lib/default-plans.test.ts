@@ -63,6 +63,27 @@ describe("DEFAULT_PLANS — مرآة بذرة الخادم", () => {
     expect(DEFAULT_PLANS[4].features).toContain("دعم أولوية خلال أيام العمل")
   })
 
+  /* P42-2c (F2 claims honesty): the last two support superlatives
+   * retired — the only support surface is the WhatsApp line (working
+   * days 9ص–9م, routers/support.py r144), so no tier may promise
+   * instant/excellent support. These pins hold the lockstep
+   * (mirror == seed == /api/plans) like the P40 family above. */
+  it("P42: Basic تبيع «دعم واتساب خلال أيام العمل» لا «دعم فوري» (لا خط دعم لحظي موجود)", () => {
+    expect(DEFAULT_PLANS[1].features).toContain("دعم واتساب خلال أيام العمل")
+  })
+
+  it("P42: Pro تبيع «دعم أولوية عبر واتساب» لا «دعم فني ممتاز» (صياغة عائلة الصدق r144)", () => {
+    expect(DEFAULT_PLANS[3].features).toContain("دعم أولوية عبر واتساب")
+  })
+
+  it("P42: لا وعود دعم مضخّمة في أي باقة — دعم فوري · دعم فني ممتاز", () => {
+    for (const p of DEFAULT_PLANS) {
+      for (const f of p.features ?? []) {
+        expect(f).not.toMatch(/دعم فوري|دعم فني ممتاز/)
+      }
+    }
+  })
+
   it("P40: لا وعود محظورة في أي باقة — 24/7 · مدار الساعة · أسبوعية · غير محدود", () => {
     for (const p of DEFAULT_PLANS) {
       for (const f of p.features ?? []) {

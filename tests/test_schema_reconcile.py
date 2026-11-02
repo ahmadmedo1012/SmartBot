@@ -148,6 +148,12 @@ async def test_canonical_seed_upsert_repairs_legacy_rows():
     assert float(by_name["Basic"].price) == 19.0
     assert by_name["Premium"].has_broadcast is True
     assert by_name["Enterprise"].features and "دعم أولوية خلال أيام العمل" in by_name["Enterprise"].features
+    # P42-2c (F2 claims honesty): the last two support superlatives — the
+    # WhatsApp line (routers/support.py: working days 9ص–9م, r144) is the
+    # only support surface, so no tier feature may promise instant or
+    # superlative support. Seed == default-plans.ts mirror (lockstep).
+    assert by_name["Basic"].features and "دعم واتساب خلال أيام العمل" in by_name["Basic"].features
+    assert by_name["Pro"].features and "دعم أولوية عبر واتساب" in by_name["Pro"].features
     # P13-2c honest re-pin: ONE Facebook page per tenant is the enforced
     # architecture (uq_botstate_tenant_key) and max_pages is enforced
     # nowhere — the old Premium claim «صفحتين فيسبوك» was fiction. The

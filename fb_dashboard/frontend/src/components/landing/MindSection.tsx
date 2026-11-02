@@ -6,7 +6,9 @@ import { RevealCssClass } from "@/hooks/useReveal";
  * constellation abstraction: every capability IS a miniature conversation
  * (customer ink bubble → SmartBot lime bubble), tagged with the intent
  * label the real engine produces (fb_dashboard/enhanced_intent.py —
- * complaint/problem/order/price_inquiry/greeting… 14 intents) and the
+ * complaint/order/price_inquiry/greeting… the 13 intents the
+ * classifier can actually produce; INTENT_PRIORITY lists a 14th key,
+ * "problem", but no keyword set can ever match it) and the
  * same «رد آلي ⚡» / «فريق بشري» badge grammar the simulator uses.
  *
  * Honesty: every thread traces to shipped code — auto replies
@@ -53,7 +55,7 @@ const THREADS: Thread[] = [
     id: "intent",
     cap: "فهم نية العميل",
     intent: "النية: طلب / حجز",
-    note: "كل رسالة تُصنَّف قبل الرد: استفسار، طلب، سؤال، شكر… حتى 14 نية — فكل رد يأتي في سياقه الصحيح.",
+    note: "كل رسالة تُصنَّف قبل الرد: استفسار، طلب، سؤال، شكر… 13 نية مصنّفة — فكل رد يأتي في سياقه الصحيح.",
     msgs: [
       { from: "user", text: "أريد حجز طاولة لأربعة أشخاص الليلة" },
       { from: "bot", badge: "auto", text: "تم تسجيل طلبك! طاولة لأربعة الليلة — أكّد لك الموعد خلال دقائق." },
@@ -170,7 +172,7 @@ export function MindSection() {
 
       <RevealCssClass as="p" className="ln-mind-foot" delay={3}>
         <Network size={14} aria-hidden="true" />
-        محرّك نوايا واحد يخدم الصندوق الموحد كله: 14 نية مصنّفة، ردود
+        محرّك نوايا واحد يخدم الصندوق الموحد كله: 13 نية مصنّفة، ردود
         تلقائية فورية، بث مستهدف، وتحويل بشري متى احتاج الأمر فريقك.
       </RevealCssClass>
     </section>

@@ -360,8 +360,11 @@ export default function PricingPage() {
         >
           {/* P40-5b (P2-3, hub W6-B2): «دعم بريد إلكتروني» dropped — WhatsApp
            * is the single support surface, honestly framed with working hours
-           * (r144) like the rest of the fleet. */}
-          <p>جميع الخطط تشمل: تشفير SSL، دعم واتساب خلال أيام العمل، تحديثات مجانية مدى الحياة.</p>
+           * (r144) like the rest of the fleet.
+           * P42-2c: «تحديثات مجانية مدى الحياة» → «تحديثات مستمرة مشمولة
+           * بالخطة» — a lifetime promise is unverifiable; the updates are
+           * real and continuous, but they ride the plan while subscribed. */}
+          <p>جميع الخطط تشمل: تشفير SSL، دعم واتساب خلال أيام العمل، تحديثات مستمرة مشمولة بالخطة.</p>
         </ScrollReveal>
       </SectionContainer>
 

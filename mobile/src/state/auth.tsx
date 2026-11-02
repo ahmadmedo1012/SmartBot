@@ -7,7 +7,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import * as SecureStore from 'expo-secure-store'
-import { apiFetch, getAuthToken, setAuthToken, setUnauthorizedHandler, ApiError } from '@/services/api'
+import { apiFetch, getAuthToken, setAuthToken, setSuspendedHandler, setUnauthorizedHandler, ApiError } from '@/services/api'
 import { queryClient } from '@/lib/query-client'
 import type { AuthTokenResponse, User } from '@/types/api'
 
@@ -18,6 +18,11 @@ export interface AuthState {
   user: User | null
   token: string | null
   status: 'loading' | 'authenticated' | 'unauthenticated'
+  /** GAP-BOT-1 (P42-5a): إيقاف المنظمة — يرفعه أول 403 إيقاف من أي نداء
+   *  (المعالج المركزي في services/api.ts) ويصعّده الحارس الجوّال
+   *  (app)/_layout إلى الحالة الكاملة الصادقة. يُرفع العلم عند نجاح
+   *  استطلاع /api/me (رفع الدعم للإيقاف) أو عند الخروج/الدخول. */
+  suspended: boolean
 }
 
 export interface AuthContextValue extends AuthState {
@@ -26,6 +31,9 @@ export interface AuthContextValue extends AuthState {
   logout: () => Promise<void>
   /** بعد إكمال onboarding — تحديث الحالة محليًا */
   markOnboarded: () => void
+  /** GAP-BOT-1: يرفع علم الإيقاف بعد نجاح استطلاع /api/me — يُستدعى
+   *  من SuspendedState عند التطور رفع الدعم للإيقاف. */
+  clearSuspended: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -45,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: null,
     token: null,
     status: 'loading',
+    suspended: false,
   })
 
   // استعادة الجلسة عند الإقلاع (Session persistence)
@@ -57,20 +66,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (token && userRaw) {
           setAuthToken(token)
           const user = JSON.parse(userRaw) as User
-          if (mounted) setState({ user, token, status: 'authenticated' })
-          // تحقق خفيف من صلاحية الجلسة (401 → خروج فوري)
+          if (mounted) setState({ user, token, status: 'authenticated', suspended: false })
+          // تحقق خفيف من صلاحية الجلسة (401 → خروج فوري · 403 إيقاف →
+          // المعالج المركزي يرفع العلم فتظهر الحالة الصادقة)
           try {
             const fresh = await apiFetch<{ user: User }>('/api/me')
-            if (mounted) setState({ user: fresh.user, token, status: 'authenticated' })
+            if (mounted) setState({ user: fresh.user, token, status: 'authenticated', suspended: false })
           } catch {
             // انقطاع شبكة عند الإقلاع: نبقى داخلًا بالجلسة المخزنة (توكن 24h)
+            // (403 الإيقاف رفعه المعالج المركزي — لا يُبتلع هنا)
           }
           return
         }
       } catch {
         /* SecureStore غير متاح — جلسة فارغة */
       }
-      if (mounted) setState({ user: null, token: null, status: 'unauthenticated' })
+      if (mounted) setState({ user: null, token: null, status: 'unauthenticated', suspended: false })
     })()
     return () => {
       mounted = false
@@ -94,7 +105,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryClient.clear()
     setAuthToken(null)
     await clearSession().catch(() => undefined)
-    setState({ user: null, token: null, status: 'unauthenticated' })
+    setState({ user: null, token: null, status: 'unauthenticated', suspended: false })
+  }, [])
+
+  // GAP-BOT-1 (P42-5a): 403 إيقاف المنظمة مركزيًا — أول نداء فاشل للتاجر
+  // الموقوف (من أي شاشة) يرفع العلم فيصعّده الحارس الجوّالي إلى الحالة
+  // الكاملة الصادقة. الإعداد functional/idempotent: نداءات متزامنة عديدة
+  // لا تعيد الرسم ولا تُسقط بعضها.
+  const clearSuspended = useCallback(() => {
+    setState((s) => (s.suspended ? { ...s, suspended: false } : s))
+  }, [])
+
+  useEffect(() => {
+    setSuspendedHandler(() => {
+      setState((s) => (s.suspended ? s : { ...s, suspended: true }))
+    })
+    return () => setSuspendedHandler(null)
   }, [])
 
   // 401 المركزي من أي شاشة → خروج (بدون حلقات — إزالة ازدواج داخل api.ts)
@@ -104,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear()
       setAuthToken(null)
       clearSession().catch(() => undefined)
-      setState({ user: null, token: null, status: 'unauthenticated' })
+      setState({ user: null, token: null, status: 'unauthenticated', suspended: false })
     })
     return () => setUnauthorizedHandler(null)
   }, [])
@@ -118,7 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     setAuthToken(data.token)
     await persistSession(data.token, data.user)
-    setState({ user: data.user, token: data.token, status: 'authenticated' })
+    // الدخول يبدأ صفحة نظيفة — إيقاف سابق (إن رُفع ثم دخل مجددًا) لا يورَّث
+    setState({ user: data.user, token: data.token, status: 'authenticated', suspended: false })
     return data.user
   }, [])
 
@@ -143,8 +170,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, login, register, logout, markOnboarded }),
-    [state, login, register, logout, markOnboarded],
+    () => ({ ...state, login, register, logout, markOnboarded, clearSuspended }),
+    [state, login, register, logout, markOnboarded, clearSuspended],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

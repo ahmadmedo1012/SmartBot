@@ -17,6 +17,8 @@ import { AppInput } from '@/components/input'
 import { apiDelete, apiGet, apiPost, apiPostForm } from '@/services/api'
 import { extractItems } from '@/lib/envelope'
 import { confirmAction } from '@/lib/confirm'
+import { isPlanLocked } from '@/lib/gates'
+import { PremiumLock } from '@/components/premium-lock'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { formatDate } from '@/lib/format'
 import type { ScheduledPost } from '@/types/api'
@@ -49,6 +51,13 @@ export default function ScheduledScreen() {
   const [message, setMessage] = useState('')
   const [when, setWhen] = useState('')
   const [error, setError] = useState<string | null>(null)
+  /* GAP-X1 (P42-5a · مرآة W2-BOT-5 الويب): 403 بوابة الخطة من الإنشاء
+   * (has_scheduling — «جدولة المنشورات متاحة في خطة مميز أو أعلى — رقِّ
+   * خطتك») كانت تظهر كخطأ عام عبر describeError؛ الآن الحالة الصادقة:
+   * بطاقة PremiumLock مكان باب الإنشاء + النص الحرفي للخادم. قائمة
+   * المنشورات المجدولة سابقًا تبقى — عقيدة بوابة الإنشاء فقط (P21-W3-B):
+   * التخفيض لا يقتل محتوى سبق جدولته؛ النشر/الحذف للموجود مفتوحان. */
+  const [planLocked, setPlanLocked] = useState<string | null>(null)
   /* أصغر موعد مسموح — يُحسب مرة عند فتح الشاشة (نفس عقد الويب: min بعد
    * التركيب؛ الفحص الصارم يبقى للخادم). */
   const minWhen = useMemo(() => localMinDateTime(), [])
@@ -88,7 +97,16 @@ export default function ScheduledScreen() {
       setError(null)
       invalidate()
     },
-    onError: (e) => setError(describeError(e)),
+    onError: (e) => {
+      /* GAP-X1: بوابة الخطة (الإنشاء فقط) → القفل الصادق لا الخطأ العام —
+       * والنموذج المنبثق يُغلق (لا نموذج مفتوحًا بلا مخرج). */
+      if (isPlanLocked(e)) {
+        setPlanLocked((e as Error).message)
+        setShowNew(false)
+        return
+      }
+      setError(describeError(e))
+    },
   })
 
   const publishMutation = useMutation({
@@ -131,9 +149,21 @@ export default function ScheduledScreen() {
     <StackScreen
       title="المنشورات والمجدول"
       subtitle={`${posts.length} منشورًا`}
-      action={<Button title="جدولة منشور" size="sm" onPress={() => setShowNew(true)} />}
+      /* GAP-X1: زر الإنشاء مخفي عند القفل — فتح النموذج لن ينتج إلا
+       * نفس الـ403 (لا زر ميت يعيد الضرب في البوابة — عقيدة الويب). */
+      action={planLocked ? undefined : <Button title="جدولة منشور" size="sm" onPress={() => setShowNew(true)} />}
       isLoading={isLoading}
     >
+      {planLocked ? (
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+          <Card>
+            {/* GAP-X1: القفل الصادق بنص الخادم الحرفي (عائلة GATE_MESSAGES)
+             * + دعوة شاشة الاشتراك الجوّالية — مرآة PremiumLockCard الويب */}
+            <PremiumLock title="جدولة المنشورات" message={planLocked} />
+          </Card>
+        </View>
+      ) : null}
+
       {error ? (
         <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
           <Card style={{ backgroundColor: colors.destructiveSoft }}>
@@ -154,6 +184,9 @@ export default function ScheduledScreen() {
           keyExtractor={(p) => String(p.id)}
           onRefresh={() => refetch()}
           refreshing={isRefetching}
+          /* GAP-X1: القفل أعلى القائمة يأخذ ارتفاعه — القائمة تتمدد في
+           * المساحة المتبقية (بلا تغيير عن الحالة غير المقفلة). */
+          style={planLocked ? { flex: 1 } : undefined}
           contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
           renderItem={({ item }) => (
             <Card>

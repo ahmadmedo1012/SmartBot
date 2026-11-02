@@ -19,6 +19,8 @@ import { AppInput } from '@/components/input'
 import { apiGet, apiPost } from '@/services/api'
 import { extractItems } from '@/lib/envelope'
 import { confirmAction, recipientCountMessage } from '@/lib/confirm'
+import { isPlanLocked } from '@/lib/gates'
+import { PremiumLock } from '@/components/premium-lock'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { timeAgo } from '@/lib/format'
 import type { Broadcast } from '@/types/api'
@@ -53,6 +55,14 @@ export default function BroadcastScreen() {
   const [message, setMessage] = useState('')
   const [audience, setAudience] = useState<'all' | 'subscribed'>('all')
   const [actionError, setActionError] = useState<string | null>(null)
+  /* GAP-X1 (P42-5a · مرآة W2-BOT-5 الويب، commit 3ce58c3): 403 بوابة
+   * الخطة من الإنشاء أو الإرسال (has_broadcast — BROADCAST_PLAN_REQUIRED_MSG
+   * «ميزة البث الجماعي متاحة في خطة مميز أو أعلى — رقِّ خطتك») كانت تظهر
+   * كخطأ عام عبر describeError؛ الآن الحالة الصادقة: بطاقة PremiumLock
+   * مكان باب الإنشاء وزر «بث جديد» يختفي (لا زر ميت يعيد الضرب في
+   * البوابة). قائمة البثوث السابقة تبقى — عقيدة بوابة الإنشاء: التخفيض
+   * لا يقتل المحتوى القائم، والإلغاء مفتوح كما هو. */
+  const [planLocked, setPlanLocked] = useState<string | null>(null)
 
   const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<unknown, Error, Broadcast[]>({
     queryKey: ['broadcasts'],
@@ -79,7 +89,16 @@ export default function BroadcastScreen() {
       setActionError(null)
       invalidate()
     },
-    onError: (e) => setActionError(describeError(e)),
+    onError: (e) => {
+      /* GAP-X1: بوابة الخطة (الإنشاء) → القفل الصادق لا الخطأ العام،
+       * والنموذج المنبثق يُغلق — لا نموذج مفتوحًا بلا مخرج. */
+      if (isPlanLocked(e)) {
+        setPlanLocked((e as Error).message)
+        setShowNew(false)
+        return
+      }
+      setActionError(describeError(e))
+    },
   })
 
   const sendMutation = useMutation({
@@ -116,6 +135,13 @@ export default function BroadcastScreen() {
       // إلغاء المستخدم ليس خطأً يُعرض
       const msg = describeError(e)
       if (msg !== 'cancelled' && !String((e as Error)?.message).includes('cancelled')) {
+        /* GAP-X1: بوابة الخطة عند الإرسال (مسار التخفيض — مسودة سبق
+         * إنشاؤها ثم نزلت الباقة) → نفس القفل الصادق (مرآة الويب: الحوار
+         * التحذيري على الجوال يُغلق تلقائيًا قبل النداء فلا حوار يُغلق). */
+        if (isPlanLocked(e)) {
+          setPlanLocked((e as Error).message)
+          return
+        }
         setActionError(msg)
       }
     },
@@ -148,9 +174,22 @@ export default function BroadcastScreen() {
     <StackScreen
       title="البث الجماعي"
       subtitle={`${broadcasts.length} حملة`}
-      action={<Button title="بث جديد" size="sm" onPress={() => setShowNew(true)} />}
+      /* GAP-X1: مخفي عند القفل — فتح النموذج لن ينتج إلا نفس الـ403
+       * (عقيدة الويب: لا زر ميت يعيد الضرب في البوابة). */
+      action={planLocked ? undefined : <Button title="بث جديد" size="sm" onPress={() => setShowNew(true)} />}
       isLoading={isLoading}
     >
+      {planLocked ? (
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+          <Card>
+            {/* GAP-X1: باقة بلا بث جماعي — القفل الصادق بنص الخادم الحرفي
+             * (عائلة GATE_MESSAGES بعد انضمام رسالة البث — W2-BOT-5) +
+             * دعوة شاشة الاشتراك الجوّالية — مرآة PremiumLockCard الويب */}
+            <PremiumLock title="البث الجماعي" message={planLocked} />
+          </Card>
+        </View>
+      ) : null}
+
       {actionError ? (
         <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
           <Card style={{ backgroundColor: colors.destructiveSoft }}>
@@ -165,14 +204,26 @@ export default function BroadcastScreen() {
         <ErrorState message={describeError(error)} onRetry={() => refetch()} />
       ) : broadcasts.length === 0 ? (
         /* r134: صيغة الويب (broadcast/page.tsx:252 «لا توجد رسائل بث جماعي») —
-           كانت «لا حملات بث بعد» منحرفة عن التوأم */
-        <EmptyState message="لا توجد رسائل بث جماعي" hint="أنشئ أول بث جماعي لإرسال رسالة لمشتركي صفحتك دفعة واحدة." />
+           كانت «لا حملات بث بعد» منحرفة عن التوأم.
+           GAP-X1: عند القفل لا دعوة إنشاء — النص الحرفي للويب (لا CTA ميتًا
+           إلى نموذج محكوم بالـ403). */
+        <EmptyState
+          message="لا توجد رسائل بث جماعي"
+          hint={
+            planLocked
+              ? 'بث الرسائل الجماعية متاح في خطط أعلى — رقِّ خطتك من صفحة الاشتراك.'
+              : 'أنشئ أول بث جماعي لإرسال رسالة لمشتركي صفحتك دفعة واحدة.'
+          }
+        />
       ) : (
         <FlatList
           data={broadcasts}
           keyExtractor={(b) => String(b.id)}
           onRefresh={() => refetch()}
           refreshing={isRefetching}
+          /* GAP-X1: القفل أعلى القائمة يأخذ ارتفاعه — القائمة تتمدد في
+           * المساحة المتبقية (بلا تغيير عن الحالة غير المقفلة). */
+          style={planLocked ? { flex: 1 } : undefined}
           contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
           renderItem={({ item }) => (
             <Card>

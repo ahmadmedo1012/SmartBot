@@ -7,6 +7,9 @@
  *    بتصميمها — v12-E3.3).
  *  - 401 مركزي: حدث واحد → AuthProvider يسجل الخروج ويعيد إلى login
  *    (نفس دلالات الويب: لا redirect loops — إزالة ازدواج 10 ثوانٍ).
+ *  - 403 إيقاف المنظمة مركزي (GAP-BOT-1 · P42-5a): حدث واحد → الحارس
+ *    الجوّال يعرض الحالة الكاملة الصادقة (توأم AuthGuard الويب) بدل
+ *    حلقة «أعد المحاولة» المضلِّلة على كل شاشة.
  *  - مهلة 20 ثانية + إعادة محاولة GET فقط (آمنة).
  */
 import { API_BASE_URL, REQUEST_TIMEOUT_MS, GET_RETRIES } from '@/constants/config'
@@ -31,6 +34,33 @@ export class ApiError extends Error {
 export class NetworkError extends Error {
   constructor(message = 'تعذر الاتصال بالخادم — تحقق من الإنترنت') {
     super(message)
+  }
+}
+
+/** GAP-BOT-1 (P42-5a): سابقة رسالة إيقاف المنظمة — واجهة حارس الجلسة
+ *  الخادمي (routers/auth.py:115 «حساب المنظمة موقوف أو محذوف — تواصل مع
+ *  الدعم»)، مثبتة بعقود الاختبار الخلفية. القراءة هنا قراءة عقد عائلي
+ *  لا مطابقة نص هشة (نفس مبرر عائلة «رقِّ خطتك» في الويب — plan-lock.ts).
+ *  تعيش هنا (لا في lib/gates.ts) ليبقى اتجاه الاستيراد واحدًا:
+ *  gates.ts ← api.ts، بلا دورة وحدات. */
+export const SUSPENDED_MESSAGE_PREFIX = 'حساب المنظمة موقوف'
+
+// ── إيقاف المنظمة المركزي (GAP-BOT-1): مستمع واحد مثل الـ401 ────────────
+// أول نداء للتاجر الموقوف يفشل بـ403 برسالة الإيقاف من أي شاشة كانت —
+// الحارس الجوّال (app)/_layout يرفع الحالة الكاملة الصادقة بدل حلقة
+// «أعد المحاولة» المضلِّلة على كل شاشة. بلا إزالة ازدواج: ضبط الحالة
+// idempotent (نفس true مرتين لا يعيد الرسم).
+type SuspendedHandler = () => void
+let _suspendedHandler: SuspendedHandler | null = null
+
+/** يستدعيه AuthProvider — مرة واحدة عند الإقلاع. */
+export function setSuspendedHandler(handler: SuspendedHandler | null) {
+  _suspendedHandler = handler
+}
+
+function emitIfSuspended(status: number, message: string) {
+  if (status === 403 && message.includes(SUSPENDED_MESSAGE_PREFIX)) {
+    _suspendedHandler?.()
   }
 }
 
@@ -163,7 +193,12 @@ export async function apiFetch<T = unknown>(path: string, opts: ApiOptions = {})
     }
 
     if (!res.ok) {
-      throw new ApiError(res.status, body ?? text)
+      const err = new ApiError(res.status, body ?? text)
+      // GAP-BOT-1: إيقاف المنظمة — أول 403 إيقاف يرفع الحالة الصادقة.
+      // (بوابات الخطة «رقِّ خطتك» لا تمر هنا — قفلها عرضٌ لكل سطح في
+      // شاشته، أما الإيقاف فيمنع كل مسارات التطبيق فحالته كاملة.)
+      emitIfSuspended(err.status, err.message)
+      throw err
     }
     return unwrapBody<T>(body)
   }

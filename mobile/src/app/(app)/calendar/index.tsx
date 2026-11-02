@@ -16,6 +16,8 @@ import { AppInput } from '@/components/input'
 import { apiDelete, apiGet, apiPost, apiPut } from '@/services/api'
 import { extractItems } from '@/lib/envelope'
 import { confirmAction } from '@/lib/confirm'
+import { isPlanLocked } from '@/lib/gates'
+import { PremiumLock } from '@/components/premium-lock'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { formatDateOnly } from '@/lib/format'
 import type { CalendarEntry } from '@/types/api'
@@ -28,6 +30,13 @@ export default function CalendarScreen() {
   const [message, setMessage] = useState('')
   const [when, setWhen] = useState('')
   const [error, setError] = useState<string | null>(null)
+  /* GAP-X1 (P42-5a): تقويم المحتوى هو سطح الإنشاء الثاني لنفس الميزة
+   * المباعة «جدولة المنشورات» (calendar_routes.py:57 يفرض has_scheduling
+   * على POST /api/calendar فقط — التحرير/الحذف للموجود مفتوحان، عقيدة
+   * بوابة الإنشاء). الويب لا يملك سطح إنشاء في صفحة تقويمه (قراءة
+   * فقط) فلا قفلَ له هناك؛ الجوال يملكه فينضم لعائلة القفل الصادقة —
+   * نفس الرسالة العائلية ونفس بطاقة PremiumLock. */
+  const [planLocked, setPlanLocked] = useState<string | null>(null)
 
   const { data, isLoading, isError, error: qError, refetch, isRefetching } = useQuery<unknown, Error, CalendarEntry[]>({
     queryKey: ['calendar'],
@@ -52,7 +61,16 @@ export default function CalendarScreen() {
       setError(null)
       invalidate()
     },
-    onError: (e) => setError(describeError(e)),
+    onError: (e) => {
+      /* GAP-X1: بوابة الخطة — الإنشاء فقط (PUT التحرير بلا بوابة خادميًا)،
+       * والنموذج المنبثق يُغلق (لا نموذج مفتوحًا بلا مخرج). */
+      if (!editing && isPlanLocked(e)) {
+        setPlanLocked((e as Error).message)
+        setShowNew(false)
+        return
+      }
+      setError(describeError(e))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -80,20 +98,34 @@ export default function CalendarScreen() {
     <StackScreen
       title="تقويم المحتوى"
       subtitle={`${sorted.length} عنصرًا`}
+      /* GAP-X1: زر الإضافة مخفي عند القفل — فتح النموذج لن ينتج إلا
+       * نفس الـ403 (لا زر ميت يعيد الضرب في البوابة — عقيدة الويب). */
       action={
-        <Button
-          title="إضافة"
-          size="sm"
-          onPress={() => {
-            setShowNew(true)
-            setEditing(null)
-            setMessage('')
-            setWhen('')
-          }}
-        />
+        planLocked ? undefined : (
+          <Button
+            title="إضافة"
+            size="sm"
+            onPress={() => {
+              setShowNew(true)
+              setEditing(null)
+              setMessage('')
+              setWhen('')
+            }}
+          />
+        )
       }
       isLoading={isLoading}
     >
+      {planLocked ? (
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+          <Card>
+            {/* GAP-X1: القفل الصادق بنص الخادم الحرفي (عائلة GATE_MESSAGES)
+             * + دعوة شاشة الاشتراك الجوّالية — مرآة PremiumLockCard الويب.
+             * عناصر التقويم القائمة تبقى — عقيدة بوابة الإنشاء فقط. */}
+            <PremiumLock title="جدولة المنشورات" message={planLocked} />
+          </Card>
+        </View>
+      ) : null}
       {isError ? (
         <ErrorState message={describeError(qError)} onRetry={() => refetch()} />
       ) : sorted.length === 0 ? (
@@ -104,6 +136,9 @@ export default function CalendarScreen() {
           keyExtractor={(c) => String(c.id)}
           onRefresh={() => refetch()}
           refreshing={isRefetching}
+          /* GAP-X1: القفل أعلى القائمة يأخذ ارتفاعه — القائمة تتمدد في
+           * المساحة المتبقية (بلا تغيير عن الحالة غير المقفلة). */
+          style={planLocked ? { flex: 1 } : undefined}
           contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
           renderItem={({ item }) => (
             <Card>

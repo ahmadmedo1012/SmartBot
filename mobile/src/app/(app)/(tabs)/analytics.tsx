@@ -16,6 +16,8 @@ import { AppText } from '@/components/themed-text'
 import { Badge, Card, KpiCard, MonoStamp, Row } from '@/components/ui'
 import { PressableScale } from '@/components/pressable-scale'
 import { apiGet } from '@/services/api'
+import { isPlanLocked } from '@/lib/gates'
+import { PremiumLock } from '@/components/premium-lock'
 import { describeError, ErrorState, LoadingState, PullToRefresh } from '@/components/state-views'
 import { formatNumber } from '@/lib/format'
 import type { AnalyticsOverview, TrendPoint } from '@/types/api'
@@ -73,6 +75,15 @@ export default function AnalyticsScreen() {
 
   if (isLoading) return <LoadingState label="جارٍ تحميل التحليلات…" />
 
+  /* GAP-X1 (P42-5a): دفاعيّة عائلية — هذا التاب لا يستهلك اليوم سوى
+   * الأسطح المفتوحة عن قصد (overview وtop-commenters — موثّق في
+   * _plan_gates.py: أسطح الجوال الأساسية تبقى مفتوحة، والقراءات
+   * المتقدمة الخمس المقفلة لا وجود لها في التاب أصلًا)، لكن لو ضلّ
+   * يومًا نداءٌ مقفول طريقه إلى هنا فبوابة الخطة قفلٌ صادق (PremiumLock
+   * بنص الخادم) لا خطأ «أعد المحاولة» المضلِّل — مرآة عقد الصفحة
+   * الويب (analytics/page.tsx: locked = isError && isPlanLocked). */
+  const planLocked = isPlanLocked(error) ? (error as Error).message : null
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -106,7 +117,15 @@ export default function AnalyticsScreen() {
       </View>
 
       {isError ? (
-        <ErrorState message={describeError(error)} onRetry={() => refetch()} />
+        planLocked ? (
+          <View style={{ flex: 1, justifyContent: 'center', padding: spacing.lg }}>
+            <Card>
+              <PremiumLock title="التحليلات" message={planLocked} />
+            </Card>
+          </View>
+        ) : (
+          <ErrorState message={describeError(error)} onRetry={() => refetch()} />
+        )
       ) : (
         <PullToRefresh refreshing={isRefetching} onRefresh={() => refetch()}>
           {/* M-09: المفاتيح الفعلية للعقد — وكل بطاقة تُعرض فقط إذا وُجدت بياناتها */}

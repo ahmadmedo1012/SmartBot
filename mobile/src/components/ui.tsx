@@ -44,11 +44,15 @@ export interface ButtonProps {
   disabled?: boolean
   loading?: boolean
   size?: 'md' | 'sm'
+  /** GAP-X1 (P42-5a): خانة أيقونة اختيارية قبل العنوان (مرآة أزرار الويب
+   *  التي تحمل <Crown/> داخلها — PremiumLockCard). لا تغيّر أي مستهلك
+   *  قائمًا؛ محجوزة لعناصر العائلة (تاج الترقية). */
+  icon?: React.ReactNode
   /** r131: حالة إضافية للمستدعي (selected للمحولات — تُدمج مع disabled/busy) */
   accessibilityState?: { selected?: boolean; expanded?: boolean; checked?: boolean }
 }
 
-export function Button({ title, onPress, variant = 'primary', disabled, loading, size = 'md', accessibilityState }: ButtonProps) {
+export function Button({ title, onPress, variant = 'primary', disabled, loading, size = 'md', icon, accessibilityState }: ButtonProps) {
   const { colors } = useTheme()
   const bg =
     variant === 'primary' ? colors.primary : variant === 'danger' ? colors.destructive : 'transparent'
@@ -94,6 +98,13 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
         /* r131: الدوار القانوني (22px/حد 8%/قوس accent/700ms) — كان
            ActivityIndicator بحجم النظام */
         <Spinner size={18} color={fg} />
+      ) : icon ? (
+        <Row style={{ gap: spacing.sm }}>
+          {icon}
+          <AppText variant="smallBold" style={{ color: fg }}>
+            {title}
+          </AppText>
+        </Row>
       ) : (
         <AppText variant="smallBold" style={{ color: fg }}>
           {title}

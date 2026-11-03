@@ -31,8 +31,14 @@ import "../auth.css"
  *      returned as origin-relative paths so the browser can never read
  *      them as cross-site.
  */
+/* P42-W10 (F-01, verbatim port of Smart-Menu e7294e50 — the W8b sibling fix
+ * this twin missed): WHATWG URL parsing STRIPS ASCII tab/LF/CR before the
+ * path grammar, so '/\t/evil.com' passes ALL THREE checks below (the second
+ * char is a TAB, not a '/') yet window.location.replace lands on
+ * '//evil.com' cross-origin. Control characters are rejected WHOLE —
+ * [\x00-\x1f\x7f] — before any other check runs. */
 function safeRedirect(value: string | null) {
-  if (!value) return null
+  if (!value || /[\x00-\x1f\x7f]/.test(value)) return null
   const normalized = value.replace(/\\/g, "/")
   // "/" itself and "/path…" (second char NOT a slash) stay relative
   if (normalized === "/") return "/"

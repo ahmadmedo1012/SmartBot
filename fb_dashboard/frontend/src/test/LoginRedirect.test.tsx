@@ -19,6 +19,16 @@
  *   - no redirect param + platform admin (tenant_id 0) → /admin (v10-B5
  *     landing contract rides the same landingFor seam)
  *
+ * P42-W10 (F-01) — the control-char class the wall above missed (the exact
+ * gap Reviewer A flagged: the W8b sibling fix Smart-Menu e7294e50 was never
+ * ported to this twin). WHATWG parsing strips ASCII tab/LF/CR BEFORE the
+ * path grammar, so '/\t/evil.com' sailed through the old three checks:
+ *   - semantics proof: WHATWG URL itself resolves '/\t/evil.com' on a
+ *     foreign origin (pinned as a live assertion, not a comment)
+ *   - "/<TAB>/evil.com", "/<LF>/evil.com", "/<CR>/evil.com",
+ *     "/<DEL>/evil.com" (percent-encoded in the query) are ALL REJECTED
+ *     → /dashboard (whole [\x00-\x1f\x7f] class, verbatim port)
+ *
  * Mock bundle (house pattern, RegisterForm.test.tsx twin): premium-toast
  * spy, next-themes stub (the corner ThemeToggle), stubbed fetch with real
  * Response objects, and a stubbed window.location whose `search` carries
@@ -134,6 +144,56 @@ describe("login ?redirect= — safeRedirect wall (P42-8a)", () => {
   it("rejects a javascript: URI → /dashboard", async () => {
     stubMeAuthenticated()
     stubLocationWithSearch("?redirect=javascript%3Aalert(1)")
+
+    render(<LoginPage />)
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/dashboard"))
+  })
+
+  it("PROOF OF SEMANTICS: WHATWG URL itself strips the tab before the path grammar — '/\\t/evil.com' resolves on the foreign origin", () => {
+    // The attack mechanics, pinned live: the same parser window.location
+    // uses strips ASCII tab/LF/CR from the input BEFORE applying the path
+    // grammar, so '/\t/evil.com' is READ as '//evil.com' (network-path,
+    // foreign host). If this assertion ever breaks, the four rejections
+    // below lose their threat model — revisit the whole class.
+    const u = new URL("/\t/evil.com", "https://smartbot.example")
+    expect(u.origin).toBe("https://evil.com")
+    // and the LF/CR twins read identically:
+    expect(new URL("/\n/evil.com", "https://smartbot.example").origin).toBe("https://evil.com")
+    expect(new URL("/\r/evil.com", "https://smartbot.example").origin).toBe("https://evil.com")
+  })
+
+  it("rejects '/<TAB>/evil.com' (percent-encoded %09 — the exact F-01 vector) → /dashboard", async () => {
+    stubMeAuthenticated()
+    stubLocationWithSearch("?redirect=/%09/evil.com")
+
+    render(<LoginPage />)
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/dashboard"))
+    expect(mocks.replace).toHaveBeenCalledTimes(1)
+  })
+
+  it("rejects '/<LF>/evil.com' (percent-encoded %0A) → /dashboard", async () => {
+    stubMeAuthenticated()
+    stubLocationWithSearch("?redirect=/%0A/evil.com")
+
+    render(<LoginPage />)
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/dashboard"))
+  })
+
+  it("rejects '/<CR>/evil.com' (percent-encoded %0D) → /dashboard", async () => {
+    stubMeAuthenticated()
+    stubLocationWithSearch("?redirect=/%0D/evil.com")
+
+    render(<LoginPage />)
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/dashboard"))
+  })
+
+  it("rejects '/<DEL>/evil.com' (percent-encoded %7F — pins the \\x7f end of the class) → /dashboard", async () => {
+    stubMeAuthenticated()
+    stubLocationWithSearch("?redirect=/%7F/evil.com")
 
     render(<LoginPage />)
 

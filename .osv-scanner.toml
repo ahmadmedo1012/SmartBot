@@ -79,8 +79,9 @@
 #     node-forge 1.4.2 → advisory no longer matches → entry unused.
 # All four removed per the removal-clause policy (same class as the
 # P24 httpx2/braces cleanup): a recurrence resolves and FAILS LOUDLY.
-# REMAINING ACTIVE: deepmerge (below) and zod (below) — both still
-# filtered live findings with unexpired justifications.
+# P42-8a (2026-11): the zod entry (below) is REMOVED too — unused (both
+# lockfiles resolve zod 4.6.7; the CI-pinned v2.5.1 scan reports it).
+# REMAINING ACTIVE: deepmerge only.
 
 # P24 (2026-10-24) — GHSA-mrhx-c7xc-m3w5: zod (CVSS 8.2, availability-only:
 # memory exhaustion validating oversized constrained collections). The
@@ -91,22 +92,12 @@
 #     ROOT by npm update zod → 4.6.7 (a 3-line lockfile diff; never in
 #     the Next.js runtime bundle even before the bump).
 #   · mobile: zod 3.25.76 pinned by @expo/cli's ^3.25.76 range — the
-#     4.6.6 fix is a MAJOR jump unreachable through the tree (an npm
-#     override to 4.x would break expo CLI at runtime against its own
-#     declared range — same override-risk class as the
-#     decode-uri-component entry). Reachability: @expo/cli consumes zod
-#     for LOCAL config/args validation — build/dev tooling only, never
-#     in the Metro bundle shipped to devices; the DoS class requires
-#     feeding oversized input to the local CLI itself.
-# NOTE: IgnoredVulns matches by ID across ALL lockfiles — this entry
-# would also mask a frontend regression below 4.6.7. The guard is the
-# lockfile review: the frontend bump lives in this same commit, and any
-# future lockfile regeneration that walks zod back must re-justify this
-# entry. Remove the day @expo/cli accepts zod@^4.
-[[IgnoredVulns]]
-id = "GHSA-mrhx-c7xc-m3w5"
-reason = "zod 3.25.76 transitive of @expo/cli (^3.25.76 pin — the 4.6.6 fix is an unreachable major); DoS class, local build-tooling validation only, never in the app runtime bundle; frontend sibling FIXED at root this commit; re-verify at TTL"
-ignoreUntil = 2027-01-24T00:00:00Z
+#     4.6.6 fix was a MAJOR jump unreachable through the tree at the time.
+# P42-8a (2026-11) — entry REMOVED per its own removal clause ("Remove the
+# day @expo/cli accepts zod@^4"): the mobile lockfile now resolves zod
+# 4.6.7 (verified: BOTH lockfiles carry node_modules/zod 4.6.7; the
+# CI-pinned v2.5.1 scan reports the entry UNUSED). Same class as the
+# P24/P38 cleanups: a recurrence resolves again and FAILS LOUDLY.
 
 # P30 (2026-10-28) — the deepmerge prototype-poisoning advisory (Medium 5.3,
 # Integrity:Low) surfaced by the osv gate on a docs-only push (the scan reads

@@ -48,6 +48,37 @@ def _required_key(body: dict, key: str):
     return body[key]
 
 
+# P42-8a (FIX-A — عائلة D1-H1 للأطوال): broadcasts.name عمود String(200) —
+# SQLite يتجاهل حد VARCHAR فلا تراه الجنّة الهيرميتيك، لكن Postgres الإنتاجي
+# يجيب StringDataRightTruncation → 500 خام + تنبيه CRITICAL لخطأ كتابة عميل.
+# الحد عند عمود القاعدة: 422 عربية نظيفة (نفس عائلة _json_body أعلاه).
+_MAX_NAME = 200
+_NAME_TOO_LONG_MSG = "قيمة غير صالحة: اسم البث يتجاوز 200 حرف"
+
+
+def _reject_long_name(body: dict, *, required: bool) -> None:
+    """Validate the broadcast name against the String(200) column.
+
+    ``required=True`` (create): a missing key already answered 422 upstream —
+    this only re-checks type/length. ``required=False`` (update): the name
+    key is optional; a body without it passes untouched.
+
+    P42-8a (FIX-A تتمة): الاسم غير النصي (dict/list) كان يتخطى فحص الطول
+    (``len(str(name))`` صغير) ثم يفشل INSERT → 500 خام — نفس عائلة D1-H1:
+    النوع يُفحص عند الحد، 422 عربية نظيفة.
+    """
+    if required:
+        name = _required_key(body, "name")
+    elif "name" not in body or body["name"] is None:
+        return
+    else:
+        name = body["name"]
+    if not isinstance(name, str):
+        raise HTTPException(422, "قيمة غير صالحة: اسم البث يجب أن يكون نصاً")
+    if len(name) > _MAX_NAME:
+        raise HTTPException(422, _NAME_TOO_LONG_MSG)
+
+
 @router.get("/api/broadcasts")
 async def list_broadcasts(
     # v14-E3 (D10 §6): كانت القائمة بلا سقف — صف لكل حملة أنشأها المستأجر
@@ -85,6 +116,8 @@ async def create_broadcast(request: Request, db=Depends(get_db), current_user: U
     # D1-H1 (v15-E3): JSON body + required 'name' → 422 Arabic, not a 500.
     body = await _json_body(request)
     name = _required_key(body, "name")
+    # P42-8a (FIX-A): حد طول الاسم عند عمود String(200) قبل أي كتابة.
+    _reject_long_name(body, required=True)
     # D2-H1 (v15-E3): the has_broadcast plan gate is checked at CREATION too
     # (not only at send) — a tenant on a plan without the broadcast feature
     # should not even draft one.
@@ -117,6 +150,9 @@ async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), 
     from _services import broadcast_engine
     # D1-H1 (v15-E3): malformed body → 422 Arabic, not a 500.
     body = await _json_body(request)
+    # P42-8a (FIX-A): التحديث يمرر الجسم كما هو إلى المحرك (setattr على
+    # name) — نفس حد الطول يُطبّق هنا (الاسم اختياري في التحديث).
+    _reject_long_name(body, required=False)
     done = await broadcast_engine.update_broadcast(bcast_id, body, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
         raise HTTPException(404, "البث غير موجود")

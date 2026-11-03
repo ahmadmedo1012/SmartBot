@@ -51,9 +51,30 @@ async def _template_payload(request: Request) -> TemplateCreate:
     else:
         data = {k: v for k, v in (await request.form()).items()}
     try:
-        return TemplateCreate(**data)
+        p = TemplateCreate(**data)
     except ValidationError:
         raise HTTPException(422, "قيمة غير صالحة: الحقلان 'name' و 'text' مطلوبان") from None
+    # P42-8a (FIX-A): حدود أطوال الأعمدة — هنا فيغصل بها الإنشاء والتحديث معًا.
+    _reject_long_template_fields(p)
+    return p
+
+
+# P42-8a (FIX-A — عائلة D1-H1 للأطوال): أعمدة reply_templates هي
+# name String(100) / category String(50) / shortcut String(20) — SQLite يتجاهل
+# حدود VARCHAR فلا تراها الجنّة الهيرميتيك، لكن Postgres الإنتاجي يجيب
+# StringDataRightTruncation → 500 خام + تنبيه CRITICAL. الحد عند أعمدة
+# القاعدة (تُطبَّق هنا فيغصل بها الإنشاء والتحديث معًا): 422 عربية نظيفة.
+_TEMPLATE_FIELD_CAPS = (
+    ("name", 100, "اسم القالب"),
+    ("category", 50, "تصنيف القالب"),
+    ("shortcut", 20, "اختصار القالب"),
+)
+
+
+def _reject_long_template_fields(p: TemplateCreate) -> None:
+    for field, cap, label in _TEMPLATE_FIELD_CAPS:
+        if len(getattr(p, field, "") or "") > cap:
+            raise HTTPException(422, f"قيمة غير صالحة: {label} يتجاوز {cap} حرفًا")
 
 
 @router.get("/api/templates")

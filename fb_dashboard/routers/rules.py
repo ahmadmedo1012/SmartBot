@@ -96,6 +96,15 @@ class RulePayload:
                                   ("نص الرد", self.reply_template)) if not v]
         if missing:
             raise HTTPException(422, "قيمة غير صالحة: الحقول المطلوبة ناقصة — " + "، ".join(missing))
+        # P42-8a (FIX-A — عائلة D1-H1 للأطوال): rules.name عمود String(100)
+        # و rules.description عمود String(255) — SQLite يتجاهل حدود VARCHAR
+        # فلا تراها الجن هيرميتيك أبدًا، لكن Postgres الإنتاجي (Neon) يجيب
+        # StringDataRightTruncation → 500 خام + تنبيه CRITICAL لخطأ كتابة
+        # عميل. نفس عائلة حراس الأنواع أعلاه: 422 عربية نظيفة عند الحد.
+        if len(self.name) > 100:
+            raise HTTPException(422, "قيمة غير صالحة: اسم القاعدة يتجاوز 100 حرف")
+        if len(self.description) > 255:
+            raise HTTPException(422, "قيمة غير صالحة: وصف القاعدة يتجاوز 255 حرفًا")
 
 
 async def _rule_payload(request: Request, *, require_priority: bool) -> RulePayload:

@@ -19,9 +19,13 @@ from collections import defaultdict
 
 
 def test_dead_engines_marked_deprecated():
-    """الخطة 6.1: flow/pdf_reports/commerce/sequence تحمل علامة DEPRECATED دون حذف."""
+    """الخطة 6.1: pdf_reports/commerce/sequence تحمل علامة DEPRECATED دون حذف.
+
+    P43-SB1: flow_engine أُحيي كمحرك إنتاج (نشر/تنفيذ/استئناف المسارات)
+    فانتقل من قائمة المهجورات إلى قائمة الأحياء في الاختبار الموازي أدناه —
+    تحديث الحارس ليس تنازلًا بل توثيق قرار منتج مقصود."""
     base = FB_DIR
-    for engine in ("flow_engine.py", "pdf_reports_engine.py",
+    for engine in ("pdf_reports_engine.py",
                    "commerce_engine.py", "sequence_engine.py"):
         src = open(os.path.join(base, engine), encoding="utf-8").read()
         assert "DEPRECATED" in src, f"{engine} بلا علامة DEPRECATED"
@@ -30,11 +34,11 @@ def test_dead_engines_marked_deprecated():
 
 
 def test_alive_engines_present():
-    """المحركات الحية (الخطة 6.1 ALIVE) موجودة وسليمة."""
+    """المحركات الحية (الخطة 6.1 ALIVE + P43-SB1 إحياء flow_engine) موجودة وسليمة."""
     base = FB_DIR
     for engine in ("bot.py", "analytics_engine.py", "broadcast_engine.py",
                    "subscriber_engine.py",
-                   "offer_engine.py", "team_engine.py"):
+                   "offer_engine.py", "team_engine.py", "flow_engine.py"):
         src = open(os.path.join(base, engine), encoding="utf-8").read()
         assert "class " in src, f"{engine} لا يحتوي صنفاً — مكسور؟"
         assert "DEPRECATED" not in src, f"{engine} حي — لا يصح وسمه مهجوراً"

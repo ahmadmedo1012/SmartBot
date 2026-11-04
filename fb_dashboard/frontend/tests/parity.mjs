@@ -2779,39 +2779,48 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
      consumer, and the UI must never imply live automation it does not have). */
   const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
   const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
-  const rawFlows = nc(readRaw('../src/app/dashboard/flows/page.tsx'));
+  const rawFlows = nc(readRaw('../src/app/dashboard/flows/page.tsx'))
+    + nc(readRaw('../src/app/dashboard/flows/FlowStudio.tsx'))
+    + nc(readRaw('../src/app/dashboard/flows/ExecutionsPanel.tsx'));
   const rawFlowsLayout = readRaw('../src/app/dashboard/flows/layout.tsx');
   const rawSidebar = nc(readRaw('../src/components/layout/AdminSidebar.tsx'));
 
-  // (1) the page consumes the REAL routers/flows.py endpoints: the list, the
-  //     ST_CYCLE toggle, the /test execution path, and the PUT/DELETE writes.
+  // (1) P43-C-2: the STUDIO consumes the REAL routers/flows.py family: the
+  //     list, publish/unpublish (the activation contract that replaced the
+  //     ST_CYCLE toggle), the /test probe, the PUT/DELETE writes, and the
+  //     NEW /stats + /executions surfaces.
   const flowsApiOk = rawFlows.includes('apiFetch("/api/flows")')
-    && rawFlows.includes('`/api/flows/${id}/toggle`')
-    && rawFlows.includes('`/api/flows/${row.id}/test`')
+    && rawFlows.includes('`/api/flows/${flowId}/publish`')
+    && rawFlows.includes('`/api/flows/${flowId}/unpublish`')
+    && rawFlows.includes('`/api/flows/${flowId}/test`')
     && rawFlows.includes('`/api/flows/${flowId}`')
-    && rawFlows.includes('`/api/flows/${id}`');
+    && rawFlows.includes('`/api/flows/${id}`')
+    && rawFlows.includes('`/api/flows/${flowId}/stats`')
+    && rawFlows.includes('`/api/flows/${flowId}/executions`');
   if (flowsApiOk) pass += 1;
-  else fails.push('W6-B1 flows api: the page consumes the real /api/flows family (list, /toggle ST_CYCLE, /test, PUT, DELETE)');
+  else fails.push('W6-B1 flows api: the studio consumes the real /api/flows family (list, publish, unpublish, /test, PUT, DELETE, /stats, /executions)');
 
-  // (2) HONESTY — the dormant engine: the flows PageHeader rides the STATIC
-  //     trace (never the live lime node: flows do not run autonomously) and
-  //     the «وضع الاختبار — التنفيذ اليدوي» note rides both the page and
-  //     the test dialog where results are shown.
-  const flowsHonestyOk = rawFlows.includes('trace="static"')
-    && !/^\s+trace$/m.test(rawFlows) // (the bare boolean live-trace form never rides this route)
-    && (rawFlows.match(/وضع الاختبار — التنفيذ اليدوي/g) || []).length >= 2;
+  // (2) HONESTY — P43-SB1 flipped the truth: the engine is LIVE (Messenger
+  //     ingress + the automation beat execute published flows), so the
+  //     retired «وضع الاختبار» note must NOT ride the surface; the live
+  //     copy does («ينفّذه البوت فعليًا») and the lime trace lights ONLY
+  //     when a published flow actually exists (trace={hasActive}).
+  const flowsHonestyOk = rawFlows.includes('trace={hasActive}')
+    && rawFlows.includes('ينفّذه البوت فعليًا')
+    && !rawFlows.includes('وضع الاختبار — التنفيذ اليدوي')
+    && !rawFlows.includes('الربط التلقائي غير مفعّل');
   if (flowsHonestyOk) pass += 1;
-  else fails.push('W6-B1 flows honesty: static PageHeader trace + the test-mode note on the page AND the test dialog (manual execution only)');
+  else fails.push('W6-B1 flows honesty (P43): the live-engine copy + trace={hasActive} only when a published flow exists; the retired test-mode note never returns');
 
-  // (3) HONESTY — the status toggle is persisted configuration: no live lime
-  //     dot on flow rows (the sequences/broadcast live-dot idiom would claim
-  //     "running now" — status drives nothing today) and the counter counts
-  //     EXECUTIONS («تنفيذ»), not replies (total_replies bumps on every run
-  //     incl. /test — the engine's own truth).
+  // (3) HONESTY — the «تنفيذ» counter is the ENGINE's ledger: the card
+  //     prefers GET /{id}/stats total_executions and falls back to the row's
+  //     total_replies (both count executions, never «رد»); still no bg-lime
+  //     live dot on ROWS (the header trace alone reflects the live state).
   const flowsNoLiveDotOk = !rawFlows.includes('bg-lime')
-    && rawFlows.includes('countPhrase(f.total_replies ?? 0, "تنفيذ"');
+    && rawFlows.includes('countPhrase(num(s.total_executions), "تنفيذ"')
+    && rawFlows.includes('countPhrase(replies, "تنفيذ"');
   if (flowsNoLiveDotOk) pass += 1;
-  else fails.push('W6-B1 flows status truth: no bg-lime live dot on rows (status is stored config) + the honest «تنفيذ» counter');
+  else fails.push('W6-B1 flows status truth: no bg-lime live dot on rows + the honest «تنفيذ» counter (the /stats ledger with the row fallback)');
 
   // (4) the Premium 403 gate surfaces the lock: isPlanLocked discrimination
   //     (the W5-C1 family contract) + the /subscribe CTA.

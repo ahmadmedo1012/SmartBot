@@ -1,27 +1,29 @@
 /**
- * P21-W6-B1 — عقد صفحة «التدفقات» (Premium has_flows — أول مستهلك واجهة).
+ * P43-C-2 — عقد صفحة «التدفقات» = استوديو الأتمتة (قائمة + محرر + نشر).
  *
- * Pins (the testable half of the promise):
+ * The engine is LIVE now (P43-SB1: FlowRuntime consumes Messenger ingress +
+ * the automation beat), so the page's contracts grew from the v0 honest
+ * test-mode form editor to a real automation studio:
  *   - list cards render the REAL backend statuses (draft/active/paused per
- *     ST_CYCLE in routers/flows.py) + the HONEST run counter («تنفيذ» not
- *     «رد»: the engine bumps total_replies on every execution incl. /test)
- *   - the honesty contract: «وضع الاختبار — التنفيذ اليدوي» is on the page
- *     (the engine is dormant — /test is the only execution path today), and
- *     the status toggle is a persisted-config switch (ST_CYCLE), never a
- *     "live automation" claim
- *   - create POSTs the REAL node/edge schema (flow_engine.py: TRIGGER
- *     {triggerType, keywords[], matchMode} + chained MESSAGE nodes)
- *   - create validation: no name → the save button is inert (API 422 class)
- *   - 403 plan gate (POST only) → PremiumLockBody with the SERVER's Arabic
- *     copy (GATE_MESSAGES.has_flows) + /subscribe CTA — not a bare toast
- *   - toggle → POST /{id}/toggle; a NON-plan 403 (viewer role) surfaces the
- *     server detail via brandedToast.error (the W5-C1 discrimination)
- *   - test run → POST /{id}/test with {text}; the returned trace renders
- *     VERBATIM (action/node_id/message — mono, the engine's own words)
+ *     routers/flows.py) + the per-flow stats summary (GET /{id}/stats:
+ *     «تنفيذ» counter — total_executions, the engine's execution ledger —
+ *     · مكتملة · رسائل مرسلة)
+ *   - the honesty contract FLIPPED: the old «وضع الاختبار — التنفيذ اليدوي»
+ *     note is GONE (it would be a lie now); the live copy is «ينشر المسار
+ *     وينفّذه البوت فعليًا على رسائل ميسنجر الواردة»
+ *   - create = a blank DRAFT dialog: POST {name, description} (no graph —
+ *     nodes/edges are designed in the studio AFTER creation), then the
+ *     studio opens for the fresh id
+ *   - publish/unpublish replaced the ST_CYCLE toggle: POST /{id}/publish
+ *     (422 Arabic graph validation surfaces in a role=alert card — the
+ *     server is the only validator) / POST /{id}/unpublish
+ *   - the manual test path SURVIVES as a real-engine probe: POST /{id}/test
+ *     {text, from_name?}; the trace renders VERBATIM
+ *   - edit: the studio rebuilds nodes/edges from the visual cards and PUTs
+ *     the rebuilt graph; nodes the vertical editor cannot represent are
+ *     warned EXPLICITLY and dropped on first save (the documented P43 guard
+ *     contract — replacing v0's metadata-only guard)
  *   - delete is a two-step ARABIC confirm (icon → «تأكيد الحذف» → DELETE)
- *   - advanced graphs (CONDITION/DELAY nodes): edit PUTs metadata ONLY —
- *     nodes/edges are never rebuilt client-side (PUT replaces them; the
- *     data-loss guard)
  *
  * Mock bundle (house pattern from SequencesPage.test.tsx): QueryClientProvider,
  * premium-toast spy, next/navigation (useRouter for the lock CTA), fetch stub.
@@ -107,6 +109,32 @@ const DRAFT_FLOW = {
   updated_at: "2026-09-02T10:00:00Z",
 }
 
+const ACTIVE_STATS = {
+  flow_id: 1,
+  status: "active",
+  total_executions: 5,
+  active: 0,
+  completed: 4,
+  failed: 1,
+  expired: 0,
+  messages_sent: 9,
+  avg_steps: 2.5,
+  total_replies: 5,
+}
+
+const DRAFT_STATS = {
+  flow_id: 2,
+  status: "draft",
+  total_executions: 0,
+  active: 0,
+  completed: 0,
+  failed: 0,
+  expired: 0,
+  messages_sent: 0,
+  avg_steps: 0,
+  total_replies: 0,
+}
+
 const SIMPLE_DETAIL = {
   ...ACTIVE_FLOW,
   nodes: [
@@ -114,6 +142,33 @@ const SIMPLE_DETAIL = {
     { id: "msg-1", type: "MESSAGE", data: { text: "أهلاً" } },
   ],
   edges: [{ source: "trigger", target: "msg-1" }],
+}
+
+/* استوديو كامل: القائمة + التفاصيل + الإحصاءات + التنفيذات كلها مُحاكاة */
+function stubStudioList(extra: Record<string, () => Response | Promise<Response>> = {}) {
+  return stubFetch({
+    "GET /api/flows": () => jsonRes({ success: true, data: [ACTIVE_FLOW, DRAFT_FLOW] }),
+    "GET /api/flows/1/stats": () => jsonRes({ success: true, data: ACTIVE_STATS }),
+    "GET /api/flows/2/stats": () => jsonRes({ success: true, data: DRAFT_STATS }),
+    ...extra,
+  })
+}
+
+async function openStudio(api?: ReturnType<typeof stubFetch>) {
+  const btn = await screen.findByRole("button", { name: "فتح محرر التدفق أسعار التوصيل" })
+  fireEvent.click(btn)
+  /* الترطيب اكتمل: بطاقة المشغّل (حصرية للاستوديو — عنوان القائمة يحمل
+   * نفس نسخة «ينفّذه البوت» فلا يصلح كإشارة اكتمال) */
+  await screen.findByLabelText("كلمات التشغيل", {}, { timeout: 5000 })
+  return api
+}
+
+/** فتح إعداد بطاقة رسالة (تبدأ مطوية). */
+async function expandMessage(stepId: string) {
+  fireEvent.click(
+    await screen.findByRole("button", { name: `رسالة ${stepId} — فتح الإعداد` }),
+  )
+  return screen.findByLabelText(`نص الرسالة ${stepId}`)
 }
 
 function renderPage() {
@@ -139,7 +194,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe("list (contract: real statuses + honest run counter)", () => {
+describe("list (contract: real statuses + per-flow stats summary)", () => {
   it("renders skeleton slabs while the list loads", () => {
     /* never-resolving GET — the loading state is the contract under test */
     stubFetch({
@@ -149,23 +204,30 @@ describe("list (contract: real statuses + honest run counter)", () => {
     expect(container.querySelectorAll(".skeleton").length).toBeGreaterThanOrEqual(3)
   })
 
-  it("renders names, REAL statuses, and the honest «تنفيذ» counter (not «رد»)", async () => {
-    stubFetch({
-      "GET /api/flows": () => jsonRes({ success: true, data: [ACTIVE_FLOW, DRAFT_FLOW] }),
-    })
+  it("renders names, REAL statuses, and the per-flow stats summary", async () => {
+    stubStudioList()
     renderPage()
 
     expect(await screen.findByText("أسعار التوصيل")).toBeInTheDocument()
     expect(screen.getByText("ترحيب المتابعين")).toBeInTheDocument()
-    /* real backend statuses — draft/active/paused (ST_CYCLE) */
-    expect(screen.getByText("مفعّل")).toBeInTheDocument()
+    /* real backend statuses — the studio labels: نشط/مسودة/متوقف/مؤرشف */
+    expect(screen.getByText("نشط")).toBeInTheDocument()
     expect(screen.getByText("مسودة")).toBeInTheDocument()
-    /* the engine's counter counts executions (incl. tests), not replies */
-    expect(screen.getByText("5 تنفيذات")).toBeInTheDocument()
-    expect(screen.getByText("لا تنفيذات")).toBeInTheDocument()
-    expect(screen.queryByText(/ردود/)).not.toBeInTheDocument()
-    /* the honesty note rides the page: test mode, manual execution only */
-    expect(screen.getByText(/وضع الاختبار — التنفيذ اليدوي/)).toBeInTheDocument()
+    /* the stats summary comes from GET /{id}/stats (async) — the engine's
+     * ledger; the line interleaves mono spans so assert on the body text */
+    await waitFor(() => expect(document.body.textContent).toContain("مكتملة"))
+    expect(document.body.textContent).toContain("رسائل مرسلة")
+  })
+
+  it("the honesty contract flipped: the live-engine copy, never the old test-mode note", async () => {
+    stubStudioList()
+    renderPage()
+
+    expect(await screen.findByText(/أسعار التوصيل/)).toBeInTheDocument()
+    /* المحرك حي — النسخة القديمة الكاذبة تقاعدت */
+    expect(screen.getByText(/ينشر المسار وينفّذه البوت فعليًا/)).toBeInTheDocument()
+    expect(screen.queryByText(/وضع الاختبار — التنفيذ اليدوي/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/الربط التلقائي غير مفعّل/)).not.toBeInTheDocument()
   })
 
   it("renders the honest empty state with a create CTA", async () => {
@@ -175,7 +237,7 @@ describe("list (contract: real statuses + honest run counter)", () => {
     renderPage()
 
     expect(await screen.findByText("لا توجد تدفقات")).toBeInTheDocument()
-    /* the CTA rides BOTH the header and the empty well — both open the editor */
+    /* the CTA rides BOTH the header and the empty well — both open the dialog */
     const ctas = screen.getAllByRole("button", { name: "تدفق جديد" })
     expect(ctas.length).toBe(2)
     fireEvent.click(ctas[0]!)
@@ -193,7 +255,7 @@ describe("list (contract: real statuses + honest run counter)", () => {
   })
 })
 
-describe("create flow (real node/edge schema built client-side)", () => {
+describe("create flow (blank draft → studio)", () => {
   it("save is inert without a name (the API 422 class)", async () => {
     const api = stubFetch({
       "GET /api/flows": () => jsonRes({ success: true, data: [] }),
@@ -208,10 +270,16 @@ describe("create flow (real node/edge schema built client-side)", () => {
     expect(api.callsFor("POST /api/flows")).toHaveLength(0)
   })
 
-  it("POSTs TRIGGER{keywords,matchMode} + chained MESSAGE nodes/edges", async () => {
+  it("POSTs the BLANK DRAFT {name, description} then opens the studio", async () => {
     const api = stubFetch({
       "GET /api/flows": () => jsonRes({ success: true, data: [] }),
       "POST /api/flows": () => jsonRes({ success: true, data: { id: 10 } }),
+      "GET /api/flows/10": () => jsonRes({
+        success: true,
+        data: { id: 10, name: "تدفق الأسعار", description: "", status: "draft", nodes: [], edges: [] },
+      }),
+      "GET /api/flows/10/stats": () => jsonRes({ success: true, data: DRAFT_STATS }),
+      "GET /api/flows/10/executions": () => jsonRes({ success: true, data: { executions: [], total: 0 } }),
     })
     renderPage()
 
@@ -219,41 +287,20 @@ describe("create flow (real node/edge schema built client-side)", () => {
     fireEvent.change(await screen.findByLabelText("اسم التدفق"), {
       target: { value: "تدفق الأسعار" },
     })
-    fireEvent.change(screen.getByLabelText("كلمات التشغيل (اختياري)"), {
-      target: { value: "سعر، توصيل" },
+    fireEvent.change(screen.getByLabelText("الوصف (اختياري)"), {
+      target: { value: "يرحّب ثم يعرض الأسعار" },
     })
-    fireEvent.change(screen.getByLabelText("الرسالة 1"), { target: { value: "أهلاً بك" } })
-
     fireEvent.click(screen.getByRole("button", { name: "إنشاء التدفق" }))
 
     await waitFor(() => expect(api.callsFor("POST /api/flows")).toHaveLength(1), { timeout: 5000 })
+    /* العقد الجديد: مسودة فارغة — nodes/edges تُصمَّم في الاستوديو بعد الإنشاء */
     expect(api.bodiesFor("POST /api/flows")[0]).toEqual({
       name: "تدفق الأسعار",
-      description: "",
-      nodes: [
-        { id: "trigger", type: "TRIGGER", data: { triggerType: "keyword", keywords: ["سعر", "توصيل"], matchMode: "any" } },
-        { id: "msg-1", type: "MESSAGE", data: { text: "أهلاً بك" } },
-      ],
-      edges: [{ source: "trigger", target: "msg-1" }],
+      description: "يرحّب ثم يعرض الأسعار",
     })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith("تم إنشاء التدفق")
-  })
-
-  it("no keywords → the trigger is honest: triggerType manual (always matchable)", async () => {
-    const api = stubFetch({
-      "GET /api/flows": () => jsonRes({ success: true, data: [] }),
-      "POST /api/flows": () => jsonRes({ success: true, data: { id: 11 } }),
-    })
-    renderPage()
-
-    fireEvent.click(await screen.findByRole("button", { name: "تدفق جديد" }))
-    fireEvent.change(await screen.findByLabelText("اسم التدفق"), { target: { value: "تدفق يدوي" } })
-    fireEvent.click(screen.getByRole("button", { name: "إنشاء التدفق" }))
-
-    await waitFor(() => expect(api.callsFor("POST /api/flows")).toHaveLength(1), { timeout: 5000 })
-    expect(api.bodiesFor("POST /api/flows")[0].nodes).toEqual([
-      { id: "trigger", type: "TRIGGER", data: { triggerType: "manual" } },
-    ])
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("تم إنشاء المسودة — صمّم الخطوات وانشرها")
+    /* the studio opens for the fresh id (trigger card = studio-only marker) */
+    await screen.findByLabelText("كلمات التشغيل", {}, { timeout: 5000 })
   })
 })
 
@@ -281,39 +328,75 @@ describe("403 plan gate (create only) → PremiumLockBody", () => {
   })
 })
 
-describe("status toggle (ST_CYCLE — persisted config)", () => {
-  it("an active flow's switch POSTs /toggle and toasts the server-returned status", async () => {
-    const api = stubFetch({
-      "GET /api/flows": () => jsonRes({ success: true, data: [ACTIVE_FLOW] }),
-      "POST /api/flows/1/toggle": () => jsonRes({ success: true, data: { status: "paused" } }),
+describe("publish / unpublish (the studio activation contract)", () => {
+  it("«نشر التدفق» saves the DIRTY draft then POSTs publish with the engine-live toast", async () => {
+    const api = stubStudioList({
+      "GET /api/flows/2": () => jsonRes({ success: true, data: { ...SIMPLE_DETAIL, ...DRAFT_FLOW } }),
+      "GET /api/flows/2/executions": () => jsonRes({ success: true, data: { executions: [], total: 0 } }),
+      "PUT /api/flows/2": () => jsonRes({ success: true, data: { ok: true } }),
+      "POST /api/flows/2/publish": () => jsonRes({ success: true, data: { status: "active", version: 2 } }),
     })
     renderPage()
+    fireEvent.click(await screen.findByRole("button", { name: "فتح محرر التدفق ترحيب المتابعين" }))
+    await screen.findByLabelText("كلمات التشغيل", {}, { timeout: 5000 })
 
-    fireEvent.click(await screen.findByRole("switch", { name: "إيقاف التدفق أسعار التوصيل" }))
-    await waitFor(() => expect(api.callsFor("POST /api/flows/1/toggle")).toHaveLength(1), { timeout: 5000 })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith("تم إيقاف التدفق مؤقتًا")
+    /* عدّل المسودة أولًا حتى يصبح «حفظ قبل النشر» قابلًا للرصد: حفظ
+     * مسودة غير متغيرة يتخطى PUT (آخر حالة محفوظة = الخادم) — عقد صحيح
+     * لكنه غير مرئي للشبكة. */
+    fireEvent.click(await screen.findByRole("button", { name: "رسالة msg-1 — فتح الإعداد" }))
+    const msgBox = await screen.findByLabelText("نص الرسالة msg-1")
+    fireEvent.change(msgBox, { target: { value: "أهلاً وسهلاً" } })
+    fireEvent.click(screen.getByRole("button", { name: /نشر التدفق/ }))
+
+    await waitFor(() => expect(api.callsFor("POST /api/flows/2/publish")).toHaveLength(1), { timeout: 5000 })
+    /* the DIRTY draft is persisted BEFORE activation (the publish contract) */
+    const puts = api.bodiesFor("PUT /api/flows/2")
+    expect(puts.length).toBeGreaterThanOrEqual(1)
+    expect(puts[puts.length - 1]?.nodes?.[1]).toEqual({
+      id: "msg-1", type: "MESSAGE", data: { text: "أهلاً وسهلاً" },
+    })
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("تم نشر التدفق — سينفّذه البوت على الرسائل الواردة")
   })
 
-  it("a NON-plan 403 (viewer role) surfaces the server detail via toast — never the lock", async () => {
-    const api = stubFetch({
-      "GET /api/flows": () => jsonRes({ success: true, data: [ACTIVE_FLOW] }),
-      "POST /api/flows/1/toggle": () => jsonRes({ success: false, error: "صلاحيات غير كافية" }, 403),
+  it("publish 422 (graph validation) surfaces the SERVER's Arabic message in the alert card", async () => {
+    const api = stubStudioList({
+      "GET /api/flows/2": () => jsonRes({ success: true, data: { ...SIMPLE_DETAIL, ...DRAFT_FLOW } }),
+      "GET /api/flows/2/executions": () => jsonRes({ success: true, data: { executions: [], total: 0 } }),
+      "PUT /api/flows/2": () => jsonRes({ success: true, data: { ok: true } }),
+      "POST /api/flows/2/publish": () =>
+        jsonRes({ success: false, error: "قيمة غير صالحة: يجب أن يحتوي المسار على عقدة تشغيل (TRIGGER) واحدة بالضبط" }, 422),
     })
     renderPage()
+    fireEvent.click(await screen.findByRole("button", { name: "فتح محرر التدفق ترحيب المتابعين" }))
+    await screen.findByLabelText("كلمات التشغيل", {}, { timeout: 5000 })
 
-    fireEvent.click(await screen.findByRole("switch", { name: "إيقاف التدفق أسعار التوصيل" }))
-    await waitFor(() => expect(api.callsFor("POST /api/flows/1/toggle")).toHaveLength(1), { timeout: 5000 })
-    expect(mocks.toastError).toHaveBeenCalledWith("صلاحيات غير كافية")
-    expect(mocks.toastSuccess).not.toHaveBeenCalled()
-    /* the W5-C1 discrimination: this 403 must NOT render the Premium lock */
-    expect(screen.queryByText("التدفقات — متاحة في Premium")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /نشر التدفق/ }))
+    expect(await screen.findByText(/تعذّر النشر — الخادم ردّ:/)).toBeInTheDocument()
+    expect(screen.getByText(/عقدة تشغيل \(TRIGGER\) واحدة بالضبط/)).toBeInTheDocument()
+    /* a validation 422 is never a toast — the card is the surface */
+    expect(mocks.toastError).not.toHaveBeenCalledWith(/TRIGGER/)
+  })
+
+  it("an ACTIVE flow offers «إيقاف النشر» and toasts the pause", async () => {
+    const api = stubStudioList({
+      "GET /api/flows/1": () => jsonRes({ success: true, data: SIMPLE_DETAIL }),
+      "GET /api/flows/1/executions": () => jsonRes({ success: true, data: { executions: [], total: 0 } }),
+      "POST /api/flows/1/unpublish": () => jsonRes({ success: true, data: { status: "paused" } }),
+    })
+    renderPage()
+    await openStudio(api)
+
+    fireEvent.click(screen.getByRole("button", { name: /إيقاف النشر/ }))
+    await waitFor(() => expect(api.callsFor("POST /api/flows/1/unpublish")).toHaveLength(1), { timeout: 5000 })
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("تم إيقاف التدفق — لن تبدأ تنفيذات جديدة")
   })
 })
 
-describe("run test (POST /{id}/test — the only execution path today)", () => {
-  it("POSTs {text} and renders the returned trace VERBATIM with the test-mode note", async () => {
-    const api = stubFetch({
-      "GET /api/flows": () => jsonRes({ success: true, data: [ACTIVE_FLOW] }),
+describe("run test (POST /{id}/test — a REAL engine probe, logged to the executions ledger)", () => {
+  it("POSTs {text, from_name} and renders the returned trace VERBATIM", async () => {
+    const api = stubStudioList({
+      "GET /api/flows/1": () => jsonRes({ success: true, data: SIMPLE_DETAIL }),
+      "GET /api/flows/1/executions": () => jsonRes({ success: true, data: { executions: [], total: 0 } }),
       "POST /api/flows/1/test": () =>
         jsonRes({
           success: true,
@@ -328,33 +411,35 @@ describe("run test (POST /{id}/test — the only execution path today)", () => {
         }),
     })
     renderPage()
+    await openStudio(api)
 
-    fireEvent.click(await screen.findByRole("button", { name: "تشغيل اختبار التدفق أسعار التوصيل" }))
-    /* the honesty note lives WHERE the results are shown — the dialog adds a
-     * second instance to the page-level one (both are the contract) */
-    const notes = await screen.findAllByText(/وضع الاختبار — التنفيذ اليدوي/)
-    expect(notes.length).toBe(2)
-    fireEvent.change(await screen.findByLabelText("نص الرسالة الواردة التجريبي"), {
+    fireEvent.click(screen.getByRole("button", { name: /تشغيل اختبار/ }))
+    /* the live-engine copy — never the retired test-mode note */
+    expect(await screen.findByText(/تنفيذ حقيقي عبر المحرك يُسجَّل في سجل التنفيذات/)).toBeInTheDocument()
+    fireEvent.change(await screen.findByLabelText("اسم المرسِل التجريبي (اختياري)"), {
+      target: { value: "أحمد" },
+    })
+    fireEvent.change(screen.getByLabelText("نص الرسالة الواردة التجريبي"), {
       target: { value: "كم السعر؟" },
     })
     fireEvent.click(screen.getByRole("button", { name: "تشغيل" }))
 
     await waitFor(() => expect(api.callsFor("POST /api/flows/1/test")).toHaveLength(1), { timeout: 5000 })
-    expect(api.bodiesFor("POST /api/flows/1/test")[0]).toEqual({ text: "كم السعر؟" })
-    /* the engine's own words, verbatim (mono chain): ids + actions */
-    expect(await screen.findByText("trigger")).toBeInTheDocument()
-    expect(screen.getByText("passed")).toBeInTheDocument()
-    expect(screen.getByText("msg-1")).toBeInTheDocument()
-    expect(screen.getByText("message_sent")).toBeInTheDocument()
-    expect(screen.getByText("«أهلاً أحمد»")).toBeInTheDocument()
-    expect(screen.getByText("7")).toBeInTheDocument()
+    expect(api.bodiesFor("POST /api/flows/1/test")[0]).toEqual({ text: "كم السعر؟", from_name: "أحمد" })
+    /* the engine's own words, verbatim (mono chain): ids + actions
+     * (msg-1/trigger also ride the editor cards — findAll) */
+    expect(await screen.findAllByText("trigger")).not.toHaveLength(0)
+    expect(screen.getAllByText("passed")).not.toHaveLength(0)
+    expect(screen.getAllByText("msg-1")).not.toHaveLength(0)
+    expect(screen.getAllByText("message_sent")).not.toHaveLength(0)
+    expect(screen.getAllByText("«أهلاً أحمد»")).not.toHaveLength(0)
+    expect(screen.getAllByText("7")).not.toHaveLength(0)
   })
 })
 
 describe("delete — two-step Arabic confirm", () => {
   it("icon click only arms the confirm; the DELETE fires on «تأكيد الحذف» only", async () => {
-    const api = stubFetch({
-      "GET /api/flows": () => jsonRes({ success: true, data: [ACTIVE_FLOW] }),
+    const api = stubStudioList({
       "DELETE /api/flows/1": () => jsonRes({ success: true, data: { ok: true } }),
     })
     renderPage()
@@ -369,24 +454,27 @@ describe("delete — two-step Arabic confirm", () => {
   })
 })
 
-describe("edit (PUT contract + the advanced-graph data-loss guard)", () => {
-  it("hydrates the simple chain and PUTs the rebuilt nodes/edges", async () => {
-    const api = stubFetch({
-      "GET /api/flows": () => jsonRes({ success: true, data: [ACTIVE_FLOW] }),
+describe("edit (the studio PUT contract + the P43 unrepresentable-node guard)", () => {
+  it("hydrates the chain and «حفظ» PUTs the rebuilt nodes/edges", async () => {
+    const api = stubStudioList({
       "GET /api/flows/1": () => jsonRes({ success: true, data: SIMPLE_DETAIL }),
+      "GET /api/flows/1/executions": () => jsonRes({ success: true, data: { executions: [], total: 0 } }),
       "PUT /api/flows/1": () => jsonRes({ success: true, data: { ok: true } }),
     })
     renderPage()
+    await openStudio(api)
 
-    fireEvent.click(await screen.findByRole("button", { name: "تحرير التدفق أسعار التوصيل" }))
-    await waitFor(() => expect(screen.getByLabelText("الرسالة 1")).toHaveValue("أهلاً"))
-    await waitFor(() => expect(screen.getByLabelText("كلمات التشغيل (اختياري)")).toHaveValue("سعر"))
+    /* الترطيب: البطاقة تبدأ مطوية — افتحها واقرأ النص المحمّل */
+    const msgBox = await expandMessage("msg-1")
+    expect(msgBox).toHaveValue("أهلاً")
 
-    fireEvent.change(screen.getByLabelText("الرسالة 1"), { target: { value: "أهلاً وسهلاً" } })
-    fireEvent.click(screen.getByRole("button", { name: "حفظ التعديلات" }))
+    fireEvent.change(msgBox, { target: { value: "أهلاً وسهلاً" } })
+    fireEvent.click(screen.getByRole("button", { name: /^حفظ$/ }))
 
-    await waitFor(() => expect(api.callsFor("PUT /api/flows/1")).toHaveLength(1), { timeout: 5000 })
-    expect(api.bodiesFor("PUT /api/flows/1")[0]).toEqual({
+    await waitFor(() => expect(api.callsFor("PUT /api/flows/1").length).toBeGreaterThanOrEqual(1), { timeout: 5000 })
+    /* (الحفظ الفوري أو التلقائي — كلاهما نفس الجسد) */
+    const bodies = api.bodiesFor("PUT /api/flows/1")
+    expect(bodies[bodies.length - 1]).toEqual({
       name: "أسعار التوصيل",
       description: "يرد على أسئلة الأسعار",
       nodes: [
@@ -395,12 +483,10 @@ describe("edit (PUT contract + the advanced-graph data-loss guard)", () => {
       ],
       edges: [{ source: "trigger", target: "msg-1" }],
     })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith("تم حفظ تعديلات التدفق")
   })
 
-  it("an ADVANCED graph (CONDITION node) edits metadata ONLY — nodes/edges never sent", async () => {
-    const api = stubFetch({
-      "GET /api/flows": () => jsonRes({ success: true, data: [ACTIVE_FLOW] }),
+  it("unrepresentable nodes are warned EXPLICITLY and dropped on save (the documented P43 guard)", async () => {
+    const api = stubStudioList({
       "GET /api/flows/1": () =>
         jsonRes({
           success: true,
@@ -408,32 +494,27 @@ describe("edit (PUT contract + the advanced-graph data-loss guard)", () => {
             ...SIMPLE_DETAIL,
             nodes: [
               ...SIMPLE_DETAIL.nodes,
-              { id: "cond-1", type: "CONDITION", data: { field: "text", operator: "contains", value: "سعر" } },
+              /* a node NO edge points to — unreachable from the trigger
+               * walk (graph.ts: visited) → orphan */
+              { id: "seq-1", type: "SEQUENCE", data: { sequenceId: 3 } },
             ],
-            edges: [
-              ...SIMPLE_DETAIL.edges,
-              { source: "msg-1", target: "cond-1", sourceHandle: "true" },
-            ],
+            edges: SIMPLE_DETAIL.edges,
           },
         }),
+      "GET /api/flows/1/executions": () => jsonRes({ success: true, data: { executions: [], total: 0 } }),
       "PUT /api/flows/1": () => jsonRes({ success: true, data: { ok: true } }),
     })
     renderPage()
+    await openStudio(api)
 
-    fireEvent.click(await screen.findByRole("button", { name: "تحرير التدفق أسعار التوصيل" }))
-    /* the read-only contract is stated: advanced nodes are shown, not edited */
-    expect(await screen.findByText(/للقراءة/)).toBeInTheDocument()
-    expect(screen.getByText("شرط: text contains سعر")).toBeInTheDocument()
-    expect(screen.queryByLabelText("الرسالة 1")).not.toBeInTheDocument()
+    /* العقد غير الممثَّلة: بطاقة تحذير صريحة بالأسماء */
+    expect(await screen.findByText(/عقد خارج بنية المحرر الرأسي/)).toBeInTheDocument()
+    expect(screen.getAllByText(/seq-1/).length).toBeGreaterThan(0)
 
-    fireEvent.change(screen.getByLabelText("اسم التدفق"), { target: { value: "أسعار محدثة" } })
-    fireEvent.click(screen.getByRole("button", { name: "حفظ التعديلات" }))
-
+    fireEvent.click(screen.getByRole("button", { name: /حذفها الآن وحفظ/ }))
     await waitFor(() => expect(api.callsFor("PUT /api/flows/1")).toHaveLength(1), { timeout: 5000 })
-    /* metadata only — the CONDITION/branch nodes are preserved server-side */
-    expect(api.bodiesFor("PUT /api/flows/1")[0]).toEqual({
-      name: "أسعار محدثة",
-      description: "يرد على أسئلة الأسعار",
-    })
+    /* الحفظ يعيد البناء من البطاقات المرئية فقط — seq-1 سقط */
+    const body = api.bodiesFor("PUT /api/flows/1")[0]
+    expect(body.nodes.map((n: { id: string }) => n.id).join(",")).toBe("trigger,msg-1")
   })
 })

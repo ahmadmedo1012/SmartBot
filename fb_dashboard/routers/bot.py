@@ -181,6 +181,9 @@ async def _automation_sweep(report: dict) -> int:
       3. run one bot comment cycle for connected tenants (same engine gate;
          the cycle's finally-drain also fires sequence drips + broadcast/
          campaign outboxes — v16-E2 D4)
+      4. resume DUE flow executions (P43-SB1 — DELAY-parked runs whose
+         ``resume_at`` passed; atomic claim per execution, per-execution
+         tenant scoping — see ``flow_engine.resume_due_flow_executions``)
 
     Idempotency (why a piggyback beat racing the cron beat can never
     double-do work):
@@ -284,6 +287,18 @@ async def _automation_sweep(report: dict) -> int:
                 report["errors"].append(f"cycle {tenant_id}: {str(e)[:80]}")
     except Exception as e:
         report["errors"].append(f"cycle sweep: {str(e)[:120]}")
+        core_failures += 1
+
+    # ── 4. Resume DUE flow executions (P43-SB1) ──
+    # DELAY-parked runs whose resume_at passed continue here — idempotent
+    # (atomic resume_at NULL claim per execution), tenant-correct (each
+    # execution resolves its own tenant's FB client). A piggyback beat
+    # racing the cron can never double-resume the same execution.
+    try:
+        from flow_engine import resume_due_flow_executions
+        report["flows_resumed"] = await resume_due_flow_executions()
+    except Exception as e:
+        report["errors"].append(f"flow resume: {str(e)[:120]}")
         core_failures += 1
 
     return core_failures
@@ -519,6 +534,15 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
             engine = get_bot_engine(fb_cli, tenant_id=tenant.id)
             try:
                 await engine.cycle()
+                # P43-SB1: the per-tenant cycle also resumes this tenant's
+                # DUE flow executions (delay-parked runs) — same beat, same
+                # tenant shard, idempotent claim per execution.
+                try:
+                    from flow_engine import resume_due_flow_executions
+                    await resume_due_flow_executions(tenant_id=tenant.id)
+                except Exception as flow_e:
+                    log.warning("cron cycle: flow resume failed tenant %s: %s",
+                                 tenant.id, flow_e)
                 results.append({"tenant_id": tenant.id, "status": "ok"})
             except Exception as e:
                 log.error(f"Cron cycle err tenant {tenant.id}: {e}", exc_info=True)

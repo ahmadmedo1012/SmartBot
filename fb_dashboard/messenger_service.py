@@ -297,6 +297,53 @@ async def _upsert_subscriber(db, tenant_id: int, page_id: str,
         sub.name = sender_name[:200]
 
 
+async def _conversation_bot_paused(tenant_id: int, conversation_fb_id: str) -> bool:
+    """P43-SB2 — is this conversation in human-takeover mode?
+
+    One cheap indexed read (uq_conversations_tenant_fb serves it) BEFORE any
+    auto layer runs: a bot_paused conversation stores the incoming message
+    but NO automation (flows or keyword rules) may answer it. Best-effort —
+    a probe failure assumes NOT paused so the live reply path never dies
+    over a handoff-state read."""
+    try:
+        async with AsyncSessionLocal() as db:
+            row = await db.execute(
+                select(Conversation.bot_paused).where(
+                    Conversation.tenant_id == tenant_id,
+                    Conversation.fb_conversation_id == conversation_fb_id,
+                )
+            )
+            paused = row.scalar_one_or_none()
+            return bool(paused)
+    except Exception:
+        log.debug("bot_paused probe failed — assuming not paused", exc_info=True)
+        return False
+
+
+async def _advance_flows_for_message(tenant_id: int, page_id: str,
+                                     conversation_fb_id: str, sender_id: str,
+                                     messaging: dict, fb_client=None) -> dict:
+    """P43-SB1 seam — the flow runtime entry (module-level so tests can
+    monkeypatch the hook without touching the ingestion contract).
+
+    Matchable text mirrors the keyword engine's extraction: message.text,
+    falling back to postback title/payload then quick-reply payload (button
+    taps trigger flows too)."""
+    from flow_engine import handle_incoming_message
+    msg = messaging.get("message") or {}
+    text = str(msg.get("text") or "")
+    pb = messaging.get("postback")
+    if not text and isinstance(pb, dict) and pb.get("payload"):
+        text = str(pb.get("title") or pb["payload"])[:500]
+    qr = msg.get("quick_reply")
+    if not text and isinstance(qr, dict) and qr.get("payload"):
+        text = str(qr["payload"])[:500]
+    sender_name = str((messaging.get("sender") or {}).get("name") or "")
+    return await handle_incoming_message(
+        tenant_id, page_id, conversation_fb_id, sender_id, text,
+        fb_client=fb_client, sender_name=sender_name)
+
+
 async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
                                  fb_client=None) -> dict:
     """Webhook entry: persist + auto-reply. Returns a small status dict.
@@ -367,6 +414,32 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
             return status
         if not _is_recent(messaging):
             return status  # old redelivery — skip replying
+        # P43-SB2 — human takeover: a bot_paused conversation stores the
+        # customer's message but NO auto layer (flows or keyword rules)
+        # answers it; the team replies by hand from the inbox.
+        if await _conversation_bot_paused(tenant_id, conv_id):
+            status["bot_paused"] = True
+            return status
+        # P43-SB1 — the flow runtime runs FIRST: an active flow execution
+        # consumes the message (advances / waits), else a matching TRIGGER
+        # starts one. handled=True → the flat keyword rules stay quiet (one
+        # automation layer owns the reply); any flow error/no-match falls
+        # through to the keyword path below — the live reply is sacred.
+        flow_status = {"handled": False, "action": "none", "sent": False}
+        try:
+            flow_status = await _advance_flows_for_message(
+                tenant_id, page_id, conv_id, sender_id, messaging,
+                fb_client=fb_client)
+        except Exception:
+            # r133-A6: a flow runtime crash must NEVER break the live reply
+            # path — log and continue with the normal keyword rules.
+            log.exception("flow advance failed — continuing with keyword rules")
+        status["flow_action"] = flow_status.get("action", "")
+        if flow_status.get("handled"):
+            if flow_status.get("sent"):
+                status["replied"] = True
+                status["flow_handled"] = True
+            return status
         try:
             from _services import get_bot_engine
             engine = get_bot_engine(fb_client, tenant_id=tenant_id)

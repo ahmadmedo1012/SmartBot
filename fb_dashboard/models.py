@@ -444,18 +444,39 @@ class Flow(Base):
 
 
 class FlowExecution(Base):
-    """Runtime record of a flow running for a subscriber."""
+    """Runtime record of a flow running for a subscriber.
+
+    P43-SB1 — the flow engine is a LIVE automation executor again: every
+    Messenger-driven run keeps its resume point here (``current_node_id`` =
+    the next node to execute, ``resume_at`` = when a DELAY-parked execution
+    is due). ``steps`` counts executed nodes (stats + the loop-guard ledger).
+    """
     __tablename__ = "flow_executions"
-    __table_args__ = (Index("ix_flowexec_tenant_status", "tenant_id", "status"),)
+    __table_args__ = (
+        Index("ix_flowexec_tenant_status", "tenant_id", "status"),
+        # P43-SB1: the due-resume sweep filters (tenant_id, status, resume_at)
+        # every automation beat — the tenant-leading composite leads with the
+        # status/resume_at pair the beat actually selects on.
+        Index("ix_flowexec_tenant_status_resume", "tenant_id", "status", "resume_at"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
     flow_id = Column(Integer, ForeignKey("flows.id", ondelete="CASCADE"), nullable=False, index=True)
     subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=True, index=True)
+    # P43-SB1: the conversation the run is bound to (waiting-for-input runs
+    # advance only on messages in THIS conversation).
+    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=True, index=True)
     trigger_type = Column(String(50), default="")
     trigger_data = Column(JSON, default=dict)
     current_node_id = Column(String(100), default="")
     status = Column(String(20), default="active")  # active/completed/failed/expired
+    # P43-SB1: DELAY parking — non-NULL means the run is parked on a delay and
+    # the automation beat resumes it once this timestamp passes.
+    resume_at = Column(DateTime, nullable=True)
+    # P43-SB1: nodes executed so far (per-execution ledger; the hard
+    # per-message cap lives in flow_engine.FlowRuntime).
+    steps = Column(Integer, nullable=False, default=0, server_default=text("0"))
     started_at = Column(DateTime, default=utcnow)
     completed_at = Column(DateTime, nullable=True)
     error_log = Column(JSON, default=dict)
@@ -572,11 +593,22 @@ class Conversation(Base):
 
     FB conversations were previously fetched live-only; now every inbound
     webhook message upserts its conversation here so the dashboard, inbox
-    search and stats work even without live Graph reachability."""
+    search and stats work even without live Graph reachability.
+
+    P43-SB2 — human handoff columns: ``status`` (open/pending/closed
+    lifecycle), ``assignee_id`` (the team member responsible — the
+    ConversationAssignee table stays untouched for compat, this column is
+    the read path), ``bot_paused`` (auto-reply yield during human takeover)
+    and ``first_response_at`` (first HUMAN reply timestamp, the response-SLA
+    metric)."""
     __tablename__ = "conversations"
     __table_args__ = (
         UniqueConstraint("tenant_id", "fb_conversation_id", name="uq_conversations_tenant_fb"),
         Index("ix_conversations_tenant_last_msg", "tenant_id", "last_message_at"),
+        # P43-SB2: the inbox assignment queue filters (tenant_id, status) and
+        # (tenant_id, assignee_id) on every list load.
+        Index("ix_conversations_tenant_status", "tenant_id", "status"),
+        Index("ix_conversations_tenant_assignee", "tenant_id", "assignee_id"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -588,6 +620,22 @@ class Conversation(Base):
     unread_count = Column(Integer, default=0)
     last_message_text = Column(Text, default="")
     last_message_at = Column(DateTime, default=utcnow)
+    # ── P43-SB2: handoff / assignment ──
+    # open | pending | closed — the human lifecycle next to the legacy
+    # unread-based filters. server_default is a CONSTANT literal so the
+    # reconcile ADD COLUMN carries it and the NULL-backfill pass heals
+    # legacy rows (the users.token_ver pattern).
+    status = Column(String(20), nullable=False, default="open", server_default="open")
+    # FK → users.id (SET NULL when the team member is deleted). Reconcile
+    # adds the column on legacy DBs without the FK (app-level tenant checks
+    # guard assignment; fresh create_all DBs get the constraint).
+    assignee_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    # True → the auto-reply engine (flows + keyword rules) YIELDS: incoming
+    # messages are stored but never answered automatically (human takeover).
+    bot_paused = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    # Set the first time a HUMAN team member replies from the inbox (None =
+    # no human response yet) — the response-SLA metric.
+    first_response_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
@@ -623,6 +671,9 @@ class Message(Base):
     replied_by_bot = Column(Boolean, default=False)
     # v4 §5.19 — which rule fired the bot reply (None = manual/human reply)
     rule_id = Column(Integer, nullable=True, index=True)
+    # P43-SB1 — flow attribution: which flow execution sent this bot reply
+    # (rule_id stays NULL on flow replies — per-flow stats join on this).
+    flow_id = Column(Integer, ForeignKey("flows.id", ondelete="SET NULL"), nullable=True, index=True)
     # v4 §4.11 — image/sticker/audio content instead of empty-text bubbles
     attachment_type = Column(String(32), default="")
     attachment_url = Column(String(512), default="")

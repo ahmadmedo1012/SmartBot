@@ -376,6 +376,25 @@ _INDEX_HEAL_V16: list[tuple[str, tuple[str, ...], str]] = [
      "ON subscribers (tenant_id, platform, status)"),
 ]
 
+# P43 (SB1/SB2) — فهارس محرك المسارات والتسليم: مسار الاستئناف في النبضة
+# (flow_executions: tenant_id, status, resume_at)، قوائم تعيين المحادثة
+# (conversations: tenant_id, status) و (tenant_id, assignee_id)، ونسبة
+# رسائل البوت إلى تدفقاتها (messages.flow_id). القواعد الجديدة يبنيها
+# create_all من النموذج؛ هذه الشبكة تضمنها على legacy التي لم تمرّ بـ021.
+_INDEX_HEAL_P43: list[tuple[str, tuple[str, ...], str]] = [
+    ("flow_executions.ix_flowexec_tenant_status_resume", (),
+     "CREATE INDEX IF NOT EXISTS ix_flowexec_tenant_status_resume "
+     "ON flow_executions (tenant_id, status, resume_at)"),
+    ("conversations.ix_conversations_tenant_status", (),
+     "CREATE INDEX IF NOT EXISTS ix_conversations_tenant_status "
+     "ON conversations (tenant_id, status)"),
+    ("conversations.ix_conversations_tenant_assignee", (),
+     "CREATE INDEX IF NOT EXISTS ix_conversations_tenant_assignee "
+     "ON conversations (tenant_id, assignee_id)"),
+    ("messages.ix_messages_flow_id", (),
+     "CREATE INDEX IF NOT EXISTS ix_messages_flow_id ON messages (flow_id)"),
+]
+
 # v21 (P21-W7-F, D-05) — عائلة VALIDATE لقيود FK أنشأتها السلسلة بصيغة
 # NOT VALID (ترحيلة 015 هي المالك الوحيد لإنشاء/إعادة بناء هذه القيود؛
 # هذه العائلة تملك الخطوة الناقصة الوحيدة: تحويل القيد الموجود إلى
@@ -608,7 +627,8 @@ def reconcile_schema(bind) -> list[str]:
     # v14-E3 + v15-E2: constraint/index healing on legacy tables.
     # Defensive by design: a failure logs a warning and moves on — the
     # alembic chain is the authoritative path; this is the safety net.
-    for label, pre_stmts, ddl in (*_INDEX_HEAL, *_INDEX_HEAL_V15, *_INDEX_HEAL_V16):
+    for label, pre_stmts, ddl in (*_INDEX_HEAL, *_INDEX_HEAL_V15, *_INDEX_HEAL_V16,
+                                 *_INDEX_HEAL_P43):
         table, name = label.split(".", 1)
         if table not in existing_tables:
             continue

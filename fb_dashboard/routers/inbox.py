@@ -9,13 +9,14 @@ from _responses import ok
 from _services import _track_event, get_tenant_fb_client
 from _utils import iso_z, utcnow
 from database import AsyncSessionLocal, get_db
-from fastapi import APIRouter, Depends, Form, HTTPException, Query
-from models import Conversation, ConversationLabel, ConversationTag, Message, User
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from models import Conversation, ConversationLabel, ConversationNote, ConversationTag, Message, User
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.exc import OperationalError as _OpErr
 
 from routers.auth import get_current_user, require_role
+from routers.broadcasts import _json_body
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["inbox"])
@@ -32,6 +33,21 @@ _FB_CACHE_TTL_S = 600.0
 # v8-A12: monotonic timestamp of the last successful Graph sync per tenant —
 # the polling messages page re-synced on every 10s poll before this.
 _INBOX_LAST_SYNC: dict[int, float] = {}
+
+# P43-SB2 — the conversation lifecycle statuses (next to the legacy
+# unread-based filters above) + the handoff contract helpers.
+CONVERSATION_STATUSES = frozenset({"open", "pending", "closed"})
+
+
+def _handoff_fields(c: Conversation, assignee: dict | None = None) -> dict:
+    """P43-SB2 — the handoff slice of a conversation row (list + detail)."""
+    return {
+        "status": c.status or "open",
+        "assignee_id": c.assignee_id,
+        "assignee": assignee,
+        "bot_paused": bool(c.bot_paused),
+        "first_response_at": iso_z(c.first_response_at),
+    }
 
 async def _get_inbox_fb(tenant_id: int):
     """Resolve (and cache) the tenant's FB client. Awaited — get_tenant_fb_client is async."""
@@ -210,6 +226,8 @@ async def _resync_thread_if_stale(tenant_id: int, conversation_id: str,
 @router.get("/api/inbox/conversations")
 async def inbox_list(
     status: str = Query("all"), tag: str = Query(""), search: str = Query(""),
+    assignee_id: int | None = Query(None),
+    unread: bool | None = Query(None),
     page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100), current_user: User = Depends(get_current_user),
 ):
     """Professional inbox: DB-FIRST (v3 final-launch §4.2).
@@ -334,7 +352,35 @@ async def inbox_list(
         "unread_count": c.unread_count or 0,
         "updated_time": iso_z(c.last_message_at),
         "tags": [],
+        # P43-SB2 — handoff slice (status/assignee/bot_paused/first response)
+        **_handoff_fields(c),
     } for c in rows]
+
+    # P43-SB2: batched assignee lookup for the fetched rows (ONE IN query —
+    # the D-09/D-12 doctrine: no per-row queries on the list path). An
+    # assignee from another tenant can never surface: the lookup filters
+    # by the CURRENT tenant.
+    assignee_ids = {c.assignee_id for c in rows if c.assignee_id}
+    assignee_map: dict[int, dict] = {}
+    if assignee_ids:
+        try:
+            async with AsyncSessionLocal() as sa:
+                urows = await sa.execute(
+                    select(User.id, User.username, User.name).where(
+                        User.tenant_id == tenant_id,
+                        User.id.in_(assignee_ids),
+                    )
+                )
+                for uid, uname, uname_full in urows.all():
+                    assignee_map[uid] = {
+                        "id": uid, "username": uname,
+                        "name": uname_full or uname,
+                    }
+        except _OpErr:
+            assignee_map = {}
+    for it in items:
+        aid = it["assignee_id"]
+        it["assignee"] = assignee_map.get(aid) if aid else None
 
     # Load tags from DB for all conversation IDs (v9-A3: join also
     # filtered by tenant so foreign labels/tags can never surface here)
@@ -376,6 +422,18 @@ async def inbox_list(
         items = [it for it in items if it["unread_count"] == 0]
     elif status == "needs_reply":
         items = [it for it in items if it["unread_count"] > 0 and it["message_count"] > 0]
+    elif status in CONVERSATION_STATUSES:
+        # P43-SB2: the lifecycle filter (open/pending/closed)
+        items = [it for it in items if it["status"] == status]
+
+    # P43-SB2: explicit unread flag (true → unread_count > 0)
+    if unread is not None:
+        items = [it for it in items
+                 if (it["unread_count"] > 0) == bool(unread)]
+
+    # P43-SB2: assignment queue filter — a specific team member's load
+    if assignee_id is not None:
+        items = [it for it in items if it["assignee_id"] == assignee_id]
 
     total = len(items)
     offset = (page - 1) * per_page
@@ -508,6 +566,167 @@ async def inbox_mark_read(conversation_id: str, db=Depends(get_db),
     return ok({"unread": int(unread_total)})
 
 
+@router.patch("/api/inbox/conversations/{conversation_id}")
+async def inbox_update_conversation(
+    conversation_id: str, request: Request, db=Depends(get_db),
+    current_user: User = Depends(require_role("editor")),
+):
+    """P43-SB2 — conversation handoff + assignment (human takeover).
+
+    Body: ``{"status": "open|pending|closed", "assignee_id": int|null,
+    "bot_paused": bool}`` — any subset. Rules:
+      * ``status`` — the human lifecycle next to the legacy unread filters;
+      * ``assignee_id`` — must be a user of the SAME tenant (cross-tenant
+        ids are a clean 422, never a silent cross-tenant write); ``null``
+        unassigns;
+      * ``bot_paused`` — the auto-reply yield: flows AND keyword rules stop
+        answering (messenger_service checks it BEFORE any auto layer).
+    """
+    tenant_id = current_user._tenant_id
+    row = (await db.execute(
+        select(Conversation).where(
+            Conversation.tenant_id == tenant_id,
+            Conversation.fb_conversation_id == conversation_id,
+        )
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(404, "المحادثة غير موجودة")
+    body = await _json_body(request)
+    if not any(k in body for k in ("status", "assignee_id", "bot_paused")):
+        raise HTTPException(
+            422, "قيمة غير صالحة: لا حقول للتحديث — أرسل status أو assignee_id أو bot_paused")
+
+    if "status" in body:
+        val = str(body["status"] or "").strip().lower()
+        if val not in CONVERSATION_STATUSES:
+            raise HTTPException(
+                422, "قيمة غير صالحة: حالة المحادثة يجب أن تكون open أو pending أو closed")
+        row.status = val
+
+    assignee_dict = None
+    if "assignee_id" in body:
+        aid = body["assignee_id"]
+        if aid is None:
+            row.assignee_id = None  # explicit unassign
+        else:
+            if isinstance(aid, bool) or not isinstance(aid, int):
+                raise HTTPException(422, "قيمة غير صالحة: assignee_id يجب أن يكون رقم عضو أو null")
+            assignee = (await db.execute(
+                select(User).where(User.id == aid, User.tenant_id == tenant_id)
+            )).scalar_one_or_none()
+            if assignee is None:
+                raise HTTPException(
+                    422, "قيمة غير صالحة: العضو المختار ليس ضمن فريق مساحتك")
+            row.assignee_id = aid
+            assignee_dict = {"id": assignee.id, "username": assignee.username,
+                             "name": assignee.name or assignee.username}
+
+    if "bot_paused" in body:
+        val = body["bot_paused"]
+        if not isinstance(val, bool):
+            raise HTTPException(422, "قيمة غير صالحة: bot_paused يجب أن يكون true أو false")
+        row.bot_paused = val
+
+    await db.commit()
+    _track_event("inbox_conversation_updated",
+                 {"conversation_id": conversation_id[:60],
+                  "bot_paused": bool(row.bot_paused)},
+                 tenant_id=tenant_id)
+    return ok({"id": row.fb_conversation_id, **_handoff_fields(row, assignee_dict)})
+
+
+@router.get("/api/inbox/conversations/{conversation_id}/detail")
+async def inbox_conversation_detail(
+    conversation_id: str, db=Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """P43-SB2 — conversation detail: handoff state + assignee + notes.
+
+    Read-only (get_current_user, like every inbox read): the thread itself
+    lives on GET /api/inbox/conversations/{id} — this carries the meta the
+    handoff panel needs: status, assignee (same-tenant lookup), bot_paused,
+    first_response_at and the internal notes.
+    """
+    tenant_id = current_user._tenant_id
+    row = (await db.execute(
+        select(Conversation).where(
+            Conversation.tenant_id == tenant_id,
+            Conversation.fb_conversation_id == conversation_id,
+        )
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(404, "المحادثة غير موجودة")
+    assignee_dict = None
+    if row.assignee_id:
+        assignee = (await db.execute(
+            select(User).where(User.id == row.assignee_id,
+                               User.tenant_id == tenant_id)
+        )).scalar_one_or_none()
+        if assignee is not None:
+            assignee_dict = {"id": assignee.id, "username": assignee.username,
+                             "name": assignee.name or assignee.username}
+    notes = (await db.execute(
+        select(ConversationNote)
+        .where(ConversationNote.tenant_id == tenant_id,
+               ConversationNote.conversation_id == conversation_id)
+        .order_by(ConversationNote.created_at.desc(), ConversationNote.id.desc())
+        .limit(50)
+    )).scalars().all()
+    return ok({
+        "id": row.fb_conversation_id,
+        "user_name": row.user_name,
+        "fb_user_id": row.fb_user_id,
+        "message_count": row.message_count or 0,
+        "unread_count": row.unread_count or 0,
+        "last_message_text": row.last_message_text or "",
+        "last_message_at": iso_z(row.last_message_at),
+        **_handoff_fields(row, assignee_dict),
+        "notes": [{
+            "id": n.id, "content": n.content,
+            "created_by": n.created_by,
+            "created_at": iso_z(n.created_at),
+        } for n in notes],
+    })
+
+
+@router.post("/api/inbox/conversations/{conversation_id}/notes")
+async def inbox_add_note(
+    conversation_id: str, request: Request, db=Depends(get_db),
+    current_user: User = Depends(require_role("editor")),
+):
+    """P43-SB2 — attach an internal note to a conversation.
+
+    Body: ``{"content": "..."}``. Notes are internal team memory (never sent
+    to the customer) — the ConversationNote rows were modeled since phase D
+    but had NO write/read path; this is it.
+    """
+    tenant_id = current_user._tenant_id
+    row = (await db.execute(
+        select(Conversation).where(
+            Conversation.tenant_id == tenant_id,
+            Conversation.fb_conversation_id == conversation_id,
+        )
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(404, "المحادثة غير موجودة")
+    body = await _json_body(request)
+    content = str(body.get("content") or "").strip()
+    if not content:
+        raise HTTPException(422, "قيمة غير صالحة: نص الملاحظة مطلوب")
+    note = ConversationNote(
+        tenant_id=tenant_id,
+        conversation_id=conversation_id,
+        content=content[:2000],
+        created_by=current_user.username or "",
+    )
+    db.add(note)
+    await db.commit()
+    await db.refresh(note)
+    return ok({"id": note.id, "content": note.content,
+               "created_by": note.created_by,
+               "created_at": iso_z(note.created_at)})
+
+
 @router.delete("/api/inbox/conversations/{conversation_id}")
 async def inbox_delete_conversation(
     conversation_id: str, db=Depends(get_db),
@@ -603,6 +822,24 @@ async def inbox_reply(
     if result:
         await _persist_page_sent_message(
             current_user._tenant_id, conversation_id, message, result, fb)
+        # P43-SB2: the first HUMAN reply timestamps the conversation (the
+        # response-SLA metric). bot_paused is deliberately NOT touched here —
+        # resuming the bot is an explicit toggle (PATCH bot_paused=false).
+        try:
+            async with AsyncSessionLocal() as db:
+                conv = (await db.execute(
+                    select(Conversation).where(
+                        Conversation.tenant_id == current_user._tenant_id,
+                        Conversation.fb_conversation_id == conversation_id,
+                    )
+                )).scalar_one_or_none()
+                if conv is not None and conv.first_response_at is None:
+                    conv.first_response_at = utcnow()
+                    await db.commit()
+        except Exception:
+            # best-effort metric: the reply itself was already delivered
+            log.warning("first_response_at stamp failed (conv=%s)",
+                        str(conversation_id)[:40], exc_info=True)
         _track_event("inbox_reply_sent", {"conversation_id": conversation_id}, tenant_id=current_user._tenant_id)
         return ok({"ok": True})
 

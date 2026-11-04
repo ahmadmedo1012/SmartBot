@@ -440,7 +440,7 @@ def test_chain_reaches_020_with_payment_requests_extra_data(fresh_db):
     con = sqlite3.connect(fresh_db)
     try:
         assert con.execute(
-            "SELECT version_num FROM alembic_version").fetchone()[0] == "020"
+            "SELECT version_num FROM alembic_version").fetchone()[0] == "021"  # P43: أعمدة محرك المسارات + تسليم المحادثة
     finally:
         con.close()
 

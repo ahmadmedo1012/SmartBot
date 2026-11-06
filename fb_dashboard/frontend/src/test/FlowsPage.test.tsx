@@ -359,7 +359,11 @@ describe("publish / unpublish (the studio activation contract)", () => {
   })
 
   it("publish 422 (graph validation) surfaces the SERVER's Arabic message in the alert card", async () => {
-    const api = stubStudioList({
+    /* P44-3b: `_api` — the stub's return is unused in THIS block (the test
+     * asserts only on rendered surfaces); renamed per the ^_ unused-var
+     * convention so `npm run lint` (never wired into CI — pre-existing red
+     * at 2522399b) can gate green. */
+    const _api = stubStudioList({
       "GET /api/flows/2": () => jsonRes({ success: true, data: { ...SIMPLE_DETAIL, ...DRAFT_FLOW } }),
       "GET /api/flows/2/executions": () => jsonRes({ success: true, data: { executions: [], total: 0 } }),
       "PUT /api/flows/2": () => jsonRes({ success: true, data: { ok: true } }),

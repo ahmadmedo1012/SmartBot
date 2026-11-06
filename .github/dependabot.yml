@@ -1,0 +1,69 @@
+# P44-3b — automated dependency hygiene (adapted from the Smart-Order family
+# pattern, adjusted to THIS repo's three-manifest reality):
+#
+#   · /fb_dashboard/frontend is npm-managed (fb_dashboard/frontend/
+#     package-lock.json — the only web dashboard surface; CI installs it
+#     with strict `npm ci`).
+#
+#   · The Python API lives in fb_dashboard/ + api/ (a Vercel entrypoint
+#     shim), but the manifest BOTH share is the ROOT requirements.txt —
+#     there is no api/requirements.txt and no pyproject.toml anywhere
+#     (verified P44-3b). Dependabot's pip ecosystem keys on the manifest
+#     location, hence directory: "/".
+#
+#   · /mobile is FROZEN BY DESIGN (release binaries are built from its
+#     exact state). It is deliberately NOT an entry here: Dependabot PRs
+#     against mobile/package.json would drift the frozen resolution the
+#     release workflow (mobile-release.yml) cuts binaries from. Its
+#     supply-chain gate stays where it already lives — CI's osv-scanner
+#     job scans mobile/package-lock.json every push.
+#
+#   · github-actions: the workflow actions (checkout/setup-python/
+#     setup-node/upload-artifact/…) are dependencies too — same weekly
+#     cadence as the family. NOTE: ci.yml pins actions by SHA; Dependabot
+#     understands SHA-pinned actions and updates the SHA + comment together.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/fb_dashboard/frontend"
+    schedule:
+      interval: "weekly"
+    # Security fixes surface immediately; minor/patch noise is grouped into
+    # one reviewable PR (majors stay individual and explicit).
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "chore(deps)"
+    # react-joyride@2.9.x peer-declares react "15 - 18" while the project
+    # rides React 19 — .npmrc carries legacy-peer-deps for exactly this;
+    # Dependabot respects the repo's .npmrc on update PRs. No ignore rules:
+    # majors stay individual and explicit by NOT being in the group above
+    # (typescript / next / tailwind majors are framework decisions, not
+    # hygiene — each deserves its own PR and its own review).
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "chore(deps)"
+    # requirements.txt uses floor pins (>=X.Y) with a few explicit ceilings
+    # (weasyprint <69, fpdf2 <3, ruff <0.17) — those ceilings are
+    # deliberate compatibility contracts; review major bumps individually.
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "chore(ci)"

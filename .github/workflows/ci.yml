@@ -275,6 +275,17 @@ jobs:
       - name: Run tsc
         run: cd fb_dashboard/frontend && npx tsc --noEmit
 
+      - name: Gate 3.1 — frontend lint (eslint, zero warnings)
+        # P45-W1 (§9 mandatory early action — closes the P44 finding): the
+        # frontend defines `npm run lint` (package.json:10 =
+        # `eslint src/ --max-warnings 0`, the r133 A5-S6 error-level ladder)
+        # but quality-gates never invoked it — eslint drift survived green
+        # CI runs (the FlowsPage.test.tsx `^_` rename at 2522399b documents
+        # one such fix done blind, before this gate existed). Hard gate, no
+        # continue-on-error: any error OR warning fails the job. Gate-rig
+        # verified locally before wiring (violation → exit 1, restore → 0).
+        run: cd fb_dashboard/frontend && npm run lint
+
       - name: Gate 3.5 — frontend unit tests (vitest)
         # v11-A5: unit-test wall for the pure-logic seam (format/i18n,
         # API envelope unwrapping, Arabic pluralization, subscribe logic)

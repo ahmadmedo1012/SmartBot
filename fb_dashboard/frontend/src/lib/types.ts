@@ -101,6 +101,52 @@ export interface Conversation {
   unread_count?: number
   updated_time?: string | null
   tags?: ConversationTag[]
+  /* P43-SB2 — the handoff slice (inbox.py `_handoff_fields`): every list
+   * row carries the lifecycle/assignment/pause state alongside the legacy
+   * unread-based fields. Optional: older payloads predate them. */
+  /** open | pending | closed — the human lifecycle (defaults to "open"). */
+  status?: string
+  assignee_id?: number | null
+  assignee?: ConversationAssignee | null
+  /** true = flows AND keyword rules stop answering (human takeover). */
+  bot_paused?: boolean
+  /** ISO timestamp of the first HUMAN reply (the response-SLA metric). */
+  first_response_at?: string | null
+}
+
+/** P43-SB2/P45-W1 — the handoff assignee object: list rows' `assignee`,
+ * GET /api/inbox/conversations/{id}/detail, and the rows of
+ * GET /api/inbox/assignees all share this exact shape. */
+export interface ConversationAssignee {
+  id: number
+  username: string
+  name?: string
+}
+
+/** P43-SB2 — GET /api/inbox/conversations/{id}/detail payload (the handoff
+ * panel's read contract: meta + notes; the thread itself lives on the
+ * messages endpoint). */
+export interface ConversationNoteRow {
+  id: number
+  content: string
+  created_by?: string
+  created_at?: string | null
+}
+
+export interface ConversationDetail {
+  id: string
+  user_name?: string
+  fb_user_id?: string
+  message_count?: number
+  unread_count?: number
+  last_message_text?: string
+  last_message_at?: string | null
+  status?: string
+  assignee_id?: number | null
+  assignee?: ConversationAssignee | null
+  bot_paused?: boolean
+  first_response_at?: string | null
+  notes?: ConversationNoteRow[]
 }
 
 /** Response of GET /api/inbox/conversations. */
@@ -630,6 +676,18 @@ export interface FacebookSettings {
    *  stored token is known-bad (not_page_admin / unverified). */
   token_check?: FacebookTokenCheck | null
   token_ok?: boolean
+  /** v22-D2 (FIX-F): the PERSISTED webhook verdict (BotState
+   *  fb_webhook_subscribed). null = NEVER PROBED (unknown is NOT false);
+   *  false = probed and not subscribed (the event pipe is dead);
+   *  true = healthy. Consumed by WebhookHealthBanner + the P45-W1 inbox
+   *  health chip. */
+  webhook_subscribed?: boolean | null
+  webhook_state?: {
+    subscribed?: boolean
+    error?: string
+    missing?: string[]
+    source?: string
+  } | null
 }
 
 /** POST /api/facebook/test payload. */

@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
-import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp, ChevronDown, WifiOff, AlertCircle, Sparkles } from "lucide-react"
+import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp, ChevronDown, WifiOff, AlertCircle, Sparkles, UserRoundCheck } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,8 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { RobotMark } from "@/components/shared/RobotMark"
+import { HandoffPanel } from "@/components/shared/HandoffPanel"
+import { WebhookHealthChip } from "@/components/shared/WebhookHealthChip"
 import Link from "next/link"
 import Image from "next/image"
 import { unwrapApi } from "@/lib/api"
@@ -45,7 +47,20 @@ const FILTERS = [
   { value: "unread", label: "غير مقروء" },
   { value: "read", label: "مقروء" },
   { value: "needs_reply", label: "تحتاج إلى رد" },
+  /* P45-W1 (Initiative B): «طابوري» — the operator's assignment queue
+   * (assignee_id = the current user; the backend filter lives at
+   * inbox.py:434-436). A separate query param from the status family —
+   * the queryFn below branches for it. */
+  { value: "mine", label: "طابوري" },
 ]
+
+/** P43-SB2 lifecycle labels — compact chips on the handoff strip (the
+ * HandoffPanel owns the full pill family). */
+const LIFECYCLE_LABEL: Record<string, string> = {
+  open: "مفتوحة",
+  pending: "معلّقة",
+  closed: "مغلقة",
+}
 
 /** v17-E-F1 (D2-P1): scrollIntoView({ behavior: "smooth" }) is a JS API the
  * global CSS reduced-motion override (globals.css:549-551) CANNOT restrain
@@ -211,6 +226,9 @@ function MessagesFallback() {
 
 function MessagesView() {
   const [filter, setFilter] = useState("all")
+  /* P45-W1 (Initiative B): the handoff panel's open state — collapsed by
+   * default; the strip below carries the compact state chips either way. */
+  const [handoffOpen, setHandoffOpen] = useState(false)
   const [search, setSearch] = useState("")
   // v9-B3 — search used to feed the queryKey directly: every keystroke fired
   // an HTTP request. Debounce 300ms so the list query only sees settled input.
@@ -356,9 +374,20 @@ function MessagesView() {
 
   // v8 C8 — keepPreviousData: switching filters/search keeps the previous
   // list on screen (dimmed via isFetching) instead of flashing skeletons
+  /* P45-W1 (Initiative B): «طابوري» rides the assignee_id param (NOT the
+   * status family) — the queryKey carries myId so the query re-fires when
+   * /api/me resolves, and `enabled` holds it back until then (AuthGuard
+   * guarantees resolution; the skeleton stays honest meanwhile). */
+  const myId = me?.user?.id
+  const isMineFilter = filter === "mine"
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
-    queryKey: ["inbox-conversations", filter, debouncedSearch],
-    queryFn: () => apiFetch(`/api/inbox/conversations?status=${filter}&search=${encodeURIComponent(debouncedSearch)}`).then(unwrapApi<ConversationList>),
+    queryKey: ["inbox-conversations", filter, debouncedSearch, isMineFilter ? myId : undefined],
+    queryFn: () => apiFetch(
+      `/api/inbox/conversations?status=${isMineFilter ? "all" : filter}` +
+      `&search=${encodeURIComponent(debouncedSearch)}` +
+      (isMineFilter && myId != null ? `&assignee_id=${myId}` : ""),
+    ).then(unwrapApi<ConversationList>),
+    enabled: !isMineFilter || myId != null,
     placeholderData: (prev) => prev,
     /* v23: 15s→8s poll — the inbox is the app's most time-critical surface
        (a customer is waiting on the other side); 8s keeps unread badges and
@@ -783,6 +812,11 @@ function MessagesView() {
         title="الرسائل"
         subtitle="صندوق الوارد الموحد"
         compact
+        /* P45-W1 (Initiative B): compact webhook-health chip — the same
+            /api/facebook/settings verdict the shell banner reads, anchored
+            where a dead event pipe hurts most (the inbox). Unknown/not-
+            connected render nothing (those states own their own surfaces). */
+        actions={<WebhookHealthChip />}
         /* phase6 r154 — the circuit-trace divider under the topbar (the
             machine-room signature; the live lime node = the live 5s thread
             stream), now the PageHeader's built-in option (was the manual
@@ -1021,6 +1055,43 @@ function MessagesView() {
                   </p>
                 </div>
               </div>
+              {/* P45-W1 (Initiative B): the handoff strip — compact
+                  at-a-glance state (bot paused / lifecycle / assignee, read
+                  from the list row's P43-SB2 handoff slice — zero extra
+                  requests) + the toggle that mounts the HandoffPanel below
+                  (the first UI consumer of the P43-SB2 API layer). 44px
+                  pill floor; the chevron is vertical (no RTL flip rule). */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/60 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => setHandoffOpen((v) => !v)}
+                  aria-expanded={handoffOpen}
+                  aria-controls="handoff-panel"
+                  className={pillClasses(handoffOpen, "min-h-11 gap-1.5 px-3.5")}
+                >
+                  <UserRoundCheck className="size-3.5" aria-hidden="true" />
+                  التسليم اليدوي
+                  {handoffOpen ? (
+                    <ChevronUp className="size-3.5" aria-hidden="true" />
+                  ) : (
+                    <ChevronDown className="size-3.5" aria-hidden="true" />
+                  )}
+                </button>
+                {selectedConv?.bot_paused === true && (
+                  <Badge variant="warning">البوت موقوف</Badge>
+                )}
+                {selectedConv?.status && selectedConv.status !== "open" && (
+                  <Badge variant="secondary">
+                    {LIFECYCLE_LABEL[selectedConv.status] ?? selectedConv.status}
+                  </Badge>
+                )}
+                {selectedConv?.assignee && (
+                  <Badge variant="info">
+                    المسؤول: {selectedConv.assignee.name || selectedConv.assignee.username}
+                  </Badge>
+                )}
+              </div>
+              {handoffOpen && <HandoffPanel key={selectedId} conversationId={selectedId} />}
               {/* v24-R1 (task 1/2): relative wrapper around the scroller — the
                   FAB and the new-messages pill anchor to the scroll
                   VIEWPORT's bottom edge (always above the composer, whatever

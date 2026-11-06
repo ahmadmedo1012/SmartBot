@@ -689,6 +689,27 @@ async def inbox_conversation_detail(
     })
 
 
+@router.get("/api/inbox/assignees")
+async def inbox_assignees(db=Depends(get_db),
+                          current_user: User = Depends(get_current_user)):
+    """P45-W1 — the handoff panel's assignee roster (tenant-scoped, read-only).
+
+    /api/team/members and GET /api/users are admin-only, yet the handoff
+    PATCH (``assignee_id``) is EDITOR-gated (P43-SB2) — an editor opening
+    the panel had NO permitted source for the same-tenant member list.
+    This roster closes that gap: ``{id, username, name}`` only — the exact
+    shape the list/detail ``assignee`` objects already carry, so no new
+    information leaves the tenant.
+    """
+    rows = await db.execute(
+        select(User.id, User.username, User.name)
+        .where(User.tenant_id == current_user._tenant_id)
+        .order_by(User.id)
+    )
+    return ok([{"id": uid, "username": uname, "name": uname_full or uname}
+               for uid, uname, uname_full in rows.all()])
+
+
 @router.post("/api/inbox/conversations/{conversation_id}/notes")
 async def inbox_add_note(
     conversation_id: str, request: Request, db=Depends(get_db),

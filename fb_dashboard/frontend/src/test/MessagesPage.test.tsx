@@ -1044,3 +1044,132 @@ describe("AI in-thread assist (W2-BOT-6)", () => {
     expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("")
   })
 })
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * P45-W1 (المبادرة B) — شرائح التسليم اليدوي في الوارد:
+ *   - مرشّح «طابوري»: يطلق استعلام القائمة بـ assignee_id=<معرّفي> (المرشّح
+ *     الخلفي inbox.py:434-436) — لا يُطلق قبل حلّ /api/me (الاستعلام معطّل
+ *     حتى المعرّف: هياكل صادقة، لا قائمة كاملة تتنكر كقائمة شخصية)
+ *   - شريط الحالة أعلى الخيط: رقائق bot_paused/الحالة/المسؤول من صف القائمة
+ *     (شريحة P43-SB2 — صفر طلبات إضافية) + زر فتح HandoffPanel (أول مستهلك
+ *     واجهة لطبقة P43-SB2 الكاملة)
+ *   - رقاقة صحة الويبهوك في رأس الوارد: نفس مصدر اللافتة (verdict مخزّن
+ *     من /api/facebook/settings) — «متوقف» يربط بـ /connect، «يعمل» إشعار
+ *     هادئ، المجهول (null) لا شيء (المجهول ليس خطأً — عقد v22-D2)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe("P45-W1 — handoff surface in the inbox", () => {
+  const ME = { id: 7, username: "me7", name: "أحمد", role: "admin" }
+  const ME_ROUTE = "GET /api/me"
+
+  const HANDOFF_CONV: Conversation = {
+    ...conv("c1", "أحمد"),
+    bot_paused: true,
+    status: "pending",
+    assignee_id: 9,
+    assignee: { id: 9, username: "mate9", name: "سالم الفريق" },
+  }
+
+  it("«طابوري» queries the list with assignee_id=me (the backend queue filter)", async () => {
+    const api = stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      [ME_ROUTE]: () => jsonRes({ success: true, data: { user: ME } }),
+    })
+    renderMessages()
+    await screen.findAllByRole("listitem")
+
+    fireEvent.click(screen.getByRole("button", { name: "طابوري" }))
+
+    /* the query waits for /api/me, then fires with the EXACT queue URL */
+    await waitFor(() => {
+      const mine = api.calls.filter((c) => c.url.includes("assignee_id=7"))
+      expect(mine.length).toBeGreaterThanOrEqual(1)
+      expect(mine[0]!.url).toBe("/api/inbox/conversations?status=all&search=&assignee_id=7")
+    }, { timeout: 5000 })
+  })
+
+  it("«طابوري» never fires a bare list query disguised as the queue (enabled-gate honesty)", async () => {
+    /* /api/me never resolves — the queue query must stay silent (no fetch
+     * with the bare list URL after the switch: that would render EVERYONE's
+     * queue under the «طابوري» label — a lie) */
+    const api = stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      [ME_ROUTE]: () => new Promise<Response>(() => {}),
+    })
+    renderMessages()
+    await screen.findAllByRole("listitem")
+    const before = api.callsFor("/api/inbox/conversations?status=all&search=").length
+
+    fireEvent.click(screen.getByRole("button", { name: "طابوري" }))
+    await new Promise((r) => setTimeout(r, 300))
+
+    /* no NEW bare-list call, and no queue call either — silence until me */
+    expect(api.callsFor("/api/inbox/conversations?status=all&search=").length).toBe(before)
+    expect(api.calls.some((c) => c.url.includes("assignee_id"))).toBe(false)
+  })
+
+  it("the thread strip carries the list row's handoff chips + mounts the panel on demand", async () => {
+    const api = stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [HANDOFF_CONV], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+      "POST /api/inbox/conversations/c1/read": () => jsonRes({ success: true, data: { unread: 0 } }),
+      [ME_ROUTE]: () => jsonRes({ success: true, data: { user: ME } }),
+      "GET /api/inbox/conversations/c1/detail": () => jsonRes({
+        success: true,
+        data: {
+          id: "c1", status: "pending", assignee_id: 9,
+          assignee: { id: 9, username: "mate9", name: "سالم الفريق" },
+          bot_paused: true, first_response_at: null, notes: [],
+        },
+      }),
+      "GET /api/inbox/assignees": () =>
+        jsonRes({ success: true, data: [{ id: 7, username: "me7", name: "أحمد" }] }),
+    })
+    renderMessages()
+    await openConversationAt(0)
+
+    /* the compact chips — read from the list row (P43-SB2 slice), zero
+     * extra requests before the panel opens */
+    expect(await screen.findByText("البوت موقوف")).toBeInTheDocument()
+    expect(screen.getByText("معلّقة")).toBeInTheDocument()
+    expect(screen.getByText("المسؤول: سالم الفريق")).toBeInTheDocument()
+
+    /* collapsed by default — the detail endpoint was NOT touched */
+    expect(api.callsFor("/api/inbox/conversations/c1/detail").length).toBe(0)
+
+    const toggle = screen.getByRole("button", { name: "التسليم اليدوي" })
+    expect(toggle).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(toggle)
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true")
+    await waitFor(() =>
+      expect(api.callsFor("/api/inbox/conversations/c1/detail").length).toBe(1))
+    /* the panel's own controls arrive (the pause toggle in its extended form) */
+    expect(await screen.findByRole("button", { name: "إعادة تشغيل البوت في هذه المحادثة" })).toBeInTheDocument()
+  })
+
+  it("the webhook health chip: broken → /connect link; healthy → quiet receipt; unknown → nothing", async () => {
+    const settingsRoute = (subscribed: boolean | null) =>
+      stubFetch({
+        [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [], total: 0 } }),
+        "GET /api/facebook/settings": () => jsonRes({
+          success: true,
+          data: { connected: true, webhook_subscribed: subscribed },
+        }),
+      })
+
+    /* probed-and-negative: the amber chip LINKS to the reconnect path
+     * (the stub must be in place BEFORE the render — the chip's query
+     * fires on mount) */
+    settingsRoute(false)
+    const { unmount } = renderMessages()
+    const broken = await screen.findByRole("link", { name: /الويبهوك متوقف/ })
+    expect(broken).toHaveAttribute("href", "/connect")
+    unmount()
+
+    /* healthy: the quiet receipt, no link */
+    settingsRoute(true)
+    renderMessages()
+    expect(await screen.findByText("الويبهوك يعمل")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /الويبهوك/ })).toBeNull()
+  })
+})

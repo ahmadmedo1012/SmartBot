@@ -32,7 +32,7 @@ fpdf2>=2.8.2,<3                    # v22 (D9-F1): the PDF FALLBACK engine — wa
                                    # deployed environment (tests passed only where an agent had
                                    # hand-installed it). Declared now: reports degrade honestly AND
                                    # actually render serverless (fpdf2 is pure-Python — no pango).
-weasyprint>=68.0,<69  # v22: pin — floating floor let CI resolve untested majors (URLFetcherResponse API drift)
+weasyprint>=70.0,<71  # v22: pin — floating floor let CI resolve untested majors (URLFetcherResponse API drift)
 
 # Testing
 pytest>=8.3.0

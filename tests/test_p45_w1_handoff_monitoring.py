@@ -125,3 +125,128 @@ class TestInboxAssignees:
                                 json={"assignee_id": self.mate["id"]})
         assert p.status_code == 200, p.text
         assert p.json()["data"]["assignee"]["username"] == self.mate["username"]
+
+# ══ Item 4: flow monitoring depth ═════════════════════════════════════
+
+async def _seed_flow_world(tenant_id: int) -> dict:
+    """A flow + a subscriber + a conversation + two executions (the older
+    completed, the newest FAILED — the audit's failing-since-X case)."""
+    from _utils import utcnow
+    from models import Conversation, Flow, FlowExecution, Subscriber
+
+    async with AsyncSessionLocal() as db:
+        flow = Flow(tenant_id=tenant_id, name=f"P45-flow-{uuid.uuid4().hex[:6]}",
+                    nodes=[{"id": "t1", "type": "TRIGGER",
+                            "data": {"triggerType": "keyword", "keywords": ["سعر"], "matchMode": "any"}},
+                           {"id": "m1", "type": "MESSAGE", "data": {"text": "أهلاً"}}],
+                    edges=[{"source": "t1", "target": "m1"}],
+                    status="active")
+        db.add(flow)
+        await db.flush()
+
+        sub = Subscriber(tenant_id=tenant_id, fb_user_id="9101",
+                         first_name="سالم", name="سالم الفني")
+        db.add(sub)
+        await db.flush()
+
+        conv = Conversation(tenant_id=tenant_id, fb_conversation_id="c_p45_flow_1",
+                            user_name="سالم الفني", message_count=2, unread_count=0)
+        db.add(conv)
+        await db.flush()
+
+        old = FlowExecution(tenant_id=tenant_id, flow_id=flow.id, subscriber_id=sub.id,
+                            conversation_id=conv.id, trigger_type="keyword",
+                            status="completed", steps=2,
+                            started_at=utcnow(), completed_at=utcnow())
+        new = FlowExecution(tenant_id=tenant_id, flow_id=flow.id, subscriber_id=sub.id,
+                            conversation_id=conv.id, trigger_type="keyword",
+                            status="failed", steps=1, error_log={"error": "send failed"},
+                            started_at=utcnow())
+        db.add_all([old, new])
+        await db.commit()
+        return {"flow_id": flow.id, "subscriber_id": sub.id,
+                "conversation_id": conv.id}
+
+
+class TestFlowListLastExecution:
+    @pytest.fixture(autouse=True)
+    async def _owner(self, app_client):
+        self.ac = app_client
+        self.me = await _register(app_client, "p45flx")
+        self.ids = await _seed_flow_world(self.me["tenant_id"])
+        yield
+
+    async def test_list_carries_the_latest_execution_summary(self):
+        r = await self.ac.get("/api/flows")
+        assert r.status_code == 200, r.text
+        rows = r.json()["data"]
+        row = next(f for f in rows if f["id"] == self.ids["flow_id"])
+        last = row["last_execution"]
+        assert last is not None, "flows list lost the last_execution slice"
+        assert last["status"] == "failed", \
+            "the summary must carry the LATEST execution (id order), not the first"
+        assert last["finished_at"] is None, "a failed run never finished — honest null"
+        assert last["started_at"] is not None
+
+    async def test_flows_without_executions_carry_an_honest_null(self):
+        r = await self.ac.post("/api/flows", json={
+            "name": "بلا تنفيذات", "nodes": [], "edges": []})
+        assert r.status_code == 200, r.text
+        fid = r.json()["data"]["id"]
+        rows = (await self.ac.get("/api/flows")).json()["data"]
+        row = next(f for f in rows if f["id"] == fid)
+        assert row["last_execution"] is None
+
+
+class TestExecutionsJoins:
+    @pytest.fixture(autouse=True)
+    async def _owner(self, app_client):
+        self.ac = app_client
+        self.me = await _register(app_client, "p45exj")
+        self.ids = await _seed_flow_world(self.me["tenant_id"])
+        yield
+
+    async def test_executions_carry_subscriber_name_and_fb_conversation_id(self):
+        r = await self.ac.get(f"/api/flows/{self.ids['flow_id']}/executions")
+        assert r.status_code == 200, r.text
+        items = r.json()["data"]["items"]
+        assert len(items) == 2
+        # newest first (id desc) — the failed run leads
+        assert items[0]["status"] == "failed"
+        for it in items:
+            assert it["subscriber_name"] == "سالم الفني", it
+            assert it["fb_conversation_id"] == "c_p45_flow_1", it
+
+    async def test_status_filter_and_pagination_shape(self):
+        r = await self.ac.get(
+            f"/api/flows/{self.ids['flow_id']}/executions?status=completed&page=1&per_page=10")
+        assert r.status_code == 200, r.text
+        data = r.json()["data"]
+        assert data["total"] == 1
+        assert [it["status"] for it in data["items"]] == ["completed"]
+
+    async def test_pruned_subscriber_and_conversation_render_honest_empties(self):
+        """A run whose subscriber/conversation rows were deleted (FK
+        SET NULL / pruned) must surface "", never another tenant's data."""
+        from models import FlowExecution
+        async with AsyncSessionLocal() as db:
+            ex = FlowExecution(tenant_id=self.me["tenant_id"],
+                               flow_id=self.ids["flow_id"],
+                               subscriber_id=None, conversation_id=None,
+                               trigger_type="manual", status="expired", steps=0)
+            db.add(ex)
+            await db.commit()
+        r = await self.ac.get(f"/api/flows/{self.ids['flow_id']}/executions?status=expired")
+        assert r.status_code == 200
+        it = r.json()["data"]["items"][0]
+        assert it["subscriber_name"] == ""
+        assert it["fb_conversation_id"] == ""
+
+    async def test_cross_tenant_flow_executions_404(self):
+        stranger = await _register(self.ac, "p45iso2")
+        await self.ac.post("/api/login", json={
+            "username": stranger["username"], "password": "Str0ngPass!ly"})
+        r = await self.ac.get(f"/api/flows/{self.ids['flow_id']}/executions")
+        assert r.status_code == 404, "cross-tenant execution access must 404"
+        await self.ac.post("/api/login", json={
+            "username": self.me["username"], "password": "Str0ngPass!ly"})

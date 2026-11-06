@@ -56,6 +56,14 @@ export interface FlowRow {
   total_replies?: number | null
   created_at?: string | null
   updated_at?: string | null
+  /** P45-W1 (المبادرة A) — ملخّص آخر تنفيذ من قائمة المسارات (تراكيب
+   * flows.py): null صادقة حين لا تنفيذات إطلاقًا. */
+  last_execution?: {
+    id?: number
+    status?: string
+    started_at?: string | null
+    finished_at?: string | null
+  } | null
 }
 
 export interface FlowDetail extends FlowRow {

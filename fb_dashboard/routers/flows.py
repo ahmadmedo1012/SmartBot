@@ -29,7 +29,7 @@ from _utils import iso_z
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from flow_engine import validate_flow_graph, validate_flow_structure
-from models import Flow, FlowExecution, Message, User
+from models import Conversation, Flow, FlowExecution, Message, Subscriber, User
 from sqlalchemy import func, select
 
 from routers.auth import get_current_user, require_role
@@ -43,14 +43,47 @@ ST_CYCLE = {"draft": "active", "active": "paused", "paused": "active"}
 
 @router.get("/api/flows")
 async def list_flows(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    rows = await db.execute(select(Flow).where(Flow.tenant_id == current_user._tenant_id).order_by(Flow.created_at.desc()))
+    flows = (await db.execute(
+        select(Flow).where(Flow.tenant_id == current_user._tenant_id)
+        .order_by(Flow.created_at.desc())
+    )).scalars().all()
+    # P45-W1 (Initiative A) — each flow's LAST execution summary (additive
+    # aggregate): one grouped max(id) query + one IN fetch (the D-09/D-12
+    # doctrine — never per-flow queries on the list path). Before this, no
+    # list-level surface existed for "failing since X": the audit finding.
+    last_ids: dict[int, int] = {}
+    if flows:
+        last_ids = dict((await db.execute(
+            select(FlowExecution.flow_id, func.max(FlowExecution.id))
+            .where(FlowExecution.tenant_id == current_user._tenant_id,
+                   FlowExecution.flow_id.in_([f.id for f in flows]))
+            .group_by(FlowExecution.flow_id)
+        )).all())
+    last_execs: dict[int, FlowExecution] = {}
+    if last_ids:
+        for ex in (await db.execute(
+            select(FlowExecution).where(FlowExecution.id.in_(last_ids.values()))
+        )).scalars().all():
+            last_execs[ex.flow_id] = ex
+
+    def _last_summary(f: Flow) -> dict | None:
+        ex = last_execs.get(f.id)
+        if ex is None:
+            return None
+        return {
+            "id": ex.id, "status": ex.status,
+            "started_at": iso_z(ex.started_at),
+            "finished_at": iso_z(ex.completed_at),
+        }
+
     return ok(
         [{
         "id": f.id, "name": f.name, "description": f.description,
         "status": f.status, "version": f.version, "total_replies": f.total_replies,
         "created_at": iso_z(f.created_at),
         "updated_at": iso_z(f.updated_at),
-    } for f in rows.scalars().all()]
+        "last_execution": _last_summary(f),
+    } for f in flows]
     )
 
 
@@ -238,6 +271,11 @@ async def list_flow_executions(flow_id: int, db=Depends(get_db),
     ``status`` filters active/completed/failed/expired; every row carries
     its live resume point + error_log so the dashboard renders WHY a run
     died, not just that it did.
+
+    P45-W1 (Initiative A) — additive joins: ``subscriber_name`` (WHO ran)
+    and ``fb_conversation_id`` (WHERE — the deep-link id for «افتح في
+    الوارد»). Batched IN lookups per page, both tenant-scoped; rows whose
+    subscriber/conversation were pruned carry honest empty strings.
     """
     flow = (await db.execute(
         select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
@@ -256,12 +294,36 @@ async def list_flow_executions(flow_id: int, db=Depends(get_db),
         base.order_by(FlowExecution.id.desc())
         .offset((page - 1) * per_page).limit(per_page)
     )).scalars().all()
+
+    # P45-W1: batched tenant-scoped lookups for the page's rows (one query
+    # each — the D-09/D-12 doctrine).
+    sub_names: dict[int, str] = {}
+    sub_ids = {ex.subscriber_id for ex in rows if ex.subscriber_id}
+    if sub_ids:
+        for sid, sname, sfirst in (await db.execute(
+            select(Subscriber.id, Subscriber.name, Subscriber.first_name).where(
+                Subscriber.tenant_id == current_user._tenant_id,
+                Subscriber.id.in_(sub_ids))
+        )).all():
+            sub_names[sid] = sname or sfirst or ""
+    fb_conv_ids: dict[int, str] = {}
+    conv_ids = {ex.conversation_id for ex in rows if ex.conversation_id}
+    if conv_ids:
+        for cid, fbcid in (await db.execute(
+            select(Conversation.id, Conversation.fb_conversation_id).where(
+                Conversation.tenant_id == current_user._tenant_id,
+                Conversation.id.in_(conv_ids))
+        )).all():
+            fb_conv_ids[cid] = fbcid
+
     return ok({
         "items": [{
             "id": ex.id,
             "status": ex.status,
             "subscriber_id": ex.subscriber_id,
+            "subscriber_name": sub_names.get(ex.subscriber_id, "") if ex.subscriber_id else "",
             "conversation_id": ex.conversation_id,
+            "fb_conversation_id": fb_conv_ids.get(ex.conversation_id, "") if ex.conversation_id else "",
             "trigger_type": ex.trigger_type,
             "current_node_id": ex.current_node_id,
             "resume_at": iso_z(ex.resume_at),

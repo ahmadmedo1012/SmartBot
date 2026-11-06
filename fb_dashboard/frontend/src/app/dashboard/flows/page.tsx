@@ -32,13 +32,14 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  AlertCircle, Crown, GitBranch, Pencil, Plus, RefreshCw, Trash2,
+  AlertCircle, Copy, Crown, GitBranch, Pencil, Plus, RefreshCw, Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { pillClasses } from "@/components/shared/pills"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { apiFetch } from "@/lib/csrf-client"
@@ -46,7 +47,8 @@ import { unwrapApi } from "@/lib/api"
 import { brandedToast } from "@/lib/premium-toast"
 import { isPlanLocked } from "@/app/dashboard/analytics/plan-lock"
 import { countPhrase, formatDateOnly, formatNumber } from "@/lib/format"
-import { FlowStudio, STATUS_LABEL, type FlowRow, type FlowStats } from "./FlowStudio"
+import { FlowStudio, STATUS_LABEL, type FlowDetail, type FlowRow, type FlowStats } from "./FlowStudio"
+import { FLOW_TEMPLATES } from "./templates"
 
 /* ── عقد الإحصاءات للبطاقة (GET /api/flows/{id}/stats) ─────────────────── */
 
@@ -118,16 +120,27 @@ function CreateFlowDialog({
   const [description, setDescription] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [planLocked, setPlanLocked] = useState<string | null>(null)
+  /* P45-W1 (تمديد الاستوديو): قالب الانطلاق — "blank" = مسودة فارغة
+   * (العقد الأصلي)، وإلا فالقالب المُعلّب يملأ nodes/edges مسبقًا. */
+  const [templateId, setTemplateId] = useState("blank")
+  const tplSelected = FLOW_TEMPLATES.find((t) => t.id === templateId) ?? null
 
   const createMut = useMutation({
-    /* مسودة فارغة: nodes/edges يبدآن فارغين (الخدمة تسمح) والتصميم في المحرر */
+    /* مسودة فارغة أو معبّأة من قالب — كلاهما عبر POST نفسه (nodes/edges
+     * تتحقق الخدمة من بنيتها عند الإنشاء). */
     mutationFn: () =>
       apiFetch("/api/flows", {
         method: "POST",
-        body: JSON.stringify({ name: name.trim(), description: description.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim(),
+          ...(tplSelected ? { nodes: tplSelected.nodes, edges: tplSelected.edges } : {}),
+        }),
       }).then(unwrapApi<{ id: number }>),
     onSuccess: (d) => {
-      brandedToast.success("تم إنشاء المسودة — صمّم الخطوات وانشرها")
+      brandedToast.success(tplSelected
+        ? "أُنشئ التدفق من القالب — عدّله في الاستوديو ثم انشره"
+        : "تم إنشاء المسودة — صمّم الخطوات وانشرها")
       onCreated(Number(d?.id))
     },
     onError: (e: Error) => {
@@ -167,6 +180,37 @@ function CreateFlowDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+            {/* P45-W1: قوالب الانطلاق — رقائق pill نفسها (44px)، والاختيار
+                يغيّر نص الحوار بصدق (المسودة الفارغة أو القالب المعبّأ). */}
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium">ابدأ من</p>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="قوالب الانطلاق">
+                <button
+                  type="button"
+                  onClick={() => setTemplateId("blank")}
+                  aria-pressed={templateId === "blank"}
+                  className={pillClasses(templateId === "blank", "min-h-11 px-3.5")}
+                >
+                  مسودة فارغة
+                </button>
+                {FLOW_TEMPLATES.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTemplateId(t.id)}
+                    aria-pressed={templateId === t.id}
+                    className={pillClasses(templateId === t.id, "min-h-11 px-3.5")}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground" aria-live="polite">
+                {tplSelected
+                  ? `القالب «${tplSelected.label}» يعبّئ المشغّل والخطوات مسبقًا — ${tplSelected.hint}. عدّلها في الاستوديو بعد الإنشاء.`
+                  : "مسودة تبدأ فارغة — المشغّل والخطوات تُصمّم في الاستوديو بعد الإنشاء."}
+              </p>
+            </div>
           </>
         )}
 
@@ -201,8 +245,27 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "secondary" | "outl
   archived: "outline",
 }
 
+/* P45-W1 (المبادرة A) — ملخّص آخر تنفيذ على البطاقة: «آخر تنفيذ: فاشل».
+ * ملاحظة التدقيق: لم يكن هناك أي سطح مجمّع للفشل — تنفيذ فاشل داخل
+ * مسار منشور لم يظهر إطلاقًا في صفحة القائمة. ألقاب مذكّرة (تنفيذ
+ * مذكّر)، والبروز البصري للفشل: شريحة destructive + حد بطاقة. */
+const LAST_EXEC_LABEL: Record<string, string> = {
+  active: "جارٍ التنفيذ",
+  completed: "مكتمل",
+  failed: "فاشل",
+  expired: "منتهٍ",
+}
+
+const LAST_EXEC_VARIANT: Record<string, "info" | "success" | "destructive" | "secondary"> = {
+  active: "info",
+  completed: "success",
+  failed: "destructive",
+  expired: "secondary",
+}
+
 function FlowCard({
   flow, onOpen, confirmDelete, onArm, onConfirmDelete, onCancelDelete, deleting,
+  onDuplicate, duplicating,
 }: {
   flow: FlowRow
   onOpen: () => void
@@ -211,9 +274,14 @@ function FlowCard({
   onConfirmDelete: () => void
   onCancelDelete: () => void
   deleting: boolean
+  onDuplicate: () => void
+  duplicating: boolean
 }) {
+  const last = flow.last_execution ?? null
+  const lastStatus = last?.status ?? ""
+  const failing = lastStatus === "failed"
   return (
-    <Card>
+    <Card className={failing ? "border-destructive/40" : undefined}>
       <CardContent className="p-4 space-y-2.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0">
@@ -227,6 +295,16 @@ function FlowCard({
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1" dir="auto">{flow.description}</p>
             )}
             <FlowStatsSummary flowId={flow.id} replies={flow.total_replies ?? 0} />
+            {last && (
+              <p className="mt-1 flex flex-wrap items-center gap-1.5">
+                <Badge variant={LAST_EXEC_VARIANT[lastStatus] ?? "secondary"} className="shrink-0">
+                  آخر تنفيذ: {LAST_EXEC_LABEL[lastStatus] ?? lastStatus}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {formatDateOnly(last.finished_at ?? last.started_at) || "—"}
+                </span>
+              </p>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5">
               آخر تحديث {formatDateOnly(flow.updated_at) || "—"}
             </p>
@@ -239,6 +317,18 @@ function FlowCard({
               aria-label={`فتح محرر التدفق ${flow.name || flow.id}`}
             >
               <Pencil className="size-3.5" /> فتح المحرر
+            </Button>
+            {/* P45-W1 (تمديد الاستوديو): تكرار المسار — نسخة مسودة عبر
+                POST نفسه؛ بوابة الخطة (إنشاء) تجري على الخادم كالإنشاء. */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="size-11 p-0"
+              onClick={onDuplicate}
+              loading={duplicating}
+              aria-label={`تكرار التدفق ${flow.name || flow.id} كمسودة`}
+            >
+              <Copy className="size-3.5" aria-hidden="true" />
             </Button>
             {confirmDelete ? (
               <>
@@ -301,6 +391,29 @@ export default function FlowsPage() {
       queryClient.invalidateQueries({ queryKey: ["flows"] })
     },
     onError: (e: Error) => brandedToast.error(e.message || "تعذّر حذف التدفق"),
+  })
+
+  /* P45-W1 (تمديد الاستوديو): تكرار المسار — يجلب الرسم الكامل ثم ينشئ
+   * مسودة بنفس nodes/edges واسم « (نسخة)». بوابة has_flows تُطبّق على
+   * الخادم (إنشاء جديد) — رسالة 403 العربية تظهر كما هي. */
+  const duplicateMut = useMutation({
+    mutationFn: async (flow: FlowRow) => {
+      const detail = await apiFetch(`/api/flows/${flow.id}`).then(unwrapApi<FlowDetail>)
+      return apiFetch("/api/flows", {
+        method: "POST",
+        body: JSON.stringify({
+          name: `${detail.name || `تدفق #${flow.id}`} (نسخة)`,
+          description: detail.description ?? "",
+          nodes: Array.isArray(detail.nodes) ? detail.nodes : [],
+          edges: Array.isArray(detail.edges) ? detail.edges : [],
+        }),
+      }).then(unwrapApi<{ id: number }>)
+    },
+    onSuccess: () => {
+      brandedToast.success("أُنشئت النسخة كمسودة — افتح المحرر لضبطها")
+      queryClient.invalidateQueries({ queryKey: ["flows"] })
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر تكرار التدفق"),
   })
 
   /* المحرر يحلّ محل القائمة (نفس المسار — بلا تغيير تنقّل) */
@@ -384,6 +497,8 @@ export default function FlowsPage() {
                   onConfirmDelete={() => deleteMut.mutate(f.id)}
                   onCancelDelete={() => setConfirmDeleteId(null)}
                   deleting={deleteMut.isPending && deleteMut.variables === f.id}
+                  onDuplicate={() => duplicateMut.mutate(f)}
+                  duplicating={duplicateMut.isPending && duplicateMut.variables?.id === f.id}
                 />
               ))}
             </div>

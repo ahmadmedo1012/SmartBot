@@ -28,6 +28,7 @@
  * Mock bundle (house pattern from SequencesPage.test.tsx): QueryClientProvider,
  * premium-toast spy, next/navigation (useRouter for the lock CTA), fetch stub.
  */
+import type { ReactNode } from "react"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -51,6 +52,18 @@ vi.mock("@/lib/premium-toast", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.navPush, replace: vi.fn(), back: vi.fn() }),
+}))
+
+/* P45-W1: ExecutionsPanel's «افتح في الوارد» deep link rides next/link —
+ * mocked like MessagesPage.test (keeps the module graph free of app-router
+ * context requirements in jsdom; inert for every test that renders no
+ * Link). */
+vi.mock("next/link", () => ({
+  default: function MockLink({
+    href, children, ...rest
+  }: { href: string; children: ReactNode } & Record<string, unknown>) {
+    return <a href={href} {...rest}>{children}</a>
+  },
 }))
 
 function jsonRes(body: unknown, status = 200): Response {
@@ -96,6 +109,13 @@ const ACTIVE_FLOW = {
   total_replies: 5,
   created_at: "2026-09-01T10:00:00Z",
   updated_at: "2026-09-05T10:00:00Z",
+  /* P45-W1: أحدث تنفيذ فاشل — حالة التدقيق التي لم يكن لها سطح */
+  last_execution: {
+    id: 51,
+    status: "failed",
+    started_at: "2026-11-01T09:00:00Z",
+    finished_at: null,
+  },
 }
 
 const DRAFT_FLOW = {
@@ -520,5 +540,221 @@ describe("edit (the studio PUT contract + the P43 unrepresentable-node guard)", 
     /* الحفظ يعيد البناء من البطاقات المرئية فقط — seq-1 سقط */
     const body = api.bodiesFor("PUT /api/flows/1")[0]
     expect(body.nodes.map((n: { id: string }) => n.id).join(",")).toBe("trigger,msg-1")
+  })
+})
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * P45-W1 (المبادرة A) — عمق مراقبة التنفيذات:
+ *   - بطاقة القائمة تحمل ملخّص آخر تنفيذ («آخر تنفيذ: فاشل» + التاريخ)
+ *     من GET /api/flows — التراكيب الخلفية الجديدة
+ *   - لوحة التنفيذات: رقائق فلترة الحالة (?status=)، ترقيم (?page= عبر
+ *     TablePagination)، اسم المشترك (subscriber_name)، وزر «افتح في
+ *     الوارد» يربط المحادثة (?c=<fb_conversation_id> — مسار v24-C2)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe("P45-W1 — last-execution summary on the flow cards", () => {
+  it("a failing flow surfaces «آخر تنفيذ: فاشل» with the date — no chip for execution-less flows", async () => {
+    stubStudioList()
+    renderPage()
+
+    expect(await screen.findByText("أسعار التوصيل")).toBeInTheDocument()
+    /* the failing summary chip (ACTIVE_FLOW.last_execution.status=failed) */
+    expect(screen.getByText("آخر تنفيذ: فاشل")).toBeInTheDocument()
+    /* DRAFT_FLOW carries last_execution: null → no chip renders for it */
+    expect(screen.getAllByText(/آخر تنفيذ:/).length).toBe(1)
+  })
+
+  it("a flow with no executions renders NO chip (honest null, not a fake «لا تنفيذات»)", async () => {
+    stubFetch({
+      "GET /api/flows": () => jsonRes({
+        success: true,
+        data: [{ ...DRAFT_FLOW, last_execution: null }],
+      }),
+      "GET /api/flows/2/stats": () => jsonRes({ success: true, data: DRAFT_STATS }),
+    })
+    renderPage()
+
+    expect(await screen.findByText("ترحيب المتابعين")).toBeInTheDocument()
+    expect(screen.queryByText(/آخر تنفيذ:/)).toBeNull()
+  })
+})
+
+describe("P45-W1 — ExecutionsPanel depth (filters, pagination, subscriber, deep link)", () => {
+  const EXECS_P1 = {
+    items: [
+      {
+        id: 5, status: "failed", subscriber_id: 9, subscriber_name: "سالم الفني",
+        conversation_id: 3, fb_conversation_id: "c_fb_p45", trigger_type: "keyword",
+        current_node_id: "msg-1", resume_at: null, steps: 1,
+        error: { error: "send failed", node_id: "msg-1" },
+        started_at: "2026-11-01T09:00:00Z", completed_at: null,
+      },
+      {
+        id: 4, status: "completed", subscriber_id: 9, subscriber_name: "سالم الفني",
+        conversation_id: 3, fb_conversation_id: "c_fb_p45", trigger_type: "keyword",
+        current_node_id: "", resume_at: null, steps: 2, error: {},
+        started_at: "2026-10-31T09:00:00Z", completed_at: "2026-10-31T09:01:00Z",
+      },
+    ],
+    total: 12, page: 1, per_page: 10,
+  }
+
+  function stubExecutions(extra: Record<string, () => Response | Promise<Response>> = {}) {
+    return stubStudioList({
+      "GET /api/flows/1": () => jsonRes({ success: true, data: SIMPLE_DETAIL }),
+      "GET /api/flows/1/executions?per_page=10&page=1": () => jsonRes({ success: true, data: EXECS_P1 }),
+      ...extra,
+    })
+  }
+
+  it("renders the subscriber name and the «افتح في الوارد» deep link (?c= contract)", async () => {
+    stubExecutions()
+    renderPage()
+    await openStudio()
+
+    /* WHO ran — the joined subscriber_name (P45-W1 backend join) */
+    expect(await screen.findAllByText("سالم الفني")).not.toHaveLength(0)
+    /* WHERE — the deep link carries the FB conversation id (v24-C2 path);
+     * BOTH rows share the subscriber+conversation → two identical links */
+    const links = screen.getAllByRole("link", { name: "فتح محادثة سالم الفني في صندوق الوارد" })
+    expect(links.length).toBe(2)
+    for (const l of links) expect(l).toHaveAttribute("href", "/dashboard/messages?c=c_fb_p45")
+  })
+
+  it("the status filter chips request ?status= and reset the page", async () => {
+    const api = stubExecutions({
+      "GET /api/flows/1/executions?per_page=10&page=1&status=failed": () =>
+        jsonRes({ success: true, data: { items: [EXECS_P1.items[0]], total: 1, page: 1, per_page: 10 } }),
+    })
+    renderPage()
+    await openStudio()
+
+    const group = await screen.findByRole("group", { name: "فلترة التنفيذات حسب الحالة" })
+    expect(group).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "فاشلة" }))
+
+    await waitFor(() => {
+      const failed = api.calls.filter((c) => c.url.includes("status=failed"))
+      expect(failed.length).toBeGreaterThanOrEqual(1)
+      expect(failed[0]!.url).toBe("/api/flows/1/executions?per_page=10&page=1&status=failed")
+    }, { timeout: 5000 })
+    /* the filtered result renders (the failed row's excerpt surfaces WHY) */
+    expect(await screen.findByText(/send failed/)).toBeInTheDocument()
+  })
+
+  it("TablePagination drives ?page= (12 rows → 2 pages, «التالي» fetches page 2)", async () => {
+    const api = stubExecutions({
+      "GET /api/flows/1/executions?per_page=10&page=2": () =>
+        jsonRes({ success: true, data: { items: [{ id: 1, status: "completed", steps: 2, started_at: "2026-10-01T09:00:00Z" }], total: 12, page: 2, per_page: 10 } }),
+    })
+    renderPage()
+    await openStudio()
+
+    /* 12/10 → two pages; the shared pagination footer renders */
+    const next = await screen.findByRole("button", { name: "التالي" })
+    expect(next).toBeInTheDocument()
+    fireEvent.click(next)
+
+    await waitFor(() => {
+      const p2 = api.calls.filter((c) => c.url.includes("page=2"))
+      expect(p2.length).toBeGreaterThanOrEqual(1)
+      expect(p2[0]!.url).toBe("/api/flows/1/executions?per_page=10&page=2")
+    }, { timeout: 5000 })
+    expect(api.calls.filter((c) => c.url.includes("status=")).length).toBe(0)
+  })
+})
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * P45-W1 (تمديد الاستوديو) — تكرار المسار + قوالب الانطلاق.
+ *   - التكرار: زر البطاقة يجلب الرسم الكامل ثم ينشئ مسودة «(نسخة)» عبر
+ *     POST /api/flows نفسه (بوابة has_flows الخادمية تجري كأي إنشاء)
+ *   - القوالب: حوار الإنشاء يعبّئ nodes/edges المُعلّبة مسبقًا — نفس POST،
+ *     والافتراض (مسودة فارغة) يبقى بلا nodes/edges (عقد P43 الأصلي)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe("P45-W1 — duplicate action (copy nodes/edges to a fresh draft)", () => {
+  it("fetches the full graph then POSTs a «(نسخة)» draft with the same nodes/edges", async () => {
+    const api = stubStudioList({
+      "GET /api/flows/1": () => jsonRes({ success: true, data: SIMPLE_DETAIL }),
+      "POST /api/flows": () => jsonRes({ success: true, data: { id: 30 } }),
+    })
+    renderPage()
+
+    fireEvent.click(await screen.findByRole("button", { name: "تكرار التدفق أسعار التوصيل كمسودة" }))
+
+    await waitFor(() => expect(api.callsFor("POST /api/flows")).toHaveLength(1), { timeout: 5000 })
+    /* the copy carries the SOURCE graph verbatim + the «(نسخة)» name */
+    expect(api.bodiesFor("POST /api/flows")[0]).toEqual({
+      name: "أسعار التوصيل (نسخة)",
+      description: "يرد على أسئلة الأسعار",
+      nodes: SIMPLE_DETAIL.nodes,
+      edges: SIMPLE_DETAIL.edges,
+    })
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("أُنشئت النسخة كمسودة — افتح المحرر لضبطها")
+  })
+
+  it("a rejected duplicate surfaces the server's Arabic error (the plan gate applies)", async () => {
+    stubStudioList({
+      "POST /api/flows": () =>
+        jsonRes({ success: false, error: "التدفقات متاحة في خطة مميز أو أعلى — رقِّ خطتك" }, 403),
+    })
+    renderPage()
+
+    fireEvent.click(await screen.findByRole("button", { name: "تكرار التدفق أسعار التوصيل كمسودة" }))
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith("التدفقات متاحة في خطة مميز أو أعلى — رقِّ خطتك"))
+  })
+})
+
+describe("P45-W1 — starter templates in the create dialog", () => {
+  it("the BLANK default posts {name, description} only — the P43 contract unchanged", async () => {
+    const api = stubFetch({
+      "GET /api/flows": () => jsonRes({ success: true, data: [] }),
+      "POST /api/flows": () => jsonRes({ success: true, data: { id: 10 } }),
+      "GET /api/flows/10": () => jsonRes({
+        success: true,
+        data: { id: 10, name: "تدفق يدوي", description: "", status: "draft", nodes: [], edges: [] },
+      }),
+      "GET /api/flows/10/stats": () => jsonRes({ success: true, data: DRAFT_STATS }),
+    })
+    renderPage()
+
+    fireEvent.click(await screen.findByRole("button", { name: "تدفق جديد" }))
+    fireEvent.change(await screen.findByLabelText("اسم التدفق"), { target: { value: "تدفق يدوي" } })
+    fireEvent.click(screen.getByRole("button", { name: "إنشاء التدفق" }))
+
+    await waitFor(() => expect(api.callsFor("POST /api/flows")).toHaveLength(1), { timeout: 5000 })
+    expect(api.bodiesFor("POST /api/flows")[0]).toEqual({ name: "تدفق يدوي", description: "" })
+  })
+
+  it("picking a template posts its canned nodes/edges + the template toast", async () => {
+    const api = stubFetch({
+      "GET /api/flows": () => jsonRes({ success: true, data: [] }),
+      "POST /api/flows": () => jsonRes({ success: true, data: { id: 11 } }),
+      "GET /api/flows/11": () => jsonRes({
+        success: true,
+        data: { id: 11, name: "ترحيب", description: "", status: "draft", nodes: [], edges: [] },
+      }),
+      "GET /api/flows/11/stats": () => jsonRes({ success: true, data: DRAFT_STATS }),
+    })
+    renderPage()
+
+    fireEvent.click(await screen.findByRole("button", { name: "تدفق جديد" }))
+    /* the template picker — pick the welcome starter */
+    fireEvent.click(await screen.findByRole("button", { name: "ترحيب المتابعين" }))
+    /* the honest helper copy names the picked template */
+    expect(await screen.findByText(/القالب «ترحيب المتابعين» يعبّئ المشغّل والخطوات مسبقًا/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText("اسم التدفق"), { target: { value: "ترحيب" } })
+    fireEvent.click(screen.getByRole("button", { name: "إنشاء التدفق" }))
+
+    await waitFor(() => expect(api.callsFor("POST /api/flows")).toHaveLength(1), { timeout: 5000 })
+    const body = api.bodiesFor("POST /api/flows")[0]
+    expect(body.name).toBe("ترحيب")
+    /* the canned graph rides along — trigger → message → goal chain */
+    const { FLOW_TEMPLATES } = await import("@/app/dashboard/flows/templates")
+    const welcome = FLOW_TEMPLATES.find((t) => t.id === "welcome")!
+    expect(body.nodes).toEqual(welcome.nodes)
+    expect(body.edges).toEqual(welcome.edges)
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("أُنشئ التدفق من القالب — عدّله في الاستوديو ثم انشره")
   })
 })

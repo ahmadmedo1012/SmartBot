@@ -27,7 +27,7 @@ sentry-sdk[fastapi]>=2.19.0        # v6 §C — error tracking (Sentry OR Glitch
 # (D7-F3: cold alarm). The engine itself probes availability and falls back
 # to fpdf2 when missing — but the guard needs the real library. The plan
 # grants this as the one documented new dependency (v15 §3).
-fpdf2>=2.8.2,<3                    # v22 (D9-F1): the PDF FALLBACK engine — was undeclared, so CI AND
+fpdf2>=2.9.0,<3                    # v22 (D9-F1): the PDF FALLBACK engine — was undeclared, so CI AND
                                    # Vercel had NO fpdf: the fallback was structurally dead in every
                                    # deployed environment (tests passed only where an agent had
                                    # hand-installed it). Declared now: reports degrade honestly AND
